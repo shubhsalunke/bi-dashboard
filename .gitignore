@@ -12,7 +12,6 @@ dist/
 build/
 
 # Environment files
-.env
 .env.local
 .env.production
 .env.test
@@ -29,3 +28,9 @@ yarn-error.log*
 Thumbs.db
 .vscode/
 .idea/
+
+.env
+.env.*
+!.env.example
+backend/.env
+frontend/.env

@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 export const Modal = ({ isOpen, onClose, title, children, footer = null, maxWidth = '600px' }) => {
@@ -8,14 +9,22 @@ export const Modal = ({ isOpen, onClose, title, children, footer = null, maxWidt
         onClose();
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      window.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
-  return (
-    <div className="modal-overlay" onClick={onClose}>
+  const modalElement = (
+    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true">
       <div
         className="modal-dialog"
         style={{ maxWidth }}
@@ -32,6 +41,10 @@ export const Modal = ({ isOpen, onClose, title, children, footer = null, maxWidt
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined'
+    ? createPortal(modalElement, document.body)
+    : modalElement;
 };
 
 export default Modal;

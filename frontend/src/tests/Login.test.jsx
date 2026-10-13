@@ -36,7 +36,7 @@ describe('Login Page Component', () => {
   it('renders login form elements and quick fill buttons', () => {
     renderLogin();
 
-    expect(screen.getByText('OmniIntel BI')).toBeInTheDocument();
+    expect(screen.getByText('Smart BI')).toBeInTheDocument();
     expect(screen.getByLabelText(/Email Address/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Password/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Sign in to Workspace/i })).toBeInTheDocument();

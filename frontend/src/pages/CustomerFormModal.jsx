@@ -91,9 +91,9 @@ export const CustomerFormModal = ({ isOpen, onClose, customer = null, onSaved })
         </>
       }
     >
-      <form id="customer-form" onSubmit={handleSubmit}>
+      <form id="customer-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-          <div className="form-group">
+          <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label">Customer Code *</label>
             <input
               type="text"
@@ -106,7 +106,7 @@ export const CustomerFormModal = ({ isOpen, onClose, customer = null, onSaved })
             {errors.customer_code && <div className="form-error">{errors.customer_code}</div>}
           </div>
 
-          <div className="form-group">
+          <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label">Company / Client Name *</label>
             <input
               type="text"
@@ -121,7 +121,7 @@ export const CustomerFormModal = ({ isOpen, onClose, customer = null, onSaved })
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-          <div className="form-group">
+          <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label">Primary Email *</label>
             <input
               type="email"
@@ -134,7 +134,7 @@ export const CustomerFormModal = ({ isOpen, onClose, customer = null, onSaved })
             {errors.email && <div className="form-error">{errors.email}</div>}
           </div>
 
-          <div className="form-group">
+          <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label">Phone Number</label>
             <input
               type="text"
@@ -147,7 +147,7 @@ export const CustomerFormModal = ({ isOpen, onClose, customer = null, onSaved })
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-          <div className="form-group">
+          <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label">City *</label>
             <input
               type="text"
@@ -160,7 +160,7 @@ export const CustomerFormModal = ({ isOpen, onClose, customer = null, onSaved })
             {errors.city && <div className="form-error">{errors.city}</div>}
           </div>
 
-          <div className="form-group">
+          <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label">Status</label>
             <select
               className="form-control"

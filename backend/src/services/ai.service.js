@@ -27,7 +27,7 @@ class AiService {
         suggestions: intentData.suggestions,
         reportTitle:
           intentData.intent === 'GREETING'
-            ? 'OmniIntel BI Assistant'
+            ? 'Smart BI Assistant'
             : intentData.intent === 'SECURITY_BLOCKED'
             ? 'Security Policy Notice'
             : 'Supported Queries Guidance',

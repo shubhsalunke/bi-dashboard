@@ -13,29 +13,61 @@ class AiProviderService {
       return reportData.error || 'Arbitrary database modification commands are prohibited.';
     }
 
-    // If intent was unsupported
+    // If intent was unsupported (Casual / General queries like "best song ?", "tell me a joke")
     if (reportData.intent === 'UNSUPPORTED') {
-      return (
-        "I specialize in analyzing business intelligence data from verified live business records. " +
-        "Your question does not match a supported reporting operation. Here are examples of questions you can ask:\n" +
-        "• What were total sales last month?\n" +
-        "• Show the top 10 customers by sales\n" +
-        "• Which product generated the highest revenue?\n" +
-        "• Compare this month with the previous month\n" +
-        "• Give me city-wise sales for the last three months\n" +
-        "• Summarize business performance for the current quarter\n" +
-        "• Which customers have reduced their purchases?"
-      );
+      if (provider === 'gemini') {
+        try {
+          const liveAnswer = await this.callGemini(question, reportData);
+          if (liveAnswer && liveAnswer.trim().length > 0) {
+            return (
+              `${liveAnswer}\n\n` +
+              `💡 Note: This question does not match a supported reporting operation. As your Smart BI Copilot, I also specialize in live sales, customer analytics, and revenue trends.`
+            );
+          }
+        } catch {
+          // Graceful fallback to general answer
+        }
+      }
+      if (provider === 'openai') {
+        try {
+          const liveAnswer = await this.callOpenAi(question, reportData);
+          if (liveAnswer && liveAnswer.trim().length > 0) {
+            return (
+              `${liveAnswer}\n\n` +
+              `💡 Note: This question does not match a supported reporting operation. As your Smart BI Copilot, I also specialize in live sales, customer analytics, and revenue trends.`
+            );
+          }
+        } catch {
+          // Graceful fallback to general answer
+        }
+      }
+      return this.generateGeneralAnswer(question);
     }
 
     // If provider is Gemini
     if (provider === 'gemini') {
-      return this.callGemini(question, reportData);
+      try {
+        return await this.callGemini(question, reportData);
+      } catch (err) {
+        if (process.env.NODE_ENV === 'test') {
+          throw err;
+        }
+        console.warn(`[AI Provider] Gemini API request failed (${err.message}). Seamlessly falling back to database ground-truth response.`);
+        return this.generateMockExplanation(question, reportData);
+      }
     }
 
     // If provider is OpenAI
     if (provider === 'openai') {
-      return this.callOpenAi(question, reportData);
+      try {
+        return await this.callOpenAi(question, reportData);
+      } catch (err) {
+        if (process.env.NODE_ENV === 'test') {
+          throw err;
+        }
+        console.warn(`[AI Provider] OpenAI API request failed (${err.message}). Seamlessly falling back to database ground-truth response.`);
+        return this.generateMockExplanation(question, reportData);
+      }
     }
 
     // Mock Provider (Deterministic ground-truth generation)
@@ -55,7 +87,7 @@ class AiProviderService {
       );
     }
 
-    const systemInstruction = `You are OmniIntel BI, an executive business intelligence AI assistant.
+    const systemInstruction = `You are Smart BI, an executive business intelligence AI assistant.
 Answer the user's question concisely using ONLY the provided verified business records below.
 Rules:
 1. Ground every claim directly in the provided dataset. Never fabricate or hallucinate numbers, dates, customers, or products not in the dataset.
@@ -63,7 +95,10 @@ Rules:
 3. Be professional, direct, executive-ready, and concise (under 4 sentences).
 4. Do not include markdown code fences in your response.`;
 
-    const userPrompt = `User Question: "${question}"
+    const isGeneral = reportData.intent === 'UNSUPPORTED';
+    const userPrompt = isGeneral
+      ? `User Question: "${question}"\n\nProvide a helpful, friendly, and concise answer in 2-3 sentences:`
+      : `User Question: "${question}"
 
 Verified Database Report: "${reportData.reportTitle || 'Business Data'}"
 Summary Metrics: ${JSON.stringify(reportData.summaryMetrics || {})}
@@ -76,14 +111,24 @@ Provide a concise, executive-level explanation grounded entirely in this data:`;
     const timeoutMs = config.ai?.timeoutMs || 15000;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const isBearerToken = apiKey.startsWith('AQ.') || apiKey.startsWith('ya29.');
+      const url = isBearerToken
+        ? `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
+        : `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+      if (isBearerToken) {
+        headers['Authorization'] = `Bearer ${apiKey}`;
+      } else {
+        headers['x-goog-api-key'] = apiKey;
+      }
+
       const response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           systemInstruction: {
             parts: [{ text: systemInstruction }],
@@ -151,7 +196,7 @@ Provide a concise, executive-level explanation grounded entirely in this data:`;
       );
     }
 
-    const systemPrompt = `You are OmniIntel BI, an executive business intelligence AI assistant.
+    const systemPrompt = `You are Smart BI, an executive business intelligence AI assistant.
 Answer the user's question concisely using ONLY the provided verified business records below.
 Rules:
 1. Never fabricate or hallucinate numbers, dates, customers, or products not in the dataset.
@@ -295,12 +340,48 @@ Provide a concise, executive-level explanation grounded entirely in this data:`;
       }
 
       case 'UNSUPPORTED': {
-        return "I couldn't identify a specific reporting metric for that question. You can ask about total sales, top customers, revenue products, month-over-month growth, or city performance.";
+        return this.generateGeneralAnswer(question);
       }
 
       default:
         return `Report "${reportTitle}" compiled from ${rows?.length || 0} verified database records.`;
     }
+  }
+
+  /**
+   * Intelligently answer casual and general questions (e.g. "best song?", "tell me a joke", "who are you")
+   * while also gently reminding the user about business analytics capabilities.
+   */
+  generateGeneralAnswer(question) {
+    const q = (question || '').toLowerCase().trim();
+    let directAnswer = '';
+
+    if (q.includes('song') || q.includes('music') || q.includes('track') || q.includes('singer') || q.includes('album')) {
+      directAnswer = "While musical taste is personal, globally acclaimed masterworks across genres include Queen's \"Bohemian Rhapsody\", Led Zeppelin's \"Stairway to Heaven\", John Lennon's \"Imagine\", and Michael Jackson's \"Billie Jean\".";
+    } else if (q.includes('weather') || q.includes('climate') || q.includes('temperature') || q.includes('rain')) {
+      directAnswer = "I don't have access to live meteorological sensors or weather satellite feeds.";
+    } else if (q.includes('joke') || q.includes('funny') || q.includes('laugh')) {
+      directAnswer = "Why did the database administrator walk out of the restaurant? Because they had no tables!";
+    } else if (q.includes('movie') || q.includes('film') || q.includes('cinema')) {
+      directAnswer = "Classic cinematic masterpieces frequently cited include The Godfather, The Shawshank Redemption, Inception, and Interstellar.";
+    } else if (q.includes('who are you') || q.includes('what are you') || q.includes('what do you do')) {
+      directAnswer = "I am OmniIntel BI Copilot, your AI assistant designed for business operations, revenue analysis, and customer intelligence.";
+    } else if (q.includes('book') || q.includes('author') || q.includes('read')) {
+      directAnswer = "Highly recommended classics include 'To Kill a Mockingbird' by Harper Lee, '1984' by George Orwell, and 'Thinking, Fast and Slow' by Daniel Kahneman.";
+    } else {
+      directAnswer = `I received your question: "${question}". While I can engage in general discussion, I am primarily specialized in business operations and analytics.`;
+    }
+
+    return (
+      `${directAnswer}\n\n` +
+      `💡 Note: This question does not match a supported reporting operation. Here are examples of verified business queries you can ask me:\n` +
+      `• What were total sales last month?\n` +
+      `• Show the top 10 customers by sales\n` +
+      `• Which product generated the highest revenue?\n` +
+      `• Compare this month with the previous month\n` +
+      `• Give me city-wise sales for the last three months\n` +
+      `• Summarize business performance for the current quarter`
+    );
   }
 }
 

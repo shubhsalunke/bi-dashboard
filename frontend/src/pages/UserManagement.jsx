@@ -203,39 +203,29 @@ export const UserManagement = () => {
   const getRoleBadge = (role) => {
     switch (role) {
       case 'admin':
-        return <Badge variant="danger">Admin</Badge>;
+        return <Badge variant="admin">Admin</Badge>;
       case 'manager':
-        return <Badge variant="primary">Manager</Badge>;
+        return <Badge variant="manager">Manager</Badge>;
       case 'analyst':
-        return <Badge variant="neutral">Analyst</Badge>;
+        return <Badge variant="analyst">Analyst</Badge>;
       default:
-        return <Badge variant="neutral">{role}</Badge>;
+        return <Badge status="default">{role}</Badge>;
     }
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {/* Page Header */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          flexWrap: 'wrap',
-          gap: 'var(--space-4)',
-        }}
-      >
+      <div className="page-header">
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-            <h1 style={{ fontSize: 'var(--font-2xl)', fontWeight: 700, margin: 0 }}>
-              User & Role Management
-            </h1>
-            <Badge variant="danger">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <h2 style={{ margin: 0 }}>User & Role Management</h2>
+            <Badge variant="admin">
               <Shield size={12} style={{ display: 'inline', marginRight: 4 }} />
               Admin Only
             </Badge>
           </div>
-          <p style={{ color: 'var(--color-text-secondary)', margin: 'var(--space-1) 0 0 0', fontSize: 'var(--font-sm)' }}>
+          <p className="page-subtitle">
             Manage staff accounts, assign granular role permissions, and inspect system audit trail.
           </p>
         </div>
@@ -245,7 +235,7 @@ export const UserManagement = () => {
             type="button"
             className="btn btn-primary"
             onClick={handleOpenCreate}
-            style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
           >
             <UserPlus size={16} />
             <span>Add User</span>
@@ -254,81 +244,41 @@ export const UserManagement = () => {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 'var(--space-2)', borderBottom: '1px solid var(--color-border)' }}>
+      <div style={{ display: 'flex', gap: '10px' }}>
         <button
           type="button"
+          className={`btn btn-sm ${activeTab === 'users' ? 'btn-primary' : 'btn-secondary'}`}
           onClick={() => setActiveTab('users')}
-          style={{
-            padding: 'var(--space-2) var(--space-4)',
-            fontSize: 'var(--font-sm)',
-            fontWeight: 600,
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            borderBottom: activeTab === 'users' ? '2px solid var(--color-primary)' : '2px solid transparent',
-            color: activeTab === 'users' ? 'var(--color-primary)' : 'var(--color-text-secondary)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--space-2)',
-          }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
         >
-          <Users size={16} />
+          <Users size={15} />
           <span>Active Users ({users.length})</span>
         </button>
 
         <button
           type="button"
+          className={`btn btn-sm ${activeTab === 'audit' ? 'btn-primary' : 'btn-secondary'}`}
           onClick={() => setActiveTab('audit')}
-          style={{
-            padding: 'var(--space-2) var(--space-4)',
-            fontSize: 'var(--font-sm)',
-            fontWeight: 600,
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            borderBottom: activeTab === 'audit' ? '2px solid var(--color-primary)' : '2px solid transparent',
-            color: activeTab === 'audit' ? 'var(--color-primary)' : 'var(--color-text-secondary)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--space-2)',
-          }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
         >
-          <Activity size={16} />
+          <Activity size={15} />
           <span>Audit Logs</span>
         </button>
       </div>
 
       {/* TAB 1: USERS DIRECTORY */}
       {activeTab === 'users' && (
-        <div className="card" style={{ padding: 0 }}>
+        <div>
           {/* Search bar */}
-          <div
-            style={{
-              padding: 'var(--space-4)',
-              borderBottom: '1px solid var(--color-border)',
-              display: 'flex',
-              gap: 'var(--space-3)',
-              alignItems: 'center',
-            }}
-          >
-            <div style={{ position: 'relative', flex: 1, maxWidth: 360 }}>
-              <Search
-                size={16}
-                style={{
-                  position: 'absolute',
-                  left: 'var(--space-3)',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: 'var(--color-text-muted)',
-                }}
-              />
+          <div className="filter-bar">
+            <div className="search-input-wrapper">
+              <Search size={16} className="search-icon" />
               <input
                 type="text"
                 placeholder="Search users by name, email, or role..."
                 value={userSearch}
                 onChange={(e) => setUserSearch(e.target.value)}
-                className="input"
-                style={{ paddingLeft: 'var(--space-9)' }}
+                className="form-control search-input"
               />
             </div>
             <button
@@ -336,28 +286,36 @@ export const UserManagement = () => {
               className="btn btn-secondary"
               onClick={loadUsers}
               title="Refresh list"
-              style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
             >
               <RefreshCw size={15} />
+              <span>Refresh</span>
             </button>
           </div>
 
           {/* Table */}
           {loadingUsers ? (
-            <div style={{ padding: 'var(--space-4)' }}>
-              <LoadingSkeleton count={4} height={48} />
+            <div style={{ padding: '24px 0' }}>
+              <LoadingSkeleton count={5} height={52} />
             </div>
           ) : filteredUsers.length === 0 ? (
-            <div style={{ padding: 'var(--space-6)' }}>
-              <EmptyState
-                icon={Users}
-                title="No users found"
-                description={userSearch ? 'No accounts matched your search.' : 'No system users found.'}
-              />
-            </div>
+            <EmptyState
+              title="No users found"
+              message={userSearch ? 'No accounts matched your search criteria.' : 'No system users found.'}
+              action={
+                userSearch && (
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setUserSearch('')}
+                  >
+                    Clear Search
+                  </button>
+                )
+              }
+            />
           ) : (
-            <div className="table-container" style={{ margin: 0, border: 'none' }}>
-              <table className="table">
+            <div className="table-responsive">
+              <table className="data-table">
                 <thead>
                   <tr>
                     <th>User</th>
@@ -371,70 +329,66 @@ export const UserManagement = () => {
                 <tbody>
                   {filteredUsers.map((u) => (
                     <tr key={u.id}>
-                      <td style={{ fontWeight: 600 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           <div
                             style={{
-                              width: 32,
-                              height: 32,
-                              borderRadius: 'var(--radius-full)',
-                              background: 'var(--color-primary-light, #e0e7ff)',
-                              color: 'var(--color-primary)',
+                              width: 34,
+                              height: 34,
+                              borderRadius: '50%',
+                              background: 'var(--primary-glow)',
+                              color: 'var(--primary)',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               fontWeight: 700,
-                              fontSize: 'var(--font-xs)',
+                              fontSize: '0.8125rem',
+                              border: '1px solid rgba(37, 99, 235, 0.2)',
+                              flexShrink: 0,
                             }}
                           >
                             {u.name.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <div>{u.name}</div>
+                            <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{u.name}</div>
                             {currentUser && currentUser.id === u.id && (
-                              <span style={{ fontSize: '10px', color: 'var(--color-primary)', fontWeight: 600 }}>
+                              <span style={{ fontSize: '0.6875rem', color: 'var(--primary)', fontWeight: 600 }}>
                                 (You)
                               </span>
                             )}
                           </div>
                         </div>
                       </td>
-                      <td>{u.email}</td>
+                      <td style={{ color: 'var(--text-muted)' }}>{u.email}</td>
                       <td>{getRoleBadge(u.role)}</td>
                       <td>
-                        {u.is_active ? (
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--color-success)', fontSize: 'var(--font-xs)', fontWeight: 600 }}>
-                            <CheckCircle size={14} /> Active
-                          </span>
-                        ) : (
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--color-danger)', fontSize: 'var(--font-xs)', fontWeight: 600 }}>
-                            <XCircle size={14} /> Inactive
-                          </span>
-                        )}
+                        <Badge status={u.is_active ? 'active' : 'inactive'} />
                       </td>
-                      <td style={{ fontSize: 'var(--font-xs)', color: 'var(--color-text-secondary)' }}>
+                      <td style={{ fontSize: '0.8125rem', color: 'var(--text-dim)' }}>
                         {new Date(u.created_at).toLocaleDateString()}
                       </td>
                       <td style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
                           <button
                             type="button"
-                            className="btn btn-secondary"
-                            style={{ padding: 'var(--space-1) var(--space-2)', fontSize: 'var(--font-xs)' }}
+                            className="btn btn-secondary btn-sm"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
                             onClick={() => handleOpenEdit(u)}
                             title="Edit User"
                           >
-                            <Edit2 size={13} /> Edit
+                            <Edit2 size={13} />
+                            <span>Edit</span>
                           </button>
                           {currentUser && currentUser.id !== u.id && u.is_active && (
                             <button
                               type="button"
-                              className="btn btn-danger"
-                              style={{ padding: 'var(--space-1) var(--space-2)', fontSize: 'var(--font-xs)' }}
+                              className="btn btn-danger btn-sm"
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
                               onClick={() => setUserToDeactivate(u)}
                               title="Deactivate User"
                             >
-                              <Trash2 size={13} /> Deactivate
+                              <Trash2 size={13} />
+                              <span>Deactivate</span>
                             </button>
                           )}
                         </div>
@@ -450,48 +404,40 @@ export const UserManagement = () => {
 
       {/* TAB 2: AUDIT LOGS */}
       {activeTab === 'audit' && (
-        <div className="card" style={{ padding: 0 }}>
-          <div
-            style={{
-              padding: 'var(--space-4)',
-              borderBottom: '1px solid var(--color-border)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
+        <div>
+          <div className="filter-bar" style={{ justifyContent: 'space-between' }}>
             <div>
-              <h3 style={{ fontSize: 'var(--font-base)', fontWeight: 600, margin: 0 }}>System Security Audit Trail</h3>
-              <p style={{ fontSize: 'var(--font-xs)', color: 'var(--color-text-secondary)', margin: '2px 0 0 0' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: 'var(--text-main)' }}>
+                System Security Audit Trail
+              </h3>
+              <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
                 Immutable ledger of critical system changes, authentication events, and administrative actions.
               </p>
             </div>
             <button
               type="button"
-              className="btn btn-secondary"
+              className="btn btn-secondary btn-sm"
               onClick={() => loadLogs(logPagination.page)}
-              style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
             >
-              <RefreshCw size={14} /> Refresh
+              <RefreshCw size={14} />
+              <span>Refresh</span>
             </button>
           </div>
 
           {loadingLogs ? (
-            <div style={{ padding: 'var(--space-4)' }}>
+            <div style={{ padding: '24px 0' }}>
               <LoadingSkeleton count={6} height={44} />
             </div>
           ) : logs.length === 0 ? (
-            <div style={{ padding: 'var(--space-6)' }}>
-              <EmptyState
-                icon={Activity}
-                title="No audit entries"
-                description="No system audit events recorded yet."
-              />
-            </div>
+            <EmptyState
+              title="No audit entries"
+              message="No system audit events recorded in database yet."
+            />
           ) : (
             <>
-              <div className="table-container" style={{ margin: 0, border: 'none' }}>
-                <table className="table">
+              <div className="table-responsive">
+                <table className="data-table">
                   <thead>
                     <tr>
                       <th>Timestamp</th>
@@ -505,10 +451,10 @@ export const UserManagement = () => {
                   <tbody>
                     {logs.map((log) => (
                       <tr key={log.id}>
-                        <td style={{ fontSize: 'var(--font-xs)', color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>
+                        <td style={{ fontSize: '0.8125rem', color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>
                           {new Date(log.created_at).toLocaleString()}
                         </td>
-                        <td style={{ fontWeight: 600, fontSize: 'var(--font-xs)' }}>
+                        <td style={{ fontWeight: 600, fontSize: '0.8125rem', color: 'var(--text-main)' }}>
                           {log.user_email || `User #${log.user_id}` || 'System'}
                         </td>
                         <td>
@@ -524,13 +470,13 @@ export const UserManagement = () => {
                             {log.action}
                           </Badge>
                         </td>
-                        <td style={{ fontSize: 'var(--font-xs)', fontWeight: 600 }}>
+                        <td style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-muted)' }}>
                           {log.entity} #{log.entity_id || '-'}
                         </td>
-                        <td style={{ fontSize: 'var(--font-xs)', maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <td style={{ fontSize: '0.8125rem', maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-muted)' }}>
                           {log.details ? JSON.stringify(log.details) : '-'}
                         </td>
-                        <td style={{ fontSize: 'var(--font-xs)', color: 'var(--color-text-muted)' }}>
+                        <td style={{ fontSize: '0.8125rem', color: 'var(--text-dim)' }}>
                           {log.ip_address || '127.0.0.1'}
                         </td>
                       </tr>
@@ -540,7 +486,7 @@ export const UserManagement = () => {
               </div>
 
               {logPagination.totalPages > 1 && (
-                <div style={{ padding: 'var(--space-4)', borderTop: '1px solid var(--color-border)' }}>
+                <div style={{ marginTop: '16px' }}>
                   <Pagination
                     currentPage={logPagination.page}
                     totalPages={logPagination.totalPages}
@@ -559,40 +505,40 @@ export const UserManagement = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingUser ? `Edit User: ${editingUser.name}` : 'Create New User'}
+        title={editingUser ? `Edit User: ${editingUser.name}` : 'Create New User Account'}
       >
-        <form onSubmit={handleSubmitUser} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-          <div>
+        <form onSubmit={handleSubmitUser} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label" htmlFor="user-name">Full Name *</label>
             <input
               id="user-name"
               type="text"
-              className="input"
+              className="form-control"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="e.g. Alex Johnson"
             />
-            {formErrors.name && <span className="form-error">{formErrors.name}</span>}
+            {formErrors.name && <div className="form-error">{formErrors.name}</div>}
           </div>
 
-          <div>
+          <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label" htmlFor="user-email">Email Address *</label>
             <input
               id="user-email"
               type="email"
-              className="input"
+              className="form-control"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               placeholder="e.g. alex@bi.corp"
             />
-            {formErrors.email && <span className="form-error">{formErrors.email}</span>}
+            {formErrors.email && <div className="form-error">{formErrors.email}</div>}
           </div>
 
-          <div>
+          <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label" htmlFor="user-role">Assigned Role *</label>
             <select
               id="user-role"
-              className="select"
+              className="form-control"
               value={formData.role}
               onChange={(e) => setFormData({ ...formData, role: e.target.value })}
             >
@@ -600,25 +546,25 @@ export const UserManagement = () => {
               <option value="manager">Manager (Manage customers, products, and record sales)</option>
               <option value="admin">Administrator (Full administrative access & user control)</option>
             </select>
-            {formErrors.role && <span className="form-error">{formErrors.role}</span>}
+            {formErrors.role && <div className="form-error">{formErrors.role}</div>}
           </div>
 
-          <div>
+          <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label" htmlFor="user-password">
               {editingUser ? 'Password (leave blank to keep unchanged)' : 'Password *'}
             </label>
             <input
               id="user-password"
               type="password"
-              className="input"
+              className="form-control"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               placeholder={editingUser ? '••••••••' : 'Enter strong password (min 6 chars)'}
             />
-            {formErrors.password && <span className="form-error">{formErrors.password}</span>}
+            {formErrors.password && <div className="form-error">{formErrors.password}</div>}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0' }}>
             <input
               type="checkbox"
               id="user-is-active"
@@ -626,12 +572,12 @@ export const UserManagement = () => {
               onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
               style={{ width: 16, height: 16, cursor: 'pointer' }}
             />
-            <label htmlFor="user-is-active" style={{ fontSize: 'var(--font-sm)', fontWeight: 500, cursor: 'pointer' }}>
+            <label htmlFor="user-is-active" style={{ fontSize: '0.875rem', fontWeight: 500, cursor: 'pointer', color: 'var(--text-main)' }}>
               Account is Active and authorized to log in
             </label>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-3)', marginTop: 'var(--space-4)' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px' }}>
             <button
               type="button"
               className="btn btn-secondary"
@@ -653,28 +599,30 @@ export const UserManagement = () => {
         onClose={() => setUserToDeactivate(null)}
         title="Confirm Deactivation"
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-          <p style={{ margin: 0, fontSize: 'var(--font-sm)', lineHeight: 1.5 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <p style={{ margin: 0, fontSize: '0.875rem', lineHeight: 1.5, color: 'var(--text-main)' }}>
             Are you sure you want to deactivate user <strong>{userToDeactivate?.name}</strong> (
-            <code>{userToDeactivate?.email}</code>)?
+            <code style={{ fontFamily: 'var(--font-mono)', background: 'var(--bg-dark)', padding: '2px 6px', borderRadius: '4px' }}>
+              {userToDeactivate?.email}
+            </code>)?
           </p>
           <div
             style={{
-              padding: 'var(--space-3)',
+              padding: '12px 16px',
               borderRadius: 'var(--radius-md)',
-              background: 'rgba(239, 68, 68, 0.1)',
-              border: '1px solid rgba(239, 68, 68, 0.2)',
-              fontSize: 'var(--font-xs)',
-              color: 'var(--color-danger)',
+              background: 'var(--danger-bg)',
+              border: '1px solid var(--danger-border)',
+              fontSize: '0.8125rem',
+              color: 'var(--danger)',
               display: 'flex',
               alignItems: 'center',
-              gap: 'var(--space-2)',
+              gap: '10px',
             }}
           >
-            <AlertCircle size={16} />
+            <AlertCircle size={18} flexShrink={0} />
             <span>This user will immediately be barred from logging into the platform.</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-3)' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
             <button
               type="button"
               className="btn btn-secondary"

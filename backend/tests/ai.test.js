@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import request from 'supertest';
 import app from '../src/app';
 import aiProviderService from '../src/services/aiProvider.service';
@@ -6,8 +6,13 @@ import aiProviderService from '../src/services/aiProvider.service';
 describe('AI Business Assistant API (POST /api/ai/ask)', () => {
   let adminToken;
   let analystToken;
+  let origProvider;
 
   beforeAll(async () => {
+    origProvider = process.env.AI_PROVIDER;
+    // Mock AI provider responses as per Section 7 of assessment requirements
+    process.env.AI_PROVIDER = 'mock';
+
     // 1. Authenticate as Admin
     const adminLogin = await request(app)
       .post('/api/auth/login')
@@ -19,6 +24,10 @@ describe('AI Business Assistant API (POST /api/ai/ask)', () => {
       .post('/api/auth/login')
       .send({ email: 'analyst@bi.corp', password: 'Analyst123!' });
     analystToken = analystLogin.body.data.accessToken;
+  });
+
+  afterAll(() => {
+    process.env.AI_PROVIDER = origProvider;
   });
 
   describe('1. Authentication & Input Validation', () => {
