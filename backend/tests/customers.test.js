@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import app from '../src/app';
+import { query } from '../src/config/db';
 
 describe('Customer API Endpoints (/api/customers)', () => {
   let adminToken;
@@ -133,5 +134,10 @@ describe('Customer API Endpoints (/api/customers)', () => {
     expect(res.status).toBe(200);
     expect(res.body.deactivated).toBe(true);
     expect(res.body.hardDeleted).toBe(false);
+  });
+
+  afterAll(async () => {
+    await query("DELETE FROM customers WHERE customer_code LIKE 'CUST-TEST-%'");
+    await query("UPDATE customers SET status = 'active' WHERE id = 1");
   });
 });

@@ -100,10 +100,10 @@ All accounts are ready to use:
 ### Part 2: Main Dashboard (2 Minutes)
 1. Go to **Dashboard** (`/`).
 2. Show the summary cards with real database numbers:
-   - **Total Revenue**: ~$735,610.00
-   - **Total Orders**: 108+ orders
-   - **Customer Accounts**: 41 accounts
-   - **Catalog Products**: 25 active items
+   - **Total Revenue**: $19,390.00
+   - **Total Orders**: 5 completed orders
+   - **Customer Accounts**: 5 enterprise accounts
+   - **Catalog Products**: 5 active offerings
 3. Show the **Monthly Sales Chart** and **Top Customers Table**.
 
 ### Part 3: Customers & Catalog (2 Minutes)

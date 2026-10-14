@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import app from '../src/app';
 import { query } from '../src/config/db';
@@ -122,5 +122,9 @@ describe('Sales API Endpoints & Transaction Rollback (/api/sales)', () => {
 
     expect(res.status).toBe(403);
     expect(res.body.error.code).toBe('FORBIDDEN');
+  });
+
+  afterAll(async () => {
+    await query("DELETE FROM sales WHERE id > 5");
   });
 });

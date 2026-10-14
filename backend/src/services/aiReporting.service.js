@@ -23,7 +23,7 @@ class AiReportingService {
       if (pattern.test(q)) {
         return {
           intent: 'SECURITY_BLOCKED',
-          error: 'Arbitrary SQL execution or database modification commands are strictly blocked for security.',
+          error: 'Arbitrary command execution or database modification commands are strictly blocked for security.',
         };
       }
     }

@@ -367,7 +367,7 @@ export const Sales = () => {
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
         title="Create Transactional Sale Order"
-        maxWidth="680px"
+        maxWidth="740px"
         footer={
           <>
             <button className="btn btn-secondary" onClick={() => setIsCreateOpen(false)} disabled={createLoading}>
@@ -446,16 +446,18 @@ export const Sales = () => {
                     key={index}
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: '3fr 1fr 1.5fr auto',
+                      gridTemplateColumns: 'minmax(0, 1fr) 75px 110px 36px',
                       gap: '10px',
                       alignItems: 'center',
-                      background: 'var(--bg-input)',
+                      background: 'var(--bg-card-hover, #f8fafc)',
+                      border: '1px solid var(--border-subtle, #e2e8f0)',
                       padding: '10px 14px',
                       borderRadius: '8px',
                     }}
                   >
                     <select
                       className="form-control"
+                      style={{ width: '100%', minWidth: 0 }}
                       value={item.product_id}
                       onChange={(e) => handleItemChange(index, 'product_id', e.target.value)}
                       required
@@ -471,12 +473,13 @@ export const Sales = () => {
                       type="number"
                       min="1"
                       className="form-control"
+                      style={{ textAlign: 'center', padding: '8px 4px' }}
                       value={item.quantity}
                       onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
                       required
                     />
 
-                    <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#34d399', textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--success, #059669)', textAlign: 'right' }}>
                       {formatCurrency(lineTotal)}
                     </div>
 
@@ -499,20 +502,21 @@ export const Sales = () => {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            padding: '16px',
-            background: '#131d31',
-            borderRadius: '8px',
+            padding: '16px 20px',
+            background: 'var(--info-bg, #eff6ff)',
+            border: '1px solid var(--info-border, #bfdbfe)',
+            borderRadius: '10px',
             marginTop: '20px',
           }}>
             <div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                Estimated Order Total (Calculated by Server)
+              <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-main)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Estimated Order Total
               </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
-                Guaranteed secure transaction with atomic database protection
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                Server-validated transactional total with real-time price calculation
               </div>
             </div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#34d399' }}>
+            <div style={{ fontSize: '1.625rem', fontWeight: 800, color: 'var(--primary, #2563eb)' }}>
               {formatCurrency(calculatePreviewTotal())}
             </div>
           </div>

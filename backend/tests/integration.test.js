@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterAll } from 'vitest';
 import request from 'supertest';
 import app from '../src/app';
+import { query } from '../src/config/db';
 
 describe('End-to-End Live Integration Verification', () => {
   let token;
@@ -23,7 +24,7 @@ describe('End-to-End Live Integration Verification', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.data.length).toBe(3);
-    expect(res.body.pagination.total).toBeGreaterThanOrEqual(30);
+    expect(res.body.pagination.total).toBeGreaterThanOrEqual(5);
   });
 
   it('3. POST /api/sales creates atomic sale with server-computed line totals', async () => {
@@ -73,5 +74,9 @@ describe('End-to-End Live Integration Verification', () => {
     expect(res.body.paths).toHaveProperty('/api/customers');
     expect(res.body.paths).toHaveProperty('/api/sales');
     expect(res.body.paths).toHaveProperty('/api/dashboard/summary');
+  });
+
+  afterAll(async () => {
+    await query("DELETE FROM sales WHERE id > 5");
   });
 });

@@ -249,9 +249,9 @@ export const Dashboard = () => {
               </div>
               <div className="role-mini-card">
                 <span className="role-mini-card-title">Database & Engine Health</span>
-                <span className="role-mini-card-val" style={{ color: 'var(--primary)' }}>PostgreSQL 15</span>
+                <span className="role-mini-card-val" style={{ color: 'var(--primary)' }}>Enterprise Data Engine</span>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  Container bi_postgres online • Port 5432 healthy
+                  Cloud Database Cluster Online • Port 5432 Healthy
                 </p>
               </div>
             </div>

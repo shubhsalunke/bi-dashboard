@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import app from '../src/app';
+import { query } from '../src/config/db';
 
 describe('Product API Endpoints (/api/products)', () => {
   let adminToken;
@@ -93,5 +94,10 @@ describe('Product API Endpoints (/api/products)', () => {
 
     expect(deleteRes.status).toBe(200);
     expect(deleteRes.body.message).toContain('deactivated successfully');
+  });
+
+  afterAll(async () => {
+    await query("DELETE FROM products WHERE product_name = 'AI Neural Accelerator Add-on'");
+    await query("UPDATE products SET is_active = true, unit_price = 450.00 WHERE id = 1");
   });
 });

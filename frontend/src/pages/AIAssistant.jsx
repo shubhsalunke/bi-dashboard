@@ -357,7 +357,7 @@ export const AIAssistant = () => {
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <Database size={14} color="#2563eb" />
-                        <span>PostgreSQL Real-Time Ledger Verification</span>
+                        <span>Enterprise Real-Time Ledger Verification</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <Zap size={14} color="#f59e0b" />

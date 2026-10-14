@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import app from '../src/app';
+import { query } from '../src/config/db';
 
 describe('User and Role Management API (/api/users - Admin Restricted)', () => {
   let adminToken;
@@ -67,5 +68,9 @@ describe('User and Role Management API (/api/users - Admin Restricted)', () => {
     expect(res.status).toBe(200);
     expect(res.body.data).toBeInstanceOf(Array);
     expect(res.body.pagination).toHaveProperty('total');
+  });
+
+  afterAll(async () => {
+    await query("DELETE FROM users WHERE name LIKE 'Dev Analyst%'");
   });
 });
