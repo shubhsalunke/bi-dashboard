@@ -125,7 +125,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
           onClick={onClose}
         >
           <Users size={18} />
-          <span>{isManager ? 'Customer CRM' : (!isAdmin && !isManager) ? 'Customer Cohorts' : 'Customers'}</span>
+          <span>Customers</span>
           {(!isAdmin && !isManager) && <span className="role-nav-badge ai-badge">View</span>}
         </NavLink>
 

@@ -79,10 +79,10 @@ class AiProviderService {
    */
   async callGemini(question, reportData) {
     const apiKey = process.env.GEMINI_API_KEY !== undefined ? process.env.GEMINI_API_KEY : config.ai?.geminiApiKey;
-    if (!apiKey || apiKey.trim() === '' || apiKey === 'your_gemini_api_key_here') {
+    if (!apiKey || apiKey.trim() === '' || apiKey === 'your_gemini_api_key_here' || apiKey.startsWith('AQ.')) {
       throw new ApiError(
         503,
-        'Gemini API key is not configured. Please set GEMINI_API_KEY in the environment variables to enable live AI responses.',
+        'Gemini API key is not configured or invalid. Please set a valid GEMINI_API_KEY from Google AI Studio in .env to enable live AI responses.',
         'AI_NOT_CONFIGURED'
       );
     }
@@ -276,14 +276,30 @@ Provide a concise, executive-level explanation grounded entirely in this data:`;
 
     switch (intent) {
       case 'TOTAL_SALES': {
-        const rev = summaryMetrics.totalRevenue
+        const rev = summaryMetrics.totalRevenue !== undefined
           ? `$${summaryMetrics.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
           : '$0.00';
         const orders = summaryMetrics.totalOrders || 0;
-        const avg = summaryMetrics.averageOrderValue
+        const avg = summaryMetrics.averageOrderValue !== undefined
           ? `$${summaryMetrics.averageOrderValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
           : '$0.00';
-        return `Based on verified business records, total revenue stands at ${rev} across ${orders} completed sales orders, with an average transaction value of ${avg}.`;
+        const period = summaryMetrics.reportingPeriod || reportData.periodLabel;
+        const periodText = period ? ` for ${period.toLowerCase()}` : '';
+
+        if (orders === 0) {
+          return `Based on verified business records${periodText}, no sales transactions were recorded ($0.00 across 0 orders).`;
+        }
+
+        return `Based on verified business records${periodText}, total revenue stands at ${rev} across ${orders} completed sales order${orders === 1 ? '' : 's'}, with an average transaction value of ${avg}.`;
+      }
+
+      case 'CUSTOMER_INSIGHT': {
+        const name = summaryMetrics.customerName || 'Customer';
+        const code = summaryMetrics.customerCode ? ` (${summaryMetrics.customerCode})` : '';
+        const rev = `$${(summaryMetrics.totalRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+        const orders = summaryMetrics.ordersCount || 0;
+        const avg = `$${(summaryMetrics.averageOrderValue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+        return `Account intelligence dossier for ${name}${code}: Total lifetime spend stands at ${rev} across ${orders} completed order${orders === 1 ? '' : 's'}, with an average transaction value of ${avg}. Account remains in active standing.`;
       }
 
       case 'TOP_CUSTOMERS': {

@@ -10,6 +10,58 @@ class AiReportingService {
   /**
    * Determine approved reporting operation from user natural language query
    */
+  /**
+   * Parse explicit date ranges from user query (e.g. "01-09-2026 to 15-09-2026", "2026-09-01 to 2026-09-30")
+   */
+  parseCustomDateRange(text) {
+    if (!text) return null;
+    const clean = text.trim();
+
+    // 1. Matches DD-MM-YYYY to DD-MM-YYYY or DD/MM/YYYY to DD/MM/YYYY
+    const dmyPattern = /(\b\d{1,2})[-/](\d{1,2})[-/](\d{4})\s*(?:to|-|until|through)\s*(\d{1,2})[-/](\d{1,2})[-/](\d{4})\b/i;
+    const dmyMatch = clean.match(dmyPattern);
+    if (dmyMatch) {
+      const [, d1, m1, y1, d2, m2, y2] = dmyMatch;
+      const pad = (n) => String(n).padStart(2, '0');
+      let startDay = parseInt(d1, 10);
+      let startMonth = parseInt(m1, 10);
+      let endDay = parseInt(d2, 10);
+      let endMonth = parseInt(m2, 10);
+
+      let sDate = `${y1}-${pad(startMonth)}-${pad(startDay)}`;
+      let eDate = `${y2}-${pad(endMonth)}-${pad(endDay)}`;
+      if (startMonth > 12 && startDay <= 12) {
+        sDate = `${y1}-${pad(startDay)}-${pad(startMonth)}`;
+      }
+      if (endMonth > 12 && endDay <= 12) {
+        eDate = `${y2}-${pad(endDay)}-${pad(endMonth)}`;
+      }
+      return {
+        startDate: sDate,
+        endDate: eDate,
+        displayRange: `${pad(d1)}-${pad(m1)}-${y1} to ${pad(d2)}-${pad(m2)}-${y2}`,
+      };
+    }
+
+    // 2. Matches YYYY-MM-DD to YYYY-MM-DD
+    const ymdPattern = /(\b\d{4})[-/](\d{1,2})[-/](\d{1,2})\s*(?:to|-|until|through)\s*(\d{4})[-/](\d{1,2})[-/](\d{1,2})\b/i;
+    const ymdMatch = clean.match(ymdPattern);
+    if (ymdMatch) {
+      const [, y1, m1, d1, y2, m2, d2] = ymdMatch;
+      const pad = (n) => String(n).padStart(2, '0');
+      return {
+        startDate: `${y1}-${pad(m1)}-${pad(d1)}`,
+        endDate: `${y2}-${pad(m2)}-${pad(d2)}`,
+        displayRange: `${y1}-${pad(m1)}-${pad(d1)} to ${y2}-${pad(m2)}-${pad(d2)}`,
+      };
+    }
+
+    return null;
+  }
+
+  /**
+   * Determine approved reporting operation from user natural language query
+   */
   classifyIntent(question) {
     const q = question.toLowerCase().trim();
 
@@ -50,6 +102,16 @@ class AiReportingService {
       };
     }
 
+    // Check for explicit custom date range in question (e.g. 01-09-2026 to 15-09-2026)
+    const customRange = this.parseCustomDateRange(question);
+    if (customRange) {
+      return {
+        intent: 'TOTAL_SALES',
+        timeframe: 'CUSTOM_RANGE',
+        customRange,
+      };
+    }
+
     // 3. Identify Approved Business Reporting Operations
     if (
       q.includes('declining') ||
@@ -69,7 +131,6 @@ class AiReportingService {
       q.includes('highest revenue customer') ||
       (q.includes('top') && q.includes('customer'))
     ) {
-      // Check if user specified a count like "top 5" or "top 10"
       const match = q.match(/top\s+(\d+)/);
       const limit = match ? Math.min(parseInt(match[1], 10), 25) : 10;
       return { intent: 'TOP_CUSTOMERS', limit };
@@ -119,14 +180,37 @@ class AiReportingService {
     }
 
     if (
+      q.includes('purchasing trend') ||
+      q.includes('revenue history for') ||
+      (q.includes('customer') && (q.includes('trend') || q.includes('history') || q.includes('profile') || q.includes('account')))
+    ) {
+      return { intent: 'CUSTOMER_INSIGHT', rawQuery: question };
+    }
+
+    if (
       q.includes('total sales') ||
       q.includes('total revenue') ||
       q.includes('last month') ||
+      q.includes('previous month') ||
+      q.includes('this month') ||
+      q.includes('current month') ||
       q.includes('sales last month') ||
+      q.includes('sales this month') ||
       q.includes('how much sales') ||
-      q.includes('sales in')
+      q.includes('sales in') ||
+      q.includes('how much did we sell') ||
+      q.includes('overall sales') ||
+      q.includes('all sales') ||
+      q.includes('revenue') ||
+      q.includes('sales')
     ) {
-      return { intent: 'TOTAL_SALES' };
+      let timeframe = 'ALL_TIME';
+      if (q.includes('last month') || q.includes('previous month') || q.includes('september')) {
+        timeframe = 'LAST_MONTH';
+      } else if (q.includes('this month') || q.includes('current month') || q.includes('october')) {
+        timeframe = 'THIS_MONTH';
+      }
+      return { intent: 'TOTAL_SALES', timeframe };
     }
 
     // Default to unsupported
@@ -148,11 +232,14 @@ class AiReportingService {
    * Execute authorized parameterized query for the identified intent
    */
   async executeReportingOperation(intentData) {
-    const { intent, limit = 10 } = intentData;
+    const { intent, limit = 10, timeframe = 'ALL_TIME', customRange = null, rawQuery = '' } = intentData;
 
     switch (intent) {
       case 'TOTAL_SALES':
-        return this.getTotalSalesReport();
+        return this.getTotalSalesReport(timeframe, customRange);
+
+      case 'CUSTOMER_INSIGHT':
+        return this.getCustomerInsightReport(rawQuery);
 
       case 'TOP_CUSTOMERS':
         return this.getTopCustomersReport(limit);
@@ -178,42 +265,168 @@ class AiReportingService {
   }
 
   /**
-   * 1. Total Sales Report (Last Month / Recent Period)
+   * 1. Total Sales Report (With contextual timeframe support: Custom Range, Last Month, This Month, All Time)
    */
-  async getTotalSalesReport() {
+  async getTotalSalesReport(timeframe = 'ALL_TIME', customRange = null) {
+    let whereClause = "WHERE status = 'completed'";
+    let params = [];
+    let reportTitle = 'Total Sales & Revenue Performance Report';
+    let periodLabel = 'All-Time Historical Records';
+    let dateFilterText = '';
+
+    if (customRange) {
+      whereClause += ' AND sale_date >= $1 AND sale_date <= $2';
+      params = [customRange.startDate, customRange.endDate];
+      reportTitle = `Total Sales & Revenue Report (${customRange.displayRange})`;
+      periodLabel = `Period: ${customRange.displayRange}`;
+      dateFilterText = customRange.displayRange;
+    } else if (timeframe === 'LAST_MONTH') {
+      const monthSql = `
+        SELECT 
+          TO_CHAR(CURRENT_DATE - INTERVAL '1 month', 'YYYY-MM') AS last_month_key,
+          TO_CHAR(CURRENT_DATE - INTERVAL '1 month', 'FMMonth YYYY') AS last_month_name,
+          TO_CHAR(DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month'), 'YYYY-MM-DD') AS start_date,
+          TO_CHAR((DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 day'), 'YYYY-MM-DD') AS end_date
+      `;
+      const mRes = await query(monthSql);
+      const mRow = mRes.rows[0] || {};
+      const lastMonthKey = mRow.last_month_key || '2026-09';
+      const monthName = mRow.last_month_name || 'September 2026';
+
+      whereClause += ` AND TO_CHAR(sale_date, 'YYYY-MM') = '${lastMonthKey}'`;
+      reportTitle = `Total Sales & Revenue Report (Last Month - ${monthName})`;
+      periodLabel = `Last Month (${monthName})`;
+      dateFilterText = `${mRow.start_date || '2026-09-01'} to ${mRow.end_date || '2026-09-30'}`;
+    } else if (timeframe === 'THIS_MONTH') {
+      const monthSql = `
+        SELECT 
+          TO_CHAR(CURRENT_DATE, 'YYYY-MM') AS this_month_key,
+          TO_CHAR(CURRENT_DATE, 'FMMonth YYYY') AS this_month_name,
+          TO_CHAR(DATE_TRUNC('month', CURRENT_DATE), 'YYYY-MM-DD') AS start_date,
+          TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') AS end_date
+      `;
+      const mRes = await query(monthSql);
+      const mRow = mRes.rows[0] || {};
+      const thisMonthKey = mRow.this_month_key || '2026-10';
+      const monthName = mRow.this_month_name || 'October 2026';
+
+      whereClause += ` AND TO_CHAR(sale_date, 'YYYY-MM') = '${thisMonthKey}'`;
+      reportTitle = `Total Sales & Revenue Report (Current Month - ${monthName})`;
+      periodLabel = `Current Month (${monthName})`;
+      dateFilterText = `${mRow.start_date || '2026-10-01'} to ${mRow.end_date || '2026-10-15'}`;
+    }
+
     const sql = `
       SELECT 
         COUNT(id) AS total_sales_count,
         ROUND(COALESCE(SUM(total_amount), 0), 2) AS total_revenue,
         ROUND(COALESCE(AVG(total_amount), 0), 2) AS average_order_value,
-        MIN(sale_date) AS earliest_sale,
-        MAX(sale_date) AS latest_sale
+        TO_CHAR(MIN(sale_date), 'YYYY-MM-DD') AS earliest_sale,
+        TO_CHAR(MAX(sale_date), 'YYYY-MM-DD') AS latest_sale
       FROM sales
-      WHERE status = 'completed'
+      ${whereClause}
     `;
-    const res = await query(sql);
-    const row = res.rows[0];
+    const res = await query(sql, params);
+    const row = res.rows[0] || {};
+
+    const totalRev = parseFloat(row.total_revenue || 0);
+    const orderCount = parseInt(row.total_sales_count || 0, 10);
+    const avgOrder = parseFloat(row.average_order_value || 0);
+
+    const windowDisplay = dateFilterText || (
+      row.earliest_sale && row.latest_sale
+        ? (row.earliest_sale === row.latest_sale ? row.earliest_sale : `${row.earliest_sale} to ${row.latest_sale}`)
+        : 'N/A'
+    );
 
     const rows = [
-      { metric: 'Total Revenue', value: `$${parseFloat(row.total_revenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}` },
-      { metric: 'Total Completed Orders', value: parseInt(row.total_sales_count || 0, 10).toString() },
-      { metric: 'Average Order Value', value: `$${parseFloat(row.average_order_value || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}` },
-      { metric: 'Reporting Window', value: `${row.earliest_sale || 'N/A'} to ${row.latest_sale || 'N/A'}` },
+      { metric: 'Reporting Window', value: windowDisplay },
+      { metric: 'Total Revenue', value: `$${totalRev.toLocaleString('en-US', { minimumFractionDigits: 2 })}` },
+      { metric: 'Total Completed Orders', value: orderCount.toString() },
+      { metric: 'Average Order Value', value: `$${avgOrder.toLocaleString('en-US', { minimumFractionDigits: 2 })}` },
     ];
 
     return {
-      reportTitle: 'Total Sales & Revenue Performance Report',
+      reportTitle,
       intent: 'TOTAL_SALES',
-      dateRange: { startDate: row.earliest_sale, endDate: row.latest_sale },
+      timeframe,
+      periodLabel,
+      dateRange: { startDate: row.earliest_sale || null, endDate: row.latest_sale || null },
       columns: [
         { key: 'metric', label: 'Performance Metric' },
         { key: 'value', label: 'Value' },
       ],
       rows,
       summaryMetrics: {
-        totalRevenue: parseFloat(row.total_revenue || 0),
-        totalOrders: parseInt(row.total_sales_count || 0, 10),
-        averageOrderValue: parseFloat(row.average_order_value || 0),
+        totalRevenue: totalRev,
+        totalOrders: orderCount,
+        averageOrderValue: avgOrder,
+        reportingPeriod: periodLabel,
+      },
+    };
+  }
+
+  /**
+   * Account Intelligence & Purchasing Trend for a single customer
+   */
+  async getCustomerInsightReport(rawQuery = '') {
+    const customersRes = await query('SELECT id, customer_code, customer_name, city FROM customers');
+    let matchedCustomer = null;
+    const lowerQ = rawQuery.toLowerCase();
+    for (const c of customersRes.rows) {
+      if (lowerQ.includes(c.customer_name.toLowerCase()) || lowerQ.includes(c.customer_code.toLowerCase())) {
+        matchedCustomer = c;
+        break;
+      }
+    }
+
+    if (!matchedCustomer && customersRes.rows.length > 0) {
+      matchedCustomer = customersRes.rows[0];
+    }
+
+    if (!matchedCustomer) {
+      return this.getTopCustomersReport(5);
+    }
+
+    const salesSql = `
+      SELECT 
+        s.id AS sale_id,
+        TO_CHAR(s.sale_date, 'YYYY-MM-DD') AS sale_date,
+        s.total_amount,
+        s.status
+      FROM sales s
+      WHERE s.customer_id = $1
+      ORDER BY s.sale_date DESC
+    `;
+    const sRes = await query(salesSql, [matchedCustomer.id]);
+    const orders = sRes.rows;
+    const totalRev = orders.reduce((acc, o) => acc + parseFloat(o.total_amount || 0), 0);
+    const avgOrder = orders.length > 0 ? +(totalRev / orders.length).toFixed(2) : 0;
+
+    const rows = orders.map((o, idx) => ({
+      order_num: `#${orders.length - idx}`,
+      date: o.sale_date,
+      formatted_amount: `$${parseFloat(o.total_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+      status: o.status,
+    }));
+
+    return {
+      reportTitle: `Account Intelligence: ${matchedCustomer.customer_name} (${matchedCustomer.customer_code})`,
+      intent: 'CUSTOMER_INSIGHT',
+      columns: [
+        { key: 'order_num', label: 'Order' },
+        { key: 'date', label: 'Date' },
+        { key: 'formatted_amount', label: 'Amount' },
+        { key: 'status', label: 'Status' },
+      ],
+      rows,
+      summaryMetrics: {
+        customerName: matchedCustomer.customer_name,
+        customerCode: matchedCustomer.customer_code,
+        city: matchedCustomer.city,
+        totalRevenue: totalRev,
+        ordersCount: orders.length,
+        averageOrderValue: avgOrder,
       },
     };
   }

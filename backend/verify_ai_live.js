@@ -45,6 +45,7 @@ async function run() {
 
   const questions = [
     'What were total sales last month?',
+    'Total Revenue 01-09-2026 to 15-09-2026',
     'Show the top 10 customers by sales.',
     'Which product generated the highest revenue?',
     'Compare this month with the previous month.',

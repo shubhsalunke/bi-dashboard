@@ -198,7 +198,7 @@ export const Dashboard = () => {
               <div>
                 <div className="role-hub-title">
                   <span>Executive Governance & Administration Console</span>
-                  <span className="role-hub-badge">Superadmin Control</span>
+                  <span className="role-hub-badge">Superadmin</span>
                 </div>
                 <p className="role-hub-desc">
                   Full operational authority active across RBAC accounts, audit logs, and system data infrastructure.
@@ -269,7 +269,7 @@ export const Dashboard = () => {
               <div>
                 <div className="role-hub-title">
                   <span>Sales & Operations Command Center</span>
-                  <span className="role-hub-badge">Operations Lead</span>
+                  <span className="role-hub-badge">Manager</span>
                 </div>
                 <p className="role-hub-desc">
                   Track sales velocity, customer accounts, and record real-time sales transactions.
@@ -348,7 +348,7 @@ export const Dashboard = () => {
               <div>
                 <div className="role-hub-title">
                   <span>Business Intelligence & Analytics Hub</span>
-                  <span className="role-hub-badge">Data Analyst (Read-Only)</span>
+                  <span className="role-hub-badge">Analyst</span>
                 </div>
                 <p className="role-hub-desc">
                   Explore sales telemetry, examine revenue distributions, and query the AI Copilot for predictive insights.
@@ -366,7 +366,7 @@ export const Dashboard = () => {
               </Link>
               <Link to="/customers" className="role-action-btn">
                 <Users size={15} />
-                <span>Customer Cohorts</span>
+                <span>Customers</span>
               </Link>
             </div>
           </div>

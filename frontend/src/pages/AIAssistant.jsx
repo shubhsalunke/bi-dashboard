@@ -554,7 +554,14 @@ export const AIAssistant = () => {
                               {key.replace(/([A-Z])/g, ' $1')}:
                             </span>
                             <span style={{ color: 'var(--primary)', fontWeight: 700 }}>
-                              {typeof val === 'number' && key.toLowerCase().includes('revenue')
+                              {typeof val === 'number' && (
+                                key.toLowerCase().includes('revenue') ||
+                                key.toLowerCase().includes('value') ||
+                                key.toLowerCase().includes('spend') ||
+                                key.toLowerCase().includes('amount') ||
+                                key.toLowerCase().includes('price') ||
+                                key.toLowerCase().includes('order') && key.toLowerCase().includes('avg')
+                              )
                                 ? `$${val.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
                                 : String(val)}
                             </span>
