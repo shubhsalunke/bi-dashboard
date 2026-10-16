@@ -12,7 +12,7 @@ This application is a **Business Intelligence Dashboard** built to manage and an
 - **Products**: Manage catalog items, categories, and unit pricing.
 - **Sales & Orders**: Record new orders with automatic total calculation.
 - **Reports**: View monthly sales trends, city breakdowns, and top products.
-- **AI Assistant**: Ask natural business questions in plain English and get grounded answers and tables from the database.
+- **AI Assistant**: Ask natural business questions in plain and get grounded answers and tables from the database.
 
 ### Simple System Diagram
 
