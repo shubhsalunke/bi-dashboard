@@ -15,6 +15,7 @@ router.use(authenticate);
 
 // View products
 router.get('/', validate(listProductsSchema), productController.getProducts);
+router.get('/:id/details', validate(productIdSchema), productController.getProductDetails);
 router.get('/:id', validate(productIdSchema), productController.getProductById);
 
 // Create product (admin, manager)

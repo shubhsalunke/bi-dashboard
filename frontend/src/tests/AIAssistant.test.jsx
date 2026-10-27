@@ -66,20 +66,75 @@ describe('AIAssistant Page Component', () => {
     localStorage.setItem('token', 'fake-jwt-token');
   });
 
-  it('renders page header, welcome message, and 7 sample question pills', () => {
+  it('renders page header, welcome message, and 9 sample question pills', () => {
     renderAIAssistant();
 
     expect(screen.getByText('AI Business Assistant')).toBeInTheDocument();
-    expect(screen.getByText(/Strict Parameterized Query Safety/i)).toBeInTheDocument();
+    expect(screen.getByText('Answers come from your sales database.')).toBeInTheDocument();
     expect(screen.getByText(/Ask a question about your sales, customers, or products/i)).toBeInTheDocument();
 
     expect(screen.getByText('What were total sales last month?')).toBeInTheDocument();
+    expect(screen.getByText('Show customer list')).toBeInTheDocument();
+    expect(screen.getByText('Show product list')).toBeInTheDocument();
     expect(screen.getByText('Show the top 10 customers by sales.')).toBeInTheDocument();
     expect(screen.getByText('Which product generated the highest revenue?')).toBeInTheDocument();
     expect(screen.getByText('Compare this month with the previous month.')).toBeInTheDocument();
     expect(screen.getByText('Give me city-wise sales for the last three months.')).toBeInTheDocument();
     expect(screen.getByText('Summarize business performance for the current quarter.')).toBeInTheDocument();
     expect(screen.getByText('Which customers have reduced their purchases?')).toBeInTheDocument();
+  });
+
+  it('renders customer list results in existing table with formatCurrency', async () => {
+    const mockCustomerListResponse = {
+      answer: 'Showing 2 customers with total spending of ₹50,000.00.',
+      reportTitle: 'Customer Directory',
+      intent: 'CUSTOMER_LIST',
+      summaryMetrics: {
+        rowsShown: 2,
+        totalSpent: 50000.0,
+      },
+      columns: [
+        { key: 'customer_code', label: 'Customer Code' },
+        { key: 'customer_name', label: 'Company Name' },
+        { key: 'city', label: 'City' },
+        { key: 'status', label: 'Status' },
+        { key: 'total_orders', label: 'Total Orders' },
+        { key: 'total_spent', label: 'Total Spent' },
+      ],
+      rows: [
+        {
+          customer_code: 'CUST-001',
+          customer_name: 'Tata Consultancy',
+          city: 'Mumbai',
+          status: 'active',
+          total_orders: 8,
+          total_spent: 35000.0,
+        },
+        {
+          customer_code: 'CUST-002',
+          customer_name: 'Infosys Ltd',
+          city: 'Pune',
+          status: 'active',
+          total_orders: 5,
+          total_spent: 15000.0,
+        },
+      ],
+    };
+
+    aiApi.askQuestion.mockResolvedValueOnce(mockCustomerListResponse);
+    renderAIAssistant();
+
+    const pill = screen.getByText('Show customer list');
+    fireEvent.click(pill);
+
+    await waitFor(() => {
+      expect(screen.getByText(mockCustomerListResponse.answer)).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('Tata Consultancy')).toBeInTheDocument();
+    expect(screen.getByText('Infosys Ltd')).toBeInTheDocument();
+    expect(screen.getByText('₹35,000')).toBeInTheDocument();
+    expect(screen.getByText('₹15,000')).toBeInTheDocument();
   });
 
   it('submits a question via text input and displays grounded response with table and metrics', async () => {

@@ -36,6 +36,18 @@ class DashboardController {
       next(err);
     }
   }
+
+  async getBrandSalesReport(req, res, next) {
+    try {
+      const brandSales = await dashboardService.getBrandSalesReport();
+      res.status(200).json({
+        success: true,
+        data: brandSales,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 module.exports = new DashboardController();

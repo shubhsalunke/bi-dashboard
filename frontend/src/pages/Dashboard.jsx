@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { RefreshCw } from 'lucide-react';
 import {
   LineChart,
@@ -165,9 +166,10 @@ export const Dashboard = () => {
         </div>
       </div>
 
-      <div className="grid-cols-4" style={{ marginBottom: '20px' }}>
+      <div className="grid-cols-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', marginBottom: '20px' }}>
         {loading || !data ? (
           <>
+            <CardSkeleton />
             <CardSkeleton />
             <CardSkeleton />
             <CardSkeleton />
@@ -197,6 +199,13 @@ export const Dashboard = () => {
               value={data.kpi?.active_products || 0}
               subtitle="Active offerings"
             />
+            <Link to="/products?stock_status=low" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <StatCard
+                title="Low stock products"
+                value={data.kpi?.low_stock_products ?? 0}
+                subtitle="At or below reorder level"
+              />
+            </Link>
           </>
         )}
       </div>

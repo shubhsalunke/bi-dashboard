@@ -11,6 +11,11 @@ export const productsApi = {
     return data.data;
   },
 
+  getProductDetails: async (id) => {
+    const { data } = await apiClient.get(`/products/${id}/details`);
+    return data.data;
+  },
+
   createProduct: async (productData) => {
     const { data } = await apiClient.post('/products', productData);
     return data.data;

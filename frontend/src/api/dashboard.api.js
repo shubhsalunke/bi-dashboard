@@ -15,4 +15,9 @@ export const dashboardApi = {
     const { data } = await apiClient.get('/reports/customer-insights');
     return data.data;
   },
+
+  getBrandSalesReport: async () => {
+    const { data } = await apiClient.get('/reports/brand-sales');
+    return data.data;
+  },
 };

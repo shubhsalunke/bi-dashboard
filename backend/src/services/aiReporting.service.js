@@ -62,7 +62,7 @@ class AiReportingService {
   /**
    * Determine approved reporting operation from user natural language query
    */
-  classifyIntent(question) {
+  async classifyIntent(question) {
     const q = question.toLowerCase().trim();
 
     // 1. Security Check: Block arbitrary SQL keywords or injection payloads
@@ -94,6 +94,8 @@ class AiReportingService {
         intent: 'GREETING',
         suggestions: [
           'What were total sales last month?',
+          'Show customer list',
+          'Show product list',
           'Show the top 10 customers by sales.',
           'Which product generated the highest revenue?',
           'Compare this month with the previous month.',
@@ -124,16 +126,72 @@ class AiReportingService {
       return { intent: 'DECLINING_CUSTOMERS' };
     }
 
+    // "which customer spent the most", "highest spending customer", "who spent the most" -> TOP_CUSTOMERS with limit 1
+    if (
+      q.includes('which customer spent the most') ||
+      q.includes('highest spending customer') ||
+      q.includes('who spent the most') ||
+      q === 'customer spent the most'
+    ) {
+      return { intent: 'TOP_CUSTOMERS', limit: 1 };
+    }
+
+    // Top customers
     if (
       q.includes('top customer') ||
       q.includes('best customer') ||
-      q.includes('highest spending customer') ||
       q.includes('highest revenue customer') ||
       (q.includes('top') && q.includes('customer'))
     ) {
       const match = q.match(/top\s+(\d+)/);
       const limit = match ? Math.min(parseInt(match[1], 10), 25) : 10;
       return { intent: 'TOP_CUSTOMERS', limit };
+    }
+
+    // Customer list intent: "customer list", "list customers", "all customers", "show customers", "customers in <city>"
+    const cityMatch = q.match(/customers?\s+in\s+([a-zA-Z\s'-]+)/i);
+    let matchedCity = null;
+
+    if (cityMatch) {
+      const candidateCity = cityMatch[1].replace(/[?.!]+$/, '').trim();
+      try {
+        const cityRes = await query(
+          'SELECT DISTINCT city FROM customers WHERE LOWER(city) = LOWER($1)',
+          [candidateCity]
+        );
+        if (cityRes.rows.length > 0) {
+          matchedCity = cityRes.rows[0].city;
+        }
+      } catch {
+        // Ignore classification query error
+      }
+
+      if (matchedCity !== null) {
+        return {
+          intent: 'CUSTOMER_LIST',
+          city: matchedCity,
+        };
+      }
+    } else if (
+      q.includes('customer list') ||
+      q.includes('list customers') ||
+      q.includes('all customers') ||
+      q.includes('show customers')
+    ) {
+      return {
+        intent: 'CUSTOMER_LIST',
+        city: null,
+      };
+    }
+
+    // Product list intent: "product list", "all products", "show products"
+    if (
+      q.includes('product list') ||
+      q.includes('all products') ||
+      q.includes('show products') ||
+      q.includes('list products')
+    ) {
+      return { intent: 'PRODUCT_LIST' };
     }
 
     if (
@@ -218,6 +276,8 @@ class AiReportingService {
       intent: 'UNSUPPORTED',
       suggestions: [
         'What were total sales last month?',
+        'Show customer list',
+        'Show product list',
         'Show the top 10 customers by sales.',
         'Which product generated the highest revenue?',
         'Compare this month with the previous month.',
@@ -232,11 +292,17 @@ class AiReportingService {
    * Execute authorized parameterized query for the identified intent
    */
   async executeReportingOperation(intentData) {
-    const { intent, limit = 10, timeframe = 'ALL_TIME', customRange = null, rawQuery = '' } = intentData;
+    const { intent, limit = 10, timeframe = 'ALL_TIME', customRange = null, rawQuery = '', city = null } = intentData;
 
     switch (intent) {
       case 'TOTAL_SALES':
         return this.getTotalSalesReport(timeframe, customRange);
+
+      case 'CUSTOMER_LIST':
+        return this.getCustomerListReport(city);
+
+      case 'PRODUCT_LIST':
+        return this.getProductListReport();
 
       case 'CUSTOMER_INSIGHT':
         return this.getCustomerInsightReport(rawQuery);
@@ -767,6 +833,112 @@ class AiReportingService {
       summaryMetrics: {
         decliningCount: rows.length,
         mostImpactedCustomer: rows[0]?.customer_name || 'None identified',
+      },
+    };
+  }
+
+  /**
+   * 8. Customer List Report (Optionally filtered by city)
+   * Parameterized query with limit 25, ordered by total spent.
+   * Returns: customer_code, customer_name, city, status, total_orders, total_spent.
+   * Excludes email and phone.
+   */
+  async getCustomerListReport(city = null) {
+    const sql = `
+      SELECT 
+        c.customer_code,
+        c.customer_name,
+        c.city,
+        c.status,
+        COUNT(s.id)::int AS total_orders,
+        ROUND(COALESCE(SUM(s.total_amount), 0), 2)::float AS total_spent
+      FROM customers c
+      LEFT JOIN sales s ON s.customer_id = c.id AND s.status = 'completed'
+      WHERE ($1::text IS NULL OR LOWER(c.city) = LOWER($1))
+      GROUP BY c.id, c.customer_code, c.customer_name, c.city, c.status
+      ORDER BY total_spent DESC
+      LIMIT 25;
+    `;
+    const res = await query(sql, [city || null]);
+
+    const rows = res.rows.map((row) => ({
+      customer_code: row.customer_code,
+      customer_name: row.customer_name,
+      company_name: row.customer_name,
+      city: row.city,
+      status: row.status,
+      total_orders: parseInt(row.total_orders, 10),
+      total_spent: parseFloat(row.total_spent),
+    }));
+
+    const totalSpent = rows.reduce((acc, r) => acc + (r.total_spent || 0), 0);
+
+    return {
+      reportTitle: city ? `Customer Directory (${city})` : 'Customer Directory',
+      intent: 'CUSTOMER_LIST',
+      city: city || null,
+      columns: [
+        { key: 'customer_code', label: 'Customer Code' },
+        { key: 'customer_name', label: 'Company Name' },
+        { key: 'city', label: 'City' },
+        { key: 'status', label: 'Status' },
+        { key: 'total_orders', label: 'Total Orders' },
+        { key: 'total_spent', label: 'Total Spent' },
+      ],
+      rows,
+      summaryMetrics: {
+        rowsShown: rows.length,
+        totalSpent,
+      },
+    };
+  }
+
+  /**
+   * 9. Product List Report
+   * Parameterized query with limit 25.
+   * Returns: product_name, category, unit_price, units_sold.
+   */
+  async getProductListReport() {
+    const sql = `
+      SELECT 
+        p.product_name,
+        p.category,
+        ROUND(p.unit_price, 2)::float AS unit_price,
+        COALESCE(SUM(si.quantity), 0)::int AS units_sold
+      FROM products p
+      LEFT JOIN sale_items si ON si.product_id = p.id
+      LEFT JOIN sales s ON s.id = si.sale_id AND s.status = 'completed'
+      GROUP BY p.id, p.product_name, p.category, p.unit_price
+      ORDER BY units_sold DESC, p.product_name ASC
+      LIMIT 25;
+    `;
+    const res = await query(sql);
+
+    const rows = res.rows.map((row) => ({
+      product_name: row.product_name,
+      name: row.product_name,
+      category: row.category,
+      unit_price: parseFloat(row.unit_price),
+      units_sold: parseInt(row.units_sold, 10),
+    }));
+
+    const totalUnits = rows.reduce((acc, r) => acc + r.units_sold, 0);
+    const totalSpent = rows.reduce((acc, r) => acc + (r.unit_price * r.units_sold), 0);
+
+    return {
+      reportTitle: 'Product Catalog & Sales Summary',
+      intent: 'PRODUCT_LIST',
+      columns: [
+        { key: 'product_name', label: 'Name' },
+        { key: 'category', label: 'Category' },
+        { key: 'unit_price', label: 'Unit Price' },
+        { key: 'units_sold', label: 'Units Sold' },
+      ],
+      rows,
+      summaryMetrics: {
+        rowsShown: rows.length,
+        totalUnitsSold: totalUnits,
+        totalSpent,
       },
     };
   }

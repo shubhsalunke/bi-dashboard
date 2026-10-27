@@ -10,5 +10,6 @@ router.use(authenticate);
 
 router.get('/sales', validate(salesReportFilterSchema), dashboardController.getSalesReport);
 router.get('/customer-insights', dashboardController.getCustomerInsights);
+router.get('/brand-sales', dashboardController.getBrandSalesReport);
 
 module.exports = router;

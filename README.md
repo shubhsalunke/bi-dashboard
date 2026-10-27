@@ -112,11 +112,27 @@ The seed data provides three user accounts with different roles:
 
 ---
 
+## AI Assistant Dynamic SQL Safety
+
+When `AI_DYNAMIC_SQL=true` is enabled, questions that do not match predefined reporting intents can be dynamically answered via Gemini-generated SQL through multi-layered safety guardrails:
+
+1. **Restricted Database Views**: Queries can only access four views (`ai_customers`, `ai_products`, `ai_sales`, `ai_sale_items`). The `users` and `audit_logs` tables, as well as customer contact info (`email`, `phone`), are not exposed and remain unreachable.
+2. **Dedicated Read-Only Role**: Executed exclusively through a separate connection pool using the `ai_readonly` database role with `SELECT` permissions granted only on the four views.
+3. **AST SQL Parser Validation**: Validated before execution using `node-sql-parser`:
+   - Exactly one statement, `SELECT` or `WITH...SELECT` only.
+   - Strictly rejects all other tables, schemas, or system catalogs.
+   - Prohibits dangerous functions (e.g. `pg_sleep`, `pg_read_file`, `dblink`), allowing only common aggregate, string, and date functions.
+   - Automatically appends `LIMIT 100` if missing, or caps existing limits to 100.
+4. **Statement Timeout**: Enforces a 5000 ms statement timeout to block runaway queries.
+5. **Audit Logging & Grounding**: Every generated query is logged in the system audit trail, and explanations are strictly grounded in the returned database rows.
+
+---
+
 ## Running Tests
 
 ### Backend Tests
 
-Runs 58 automated unit and integration tests:
+Runs 80 automated unit, security, and integration tests:
 
 ```bash
 cd backend
@@ -125,7 +141,7 @@ npm test
 
 ### Frontend Tests
 
-Runs 25 automated component and page tests:
+Runs 26 automated component and page tests:
 
 ```bash
 cd frontend

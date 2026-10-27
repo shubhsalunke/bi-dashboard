@@ -195,6 +195,93 @@ describe('AI Business Assistant API (POST /api/ai/ask)', () => {
       expect(res.body.data.summaryMetrics).toHaveProperty('decliningCount');
       expect(res.body.data.columns.some((c) => c.key === 'spend_drop')).toBe(true);
     });
+
+    it('Question 8: CUSTOMER_LIST returns customer list ordered by total spent without email or phone', async () => {
+      const res = await request(app)
+        .post('/api/ai/ask')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ question: 'Show customer list' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.intent).toBe('CUSTOMER_LIST');
+      expect(res.body.data.rows.length).toBeGreaterThan(0);
+      expect(res.body.data.rows.length).toBeLessThanOrEqual(25);
+      expect(res.body.data.columns.map((c) => c.key)).toEqual([
+        'customer_code',
+        'customer_name',
+        'city',
+        'status',
+        'total_orders',
+        'total_spent',
+      ]);
+      expect(res.body.data.summaryMetrics).toHaveProperty('rowsShown');
+      expect(res.body.data.summaryMetrics).toHaveProperty('totalSpent');
+
+      const colKeys = res.body.data.columns.map((c) => c.key);
+      expect(colKeys).not.toContain('email');
+      expect(colKeys).not.toContain('phone');
+      expect(res.body.data.rows[0]).not.toHaveProperty('email');
+      expect(res.body.data.rows[0]).not.toHaveProperty('phone');
+
+      if (res.body.data.rows.length > 1) {
+        expect(res.body.data.rows[0].total_spent).toBeGreaterThanOrEqual(res.body.data.rows[1].total_spent);
+      }
+    });
+
+    it('Question 9: CUSTOMER_LIST with city filter filters customers by parameterized city', async () => {
+      const city = 'Mumbai';
+      const res = await request(app)
+        .post('/api/ai/ask')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ question: `customers in ${city}` });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.intent).toBe('CUSTOMER_LIST');
+      expect(res.body.data.rows.length).toBeGreaterThan(0);
+      res.body.data.rows.forEach((r) => {
+        expect(r.city.toLowerCase()).toBe(city.toLowerCase());
+      });
+      expect(res.body.data.answer).toContain('Mumbai');
+    });
+
+    it('Question 10: PRODUCT_LIST returns product catalog summary with units sold and unit price', async () => {
+      const res = await request(app)
+        .post('/api/ai/ask')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ question: 'show products' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.intent).toBe('PRODUCT_LIST');
+      expect(res.body.data.rows.length).toBeGreaterThan(0);
+      expect(res.body.data.rows.length).toBeLessThanOrEqual(25);
+      expect(res.body.data.columns.map((c) => c.key)).toEqual([
+        'product_name',
+        'category',
+        'unit_price',
+        'units_sold',
+      ]);
+      expect(res.body.data.summaryMetrics).toHaveProperty('rowsShown');
+      expect(res.body.data.summaryMetrics).toHaveProperty('totalSpent');
+    });
+
+    it('Question 11: "spent the most" phrasing maps to TOP_CUSTOMERS with limit 1', async () => {
+      const queries = [
+        'which customer spent the most',
+        'highest spending customer',
+        'who spent the most',
+      ];
+
+      for (const q of queries) {
+        const res = await request(app)
+          .post('/api/ai/ask')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ question: q });
+
+        expect(res.status).toBe(200);
+        expect(res.body.data.intent).toBe('TOP_CUSTOMERS');
+        expect(res.body.data.rows.length).toBe(1);
+      }
+    });
   });
 
   describe('4. Unsupported Questions & Guidance', () => {
@@ -206,7 +293,10 @@ describe('AI Business Assistant API (POST /api/ai/ask)', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.data.intent).toBe('UNSUPPORTED');
-      expect(res.body.data.answer).toContain('does not match a supported reporting operation');
+      expect(res.body.data.answer).toContain("I can't answer that yet. Try one of these:");
+      expect(res.body.data.answer).not.toContain('💡');
+      expect(res.body.data.answer).not.toContain('Note:');
+      expect(res.body.data.answer).not.toContain('I received your question');
       expect(res.body.data.suggestions).toBeDefined();
       expect(res.body.data.suggestions.length).toBeGreaterThan(3);
     });

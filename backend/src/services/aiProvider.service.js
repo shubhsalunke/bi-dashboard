@@ -13,35 +13,20 @@ class AiProviderService {
       return reportData.error || 'Arbitrary database modification commands are prohibited.';
     }
 
-    // If intent was unsupported (Casual / General queries like "best song ?", "tell me a joke")
+    // If intent was unsupported
     if (reportData.intent === 'UNSUPPORTED') {
-      if (provider === 'gemini') {
-        try {
-          const liveAnswer = await this.callGemini(question, reportData);
-          if (liveAnswer && liveAnswer.trim().length > 0) {
-            return (
-              `${liveAnswer}\n\n` +
-              `💡 Note: This question does not match a supported reporting operation. As your Smart BI Copilot, I also specialize in live sales, customer analytics, and revenue trends.`
-            );
-          }
-        } catch {
-          // Graceful fallback to general answer
-        }
-      }
-      if (provider === 'openai') {
-        try {
-          const liveAnswer = await this.callOpenAi(question, reportData);
-          if (liveAnswer && liveAnswer.trim().length > 0) {
-            return (
-              `${liveAnswer}\n\n` +
-              `💡 Note: This question does not match a supported reporting operation. As your Smart BI Copilot, I also specialize in live sales, customer analytics, and revenue trends.`
-            );
-          }
-        } catch {
-          // Graceful fallback to general answer
-        }
-      }
-      return this.generateGeneralAnswer(question);
+      const suggestions = reportData.suggestions && reportData.suggestions.length > 0
+        ? reportData.suggestions
+        : [
+            'What were total sales last month?',
+            'Show customer list',
+            'Show product list',
+            'Show the top 10 customers by sales.',
+            'Which product generated the highest revenue?',
+            'Compare this month with the previous month.',
+            'Give me city-wise sales for the last three months.',
+          ];
+      return `I can't answer that yet. Try one of these:\n${suggestions.map((s) => `• ${s}`).join('\n')}`;
     }
 
     // If provider is Gemini
@@ -95,10 +80,7 @@ Rules:
 3. Be professional, direct, executive-ready, and concise (under 4 sentences).
 4. Do not include markdown code fences in your response.`;
 
-    const isGeneral = reportData.intent === 'UNSUPPORTED';
-    const userPrompt = isGeneral
-      ? `User Question: "${question}"\n\nProvide a helpful, friendly, and concise answer in 2-3 sentences:`
-      : `User Question: "${question}"
+    const userPrompt = `User Question: "${question}"
 
 Verified Database Report: "${reportData.reportTitle || 'Business Data'}"
 Summary Metrics: ${JSON.stringify(reportData.summaryMetrics || {})}
@@ -351,12 +333,37 @@ Provide a concise, executive-level explanation grounded entirely in this data:`;
         return `Analysis identified ${count} customer accounts with declining purchase activity. The most significant decrease was observed in ${summaryMetrics.mostImpactedCustomer}.`;
       }
 
+      case 'CUSTOMER_LIST': {
+        const count = rows?.length || 0;
+        const total = summaryMetrics?.totalSpent || 0;
+        const formattedTotal = `$${total.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+        const cityText = reportData.city ? ` in ${reportData.city}` : '';
+        return `Showing ${count} customers${cityText} with total spending of ${formattedTotal}.`;
+      }
+
+      case 'PRODUCT_LIST': {
+        const count = rows?.length || 0;
+        const units = summaryMetrics?.totalUnitsSold || 0;
+        return `Showing ${count} products with ${units} total units sold.`;
+      }
+
       case 'GREETING': {
         return 'Hello! I am your AI Business Intelligence Assistant. I analyze live sales, customers, products, and revenue trends from your business database. What business insight would you like to explore today?';
       }
 
       case 'UNSUPPORTED': {
-        return this.generateGeneralAnswer(question);
+        const suggestions = reportData.suggestions && reportData.suggestions.length > 0
+          ? reportData.suggestions
+          : [
+              'What were total sales last month?',
+              'Show customer list',
+              'Show product list',
+              'Show the top 10 customers by sales.',
+              'Which product generated the highest revenue?',
+              'Compare this month with the previous month.',
+              'Give me city-wise sales for the last three months.',
+            ];
+        return `I can't answer that yet. Try one of these:\n${suggestions.map((s) => `• ${s}`).join('\n')}`;
       }
 
       default:

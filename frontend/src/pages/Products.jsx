@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Search, Plus, Download } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Plus, Download } from 'lucide-react';
 import { productsApi } from '../api/products.api';
 import { TableSkeleton } from '../components/common/LoadingSkeleton';
 import { EmptyState } from '../components/common/EmptyState';
 import { Pagination } from '../components/common/Pagination';
+import { ProductFilterBar } from '../components/products/ProductFilterBar';
 import { ProductFormModal } from '../components/products/ProductFormModal';
 import { ProductsTable } from '../components/products/ProductsTable';
 import { ProductDeleteModal } from '../components/products/ProductDeleteModal';
+import { ProductDetailsModal } from '../components/products/ProductDetailsModal';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useDebounce } from '../hooks/useDebounce';
@@ -19,13 +22,20 @@ const CATEGORIES = [
   'Professional Services',
 ];
 
+const BRANDS = ['Tata', 'Infosys', 'Reliance', 'Mahindra', 'Bharat'];
+
 export const Products = () => {
+  const [searchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
   const [loading, setLoading] = useState(true);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [brandFilter, setBrandFilter] = useState('');
+  const [stockFilter, setStockFilter] = useState(() => searchParams.get('stock_status') || '');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
   const [activeFilter, setActiveFilter] = useState('');
   const debouncedSearch = useDebounce(searchTerm, 300);
 
@@ -36,12 +46,22 @@ export const Products = () => {
   const [deletingProduct, setDeletingProduct] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  const [detailProductId, setDetailProductId] = useState(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
   const [sortField, setSortField] = useState('product_name');
   const [sortAsc, setSortAsc] = useState(true);
   const searchInputRef = useRef(null);
 
   const { canManage } = useAuth();
   const { showToast } = useToast();
+
+  useEffect(() => {
+    const qStock = searchParams.get('stock_status');
+    if (qStock !== null) {
+      setStockFilter(qStock);
+    }
+  }, [searchParams]);
 
   const fetchProducts = useCallback(async (page = 1) => {
     setLoading(true);
@@ -51,6 +71,10 @@ export const Products = () => {
         limit: pagination.limit,
         search: debouncedSearch || undefined,
         category: categoryFilter || undefined,
+        brand: brandFilter || undefined,
+        stock_status: stockFilter || undefined,
+        min_price: minPrice || undefined,
+        max_price: maxPrice || undefined,
         isActive: activeFilter || undefined,
       });
       setProducts(res.data || []);
@@ -60,7 +84,7 @@ export const Products = () => {
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearch, categoryFilter, activeFilter, pagination.limit, showToast]);
+  }, [debouncedSearch, categoryFilter, brandFilter, stockFilter, minPrice, maxPrice, activeFilter, pagination.limit, showToast]);
 
   useEffect(() => {
     fetchProducts(1);
@@ -126,24 +150,49 @@ export const Products = () => {
 
   const exportCSV = () => {
     if (!products || products.length === 0) return;
-    const lines = ['Product ID,Product Name,Category,Unit Price,Status'];
-    products.forEach((p) => {
-      lines.push(`"${p.id}","${p.product_name}","${p.category}","${p.unit_price}","${p.is_active ? 'Active' : 'Inactive'}"`);
-    });
-    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const headers = ['SKU', 'Name', 'Category', 'Brand', 'Supplier', 'Unit Price', 'Cost Price', 'Stock', 'Status'];
+    const rows = products.map((p) => [
+      `"${(p.sku || '').replace(/"/g, '""')}"`,
+      `"${(p.product_name || '').replace(/"/g, '""')}"`,
+      `"${(p.category || '').replace(/"/g, '""')}"`,
+      `"${(p.brand || '').replace(/"/g, '""')}"`,
+      `"${(p.supplier || '').replace(/"/g, '""')}"`,
+      `"${p.unit_price ?? ''}"`,
+      `"${p.cost_price ?? ''}"`,
+      `"${p.stock_quantity ?? 0}"`,
+      `"${p.is_active ? 'Active' : 'Inactive'}"`,
+    ]);
+    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.download = `products_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
+    URL.revokeObjectURL(url);
     showToast('Exported products to CSV', 'success');
   };
 
+  const resetFilters = () => {
+    setSearchTerm('');
+    setCategoryFilter('');
+    setBrandFilter('');
+    setStockFilter('');
+    setMinPrice('');
+    setMaxPrice('');
+    setActiveFilter('');
+  };
+
   const sortedProducts = [...products].sort((a, b) => {
-    const valA = (a[sortField] || '').toString().toLowerCase();
-    const valB = (b[sortField] || '').toString().toLowerCase();
-    if (valA < valB) return sortAsc ? -1 : 1;
-    if (valA > valB) return sortAsc ? 1 : -1;
+    const valA = a[sortField];
+    const valB = b[sortField];
+    if (typeof valA === 'number' && typeof valB === 'number') {
+      return sortAsc ? valA - valB : valB - valA;
+    }
+    const strA = (valA ?? '').toString().toLowerCase();
+    const strB = (valB ?? '').toString().toLowerCase();
+    if (strA < strB) return sortAsc ? -1 : 1;
+    if (strA > strB) return sortAsc ? 1 : -1;
     return 0;
   });
 
@@ -152,7 +201,7 @@ export const Products = () => {
       <div className="page-header">
         <div>
           <h2>Products</h2>
-          <p className="page-subtitle">Product catalog and pricing</p>
+          <p className="page-subtitle">Product catalog, inventory and pricing</p>
         </div>
 
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -172,59 +221,41 @@ export const Products = () => {
         </div>
       </div>
 
-      <div className="filter-bar">
-        <div className="search-input-wrapper">
-          <Search size={15} className="search-icon" />
-          <input
-            ref={searchInputRef}
-            type="text"
-            className="form-control search-input"
-            placeholder="Search products by name... (Press / to search)"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-
-        <select className="form-control" style={{ width: '180px' }} value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
-          <option value="">All Categories</option>
-          {CATEGORIES.map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
-
-        <select className="form-control" style={{ width: '130px' }} value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)}>
-          <option value="">All Statuses</option>
-          <option value="true">Active</option>
-          <option value="false">Inactive</option>
-        </select>
-
-        {(searchTerm || categoryFilter || activeFilter) && (
-          <button
-            className="btn btn-secondary btn-sm"
-            onClick={() => { setSearchTerm(''); setCategoryFilter(''); setActiveFilter(''); }}
-          >
-            Reset
-          </button>
-        )}
-      </div>
+      <ProductFilterBar
+        searchInputRef={searchInputRef}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        categoryFilter={categoryFilter}
+        onCategoryChange={setCategoryFilter}
+        categories={CATEGORIES}
+        brandFilter={brandFilter}
+        onBrandChange={setBrandFilter}
+        brands={BRANDS}
+        stockFilter={stockFilter}
+        onStockChange={setStockFilter}
+        minPrice={minPrice}
+        onMinPriceChange={setMinPrice}
+        maxPrice={maxPrice}
+        onMaxPriceChange={setMaxPrice}
+        activeFilter={activeFilter}
+        onActiveChange={setActiveFilter}
+        onReset={resetFilters}
+      />
 
       <div className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
         {loading ? (
-          <TableSkeleton rows={8} cols={6} />
+          <TableSkeleton rows={8} cols={9} />
         ) : sortedProducts.length === 0 ? (
           <EmptyState
             title="No products found"
             description={
-              searchTerm || categoryFilter || activeFilter
+              searchTerm || categoryFilter || brandFilter || stockFilter || minPrice || maxPrice || activeFilter
                 ? 'Try adjusting your search criteria or category filter.'
                 : 'No products registered yet.'
             }
             action={
-              (searchTerm || categoryFilter || activeFilter) ? (
-                <button
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => { setSearchTerm(''); setCategoryFilter(''); setActiveFilter(''); }}
-                >
+              (searchTerm || categoryFilter || brandFilter || stockFilter || minPrice || maxPrice || activeFilter) ? (
+                <button className="btn btn-secondary btn-sm" onClick={resetFilters}>
                   Clear Filters
                 </button>
               ) : canManage ? (
@@ -248,6 +279,10 @@ export const Products = () => {
               canManage={canManage}
               onEdit={(prod) => { setEditingProduct(prod); setIsModalOpen(true); }}
               onToggleStatus={(prod) => setDeletingProduct(prod)}
+              onViewDetails={(prod) => {
+                setDetailProductId(prod.id);
+                setIsDetailModalOpen(true);
+              }}
             />
 
             <Pagination
@@ -278,6 +313,17 @@ export const Products = () => {
         onConfirm={handleDeleteProduct}
         onClose={() => setDeletingProduct(null)}
       />
+
+      {isDetailModalOpen && (
+        <ProductDetailsModal
+          productId={detailProductId}
+          isOpen={isDetailModalOpen}
+          onClose={() => {
+            setIsDetailModalOpen(false);
+            setDetailProductId(null);
+          }}
+        />
+      )}
     </div>
   );
 };

@@ -67,9 +67,48 @@ const checkHealth = async () => {
   }
 };
 
+/**
+ * Second pool for ai_readonly role with 5000ms statement_timeout
+ */
+const aiPool = new Pool({
+  host: config.db.host,
+  port: config.db.port,
+  database: config.db.database,
+  user: config.aiDb.user,
+  password: config.aiDb.password,
+  max: 10,
+  idleTimeoutMillis: config.db.idleTimeoutMs,
+  connectionTimeoutMillis: config.db.connectionTimeoutMs,
+  statement_timeout: 5000,
+});
+
+aiPool.on('error', (err) => {
+  console.error('[PostgreSQL AI Readonly Pool Error]: Unexpected error on idle client', err);
+});
+
+/**
+ * Execute dynamic AI query with statement timeout using ai_readonly pool
+ */
+const queryAiReadonly = async (text, params) => {
+  const start = Date.now();
+  try {
+    const res = await aiPool.query(text, params);
+    const duration = Date.now() - start;
+    if (config.env === 'development' && duration > 200) {
+      console.warn(`[Slow AI Query] (${duration}ms): ${text.substring(0, 80)}...`);
+    }
+    return res;
+  } catch (err) {
+    console.error(`[AI DB Query Error]: ${err.message} | SQL: ${text.substring(0, 100)}...`);
+    throw err;
+  }
+};
+
 module.exports = {
   pool,
+  aiPool,
   query,
+  queryAiReadonly,
   getClient,
   checkHealth,
 };

@@ -32,6 +32,7 @@ const mockSummary = {
     total_customers: 45,
     active_customers: 42,
     active_products: 15,
+    low_stock_products: 3,
   },
   monthlySales: [
     { month: '2026-05', revenue: '45000.00', sales_count: 30 },
@@ -95,6 +96,7 @@ describe('Dashboard Component', () => {
       expect(screen.getByText('Total Orders')).toBeInTheDocument();
       expect(screen.getByText('Customer Accounts')).toBeInTheDocument();
       expect(screen.getByText('Catalog Offerings')).toBeInTheDocument();
+      expect(screen.getByText('Low stock products')).toBeInTheDocument();
       // Formatted numbers
       expect(screen.getByText('₹2,45,801')).toBeInTheDocument();
       expect(screen.getByText('154')).toBeInTheDocument();

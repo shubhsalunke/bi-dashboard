@@ -10,6 +10,8 @@ const WELCOME_TEXT = 'Ask a question about your sales, customers, or products.';
 
 const SAMPLE_QUESTIONS = [
   'What were total sales last month?',
+  'Show customer list',
+  'Show product list',
   'Show the top 10 customers by sales.',
   'Which product generated the highest revenue?',
   'Compare this month with the previous month.',
@@ -37,13 +39,13 @@ export const AIAssistant = () => {
   const [unconfiguredNotice, setUnconfiguredNotice] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
 
-  const messagesEndRef = useRef(null);
+  const chatScrollRef = useRef(null);
   const inputRef = useRef(null);
   const { showToast } = useToast();
 
   const scrollToBottom = () => {
-    if (typeof messagesEndRef.current?.scrollIntoView === 'function') {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
     }
   };
 
@@ -162,11 +164,11 @@ export const AIAssistant = () => {
   const isInitialState = messages.length <= 1;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minHeight: 'calc(100vh - 120px)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', height: 'calc(100vh - 120px)', boxSizing: 'border-box' }}>
       <div className="page-header" style={{ marginBottom: 0 }}>
         <div>
           <h2 className="brand-title-serif">AI Business Assistant</h2>
-          <p className="page-subtitle">Strict Parameterized Query Safety • Grounded SQL Insights</p>
+          <p className="page-subtitle">Answers come from your sales database.</p>
         </div>
 
         <button type="button" className="btn btn-secondary btn-sm" onClick={handleClearChat}>
@@ -197,8 +199,9 @@ export const AIAssistant = () => {
         </div>
       )}
 
-      <div className="copilot-main-panel">
+      <div className="copilot-main-panel" style={{ minHeight: 0 }}>
         <div
+          ref={chatScrollRef}
           style={{
             flex: 1,
             overflowY: 'auto',
@@ -231,8 +234,6 @@ export const AIAssistant = () => {
               Thinking...
             </div>
           )}
-
-          <div ref={messagesEndRef} />
         </div>
 
         {lastError && !loading && (

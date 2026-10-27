@@ -21,6 +21,7 @@
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
+    "node-sql-parser": "^5.4.0",
     "pg": "^8.13.1",
     "swagger-ui-express": "^5.0.1",
     "yamljs": "^0.3.0"

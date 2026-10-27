@@ -141,10 +141,21 @@ export const ChatMessageItem = ({
                     <tr key={rIdx}>
                       {msg.report.columns.map((col) => {
                         const cellVal = row[col.key];
+                        const isMoney =
+                          (col.key === 'total_spent' ||
+                            col.key === 'unit_price' ||
+                            col.key === 'total_revenue' ||
+                            col.key === 'total_amount' ||
+                            col.key === 'line_total' ||
+                            col.key.toLowerCase().includes('spent') ||
+                            col.key.toLowerCase().includes('price') ||
+                            (col.key.toLowerCase().includes('amount') && !col.key.toLowerCase().includes('count'))) &&
+                          typeof cellVal === 'number';
+                        const displayVal = isMoney ? formatCurrency(cellVal) : cellVal;
                         const isNumeric = typeof cellVal === 'number' || (!isNaN(Number(cellVal)) && cellVal !== '');
                         return (
                           <td key={col.key} className={isNumeric ? 'tabular-nums' : ''}>
-                            {cellVal}
+                            {displayVal}
                           </td>
                         );
                       })}

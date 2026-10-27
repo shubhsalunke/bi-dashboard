@@ -3,11 +3,13 @@ import { Download } from 'lucide-react';
 import { dashboardApi } from '../api/dashboard.api';
 import { SalesReportTab } from '../components/reports/SalesReportTab';
 import { CustomerInsightsTab } from '../components/reports/CustomerInsightsTab';
+import { BrandSalesChart } from '../components/reports/BrandSalesChart';
 import { useToast } from '../context/ToastContext';
 
 export const Reports = () => {
   const [salesReport, setSalesReport] = useState(null);
   const [customerInsights, setCustomerInsights] = useState([]);
+  const [brandSales, setBrandSales] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('sales');
 
@@ -24,16 +26,18 @@ export const Reports = () => {
   const fetchReports = useCallback(async () => {
     setLoading(true);
     try {
-      const [salesRes, insightsRes] = await Promise.all([
+      const [salesRes, insightsRes, brandRes] = await Promise.all([
         dashboardApi.getSalesReport({
           startDate: startDate || undefined,
           endDate: endDate || undefined,
           city: cityFilter || undefined,
         }),
         dashboardApi.getCustomerInsights(),
+        dashboardApi.getBrandSalesReport(),
       ]);
       setSalesReport(salesRes);
       setCustomerInsights(insightsRes || []);
+      setBrandSales(brandRes || []);
     } catch (err) {
       showToast(err.message || 'Failed to load reports', 'error');
     } finally {
@@ -180,21 +184,24 @@ export const Reports = () => {
       </div>
 
       {activeTab === 'sales' ? (
-        <SalesReportTab
-          loading={loading}
-          salesReport={salesReport}
-          startDate={startDate}
-          endDate={endDate}
-          cityFilter={cityFilter}
-          setStartDate={setStartDate}
-          setEndDate={setEndDate}
-          setCityFilter={setCityFilter}
-          handlePreset={handlePreset}
-          monthlyTimeline={monthlyTimeline}
-          peakMonth={peakMonth}
-          peakCity={peakCity}
-          totalPeriodRevenue={totalPeriodRevenue}
-        />
+        <>
+          <SalesReportTab
+            loading={loading}
+            salesReport={salesReport}
+            startDate={startDate}
+            endDate={endDate}
+            cityFilter={cityFilter}
+            setStartDate={setStartDate}
+            setEndDate={setEndDate}
+            setCityFilter={setCityFilter}
+            handlePreset={handlePreset}
+            monthlyTimeline={monthlyTimeline}
+            peakMonth={peakMonth}
+            peakCity={peakCity}
+            totalPeriodRevenue={totalPeriodRevenue}
+          />
+          <BrandSalesChart brandSales={brandSales} loading={loading} />
+        </>
       ) : (
         <CustomerInsightsTab
           insights={filteredInsights}

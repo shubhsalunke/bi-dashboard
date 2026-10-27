@@ -1,5 +1,6 @@
 const aiReportingService = require('./aiReporting.service');
 const aiProviderService = require('./aiProvider.service');
+const aiSqlGeneratorService = require('./aiSqlGenerator.service');
 const { logAudit } = require('../utils/auditLogger');
 const config = require('../config/env');
 
@@ -14,8 +15,45 @@ class AiService {
   async askQuestion(question, user, ipAddress = null) {
     const trimmedQuestion = question.trim();
 
-    // 1. Identify Intent
-    const intentData = aiReportingService.classifyIntent(trimmedQuestion);
+    // 1. Identify Intent (approved keyword intents are first choice)
+    const intentData = await aiReportingService.classifyIntent(trimmedQuestion);
+
+    // 2. Dynamic SQL path for UNSUPPORTED queries when AI_DYNAMIC_SQL is enabled
+    const isDynamicEnabled =
+      (process.env.AI_DYNAMIC_SQL === 'true' || config.ai?.dynamicSql) &&
+      Boolean(process.env.GEMINI_API_KEY || config.ai?.geminiApiKey || process.env.NODE_ENV === 'test');
+
+    if (intentData.intent === 'UNSUPPORTED' && isDynamicEnabled) {
+      const dynamicResult = await aiSqlGeneratorService.processDynamicQuery(trimmedQuestion);
+      if (dynamicResult && dynamicResult.success) {
+        await logAudit({
+          userId: user.id,
+          userEmail: user.email,
+          action: 'AI_DYNAMIC_SQL_QUERY',
+          entity: 'AI_ASSISTANT',
+          entityId: null,
+          details: {
+            question: trimmedQuestion,
+            sql: dynamicResult.generatedSql,
+            notAboutData: dynamicResult.notAboutData || false,
+          },
+          ipAddress,
+        });
+
+        return {
+          question: trimmedQuestion,
+          intent: dynamicResult.notAboutData ? 'NOT_ABOUT_DATA' : 'DYNAMIC_SQL',
+          answer: dynamicResult.answer,
+          reportTitle: dynamicResult.reportTitle || 'Dynamic Query Results',
+          columns: dynamicResult.columns || [],
+          rows: dynamicResult.rows || [],
+          dateRange: null,
+          summaryMetrics: dynamicResult.summaryMetrics || {},
+          suggestions: null,
+          provider: 'gemini',
+        };
+      }
+    }
 
     let reportData = null;
     let answer = '';

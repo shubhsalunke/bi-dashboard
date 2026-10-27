@@ -25,6 +25,7 @@ class DashboardService {
         (SELECT COUNT(id) FROM customers) AS total_customers,
         (SELECT COUNT(id) FROM customers WHERE status = 'active') AS active_customers,
         (SELECT COUNT(id) FROM products WHERE is_active = true) AS active_products,
+        (SELECT COUNT(id) FROM products WHERE is_active = true AND stock_quantity <= reorder_level) AS low_stock_products,
         COALESCE(COUNT(s.id), 0) AS total_sales_count,
         COALESCE(SUM(s.total_amount), 0) AS total_revenue,
         COALESCE(ROUND(AVG(s.total_amount), 2), 0) AS average_order_value
@@ -262,6 +263,31 @@ class DashboardService {
 
     const res = await query(sql);
     return res.rows;
+  }
+
+  /**
+   * Get brand sales summary: brand, units_sold, total_revenue (completed sales only)
+   */
+  async getBrandSalesReport() {
+    const sql = `
+      SELECT 
+        p.brand,
+        COALESCE(SUM(si.quantity), 0)::int AS units_sold,
+        COALESCE(SUM(si.line_total), 0)::numeric(14,2) AS total_revenue
+      FROM products p
+      JOIN sale_items si ON si.product_id = p.id
+      JOIN sales s ON s.id = si.sale_id AND s.status = 'completed'
+      WHERE p.brand IS NOT NULL AND p.brand != ''
+      GROUP BY p.brand
+      ORDER BY total_revenue DESC;
+    `;
+
+    const res = await query(sql);
+    return res.rows.map((row) => ({
+      brand: row.brand,
+      units_sold: parseInt(row.units_sold, 10),
+      total_revenue: parseFloat(row.total_revenue),
+    }));
   }
 }
 

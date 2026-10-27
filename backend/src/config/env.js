@@ -42,6 +42,12 @@ const config = {
     openaiApiKey: process.env.OPENAI_API_KEY || '',
     openaiModel: process.env.OPENAI_MODEL || 'gpt-4o-mini',
     timeoutMs: parseInt(process.env.AI_TIMEOUT_MS || '15000', 10),
+    dynamicSql: process.env.AI_DYNAMIC_SQL === 'true',
+  },
+
+  aiDb: {
+    user: process.env.AI_DB_USER || 'ai_readonly',
+    password: process.env.AI_DB_PASSWORD || 'ai_readonly_password',
   },
 };
 

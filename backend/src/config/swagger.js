@@ -72,9 +72,19 @@ Provides endpoints for CRM, catalog, transactional sales, executive reporting, A
         type: 'object',
         properties: {
           id: { type: 'integer', example: 1 },
+          sku: { type: 'string', example: 'SKU-SFT-004' },
           product_name: { type: 'string', example: 'BI Analytics Suite Pro License' },
           category: { type: 'string', example: 'Enterprise Software' },
+          brand: { type: 'string', example: 'Tata' },
+          supplier: { type: 'string', example: 'Tata Consultancy Services' },
+          unit: { type: 'string', example: 'per seat/yr' },
           unit_price: { type: 'number', format: 'float', example: 1200.00 },
+          cost_price: { type: 'number', format: 'float', example: 750.00 },
+          stock_quantity: { type: 'integer', example: 25 },
+          gst_percent: { type: 'number', format: 'float', example: 18.00 },
+          reorder_level: { type: 'integer', example: 10 },
+          warranty_months: { type: 'integer', example: 12 },
+          description: { type: 'string', example: 'Annual enterprise license seat for business intelligence.' },
           is_active: { type: 'boolean', example: true },
         },
       },
@@ -258,6 +268,18 @@ Provides endpoints for CRM, catalog, transactional sales, executive reporting, A
         responses: { 201: { description: 'Product created' } },
       },
     },
+    '/api/products/{id}/details': {
+      get: {
+        summary: 'Get product details with margin, sales metrics, and last 5 sales',
+        tags: ['Products'],
+        security: [{ BearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: {
+          200: { description: 'Product details with sales history and margin' },
+          404: { description: 'Product not found' },
+        },
+      },
+    },
     '/api/sales': {
       get: {
         summary: 'List sales records with pagination and filters',
@@ -316,6 +338,14 @@ Provides endpoints for CRM, catalog, transactional sales, executive reporting, A
         tags: ['Dashboard & Reporting'],
         security: [{ BearerAuth: [] }],
         responses: { 200: { description: 'Sales report dataset' } },
+      },
+    },
+    '/api/reports/brand-sales': {
+      get: {
+        summary: 'Report sales aggregated by product brand',
+        tags: ['Dashboard & Reporting'],
+        security: [{ BearerAuth: [] }],
+        responses: { 200: { description: 'Brand sales dataset with units sold and revenue' } },
       },
     },
     '/api/ai/ask': {
