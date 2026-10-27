@@ -86,8 +86,8 @@ async function runLiveVerification() {
     const analystToken = anaLogin.data.data.accessToken;
 
     // 7. Customers: Paginated directory with search & filters
-    const customers = await makeRequest('/api/customers?limit=3&city=New%20York', 'GET', null, analystToken);
-    console.log(`[PASS] GET /api/customers (City=New York) -> HTTP ${customers.statusCode} | Count: ${customers.data.data.length} | Total: ${customers.data.pagination.total}`);
+    const customers = await makeRequest('/api/customers?limit=3&city=Mumbai', 'GET', null, analystToken);
+    console.log(`[PASS] GET /api/customers (City=Mumbai) -> HTTP ${customers.statusCode} | Count: ${customers.data.data.length} | Total: ${customers.data.pagination.total}`);
     if (customers.statusCode !== 200) throw new Error('Customers query failed');
 
     // 8. Products: List with active filter

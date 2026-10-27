@@ -9,14 +9,14 @@ export const DashboardLayout = () => {
 
   const getPageTitle = (path) => {
     if (path === '/') return 'Executive Intelligence Dashboard';
-    if (path.startsWith('/customers/')) return 'Customer Intelligence Profile';
-    if (path.startsWith('/customers')) return 'Customer Directory & Accounts';
-    if (path.startsWith('/products')) return 'Product Portfolio & Pricing';
-    if (path.startsWith('/sales')) return 'Sales Operations & Orders';
-    if (path.startsWith('/reports')) return 'Business Reporting & Analytics';
-    if (path.startsWith('/ai-assistant')) return 'AI Business Copilot';
-    if (path.startsWith('/users')) return 'User Roles & System Administration';
-    return 'Business Intelligence';
+    if (path.startsWith('/customers/')) return 'Customer Details';
+    if (path.startsWith('/customers')) return 'Customers';
+    if (path.startsWith('/products')) return 'Products';
+    if (path.startsWith('/sales')) return 'Sales';
+    if (path.startsWith('/reports')) return 'Reports';
+    if (path.startsWith('/ai-assistant')) return 'AI Assistant';
+    if (path.startsWith('/users')) return 'Users';
+    return 'Smart BI';
   };
 
   return (
@@ -34,3 +34,5 @@ export const DashboardLayout = () => {
     </div>
   );
 };
+
+export default DashboardLayout;

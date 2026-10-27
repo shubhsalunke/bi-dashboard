@@ -152,7 +152,7 @@ export const CustomerFormModal = ({ isOpen, onClose, customer = null, onSaved })
             <input
               type="text"
               className="form-control"
-              placeholder="e.g. Chicago"
+              placeholder="e.g. Pune"
               value={formData.city}
               onChange={(e) => setFormData({ ...formData, city: e.target.value })}
               required

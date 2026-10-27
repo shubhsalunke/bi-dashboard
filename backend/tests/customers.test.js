@@ -47,11 +47,11 @@ describe('Customer API Endpoints (/api/customers)', () => {
 
   it('should filter customers by city', async () => {
     const res = await request(app)
-      .get('/api/customers?city=New York')
+      .get('/api/customers?city=Mumbai')
       .set('Authorization', `Bearer ${managerToken}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.data.every((c) => c.city === 'New York')).toBe(true);
+    expect(res.body.data.every((c) => c.city === 'Mumbai')).toBe(true);
   });
 
   it('should search customers by name substring', async () => {
@@ -81,8 +81,8 @@ describe('Customer API Endpoints (/api/customers)', () => {
       customer_code: `CUST-TEST-${uniqueSuffix}`,
       customer_name: `Test Enterprise ${uniqueSuffix}`,
       email: `test${uniqueSuffix}@enterprise.io`,
-      phone: '+1-555-0199',
-      city: 'Austin',
+      phone: '+91-98201-99019',
+      city: 'Pune',
       status: 'active',
     };
 
@@ -103,7 +103,7 @@ describe('Customer API Endpoints (/api/customers)', () => {
         customer_code: 'CUST-FORBIDDEN',
         customer_name: 'Forbidden Corp',
         email: 'forbidden@corp.com',
-        city: 'Seattle',
+        city: 'Nagpur',
       });
 
     expect(res.status).toBe(403);
@@ -118,7 +118,7 @@ describe('Customer API Endpoints (/api/customers)', () => {
         customer_code: 'CUST-001', // already exists in seeds
         customer_name: 'Duplicate Test',
         email: 'unique_email_test@example.com',
-        city: 'Denver',
+        city: 'Hyderabad',
       });
 
     expect(res.status).toBe(409);

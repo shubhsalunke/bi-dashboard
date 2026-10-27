@@ -38,57 +38,57 @@ INSERT INTO public.audit_logs VALUES (1, 1, 'admin@bi.corp', 'SYSTEM_SEED', 'DAT
 -- Data for Name: customers; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.customers VALUES (1, 'CUST-001', 'Acme Global Logistics', 'contact@acmelogistics.com', '+1-212-555-0101', 'New York', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.customers VALUES (2, 'CUST-002', 'Apex FinTech Solutions', 'billing@apexfintech.io', '+1-415-555-0102', 'San Francisco', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.customers VALUES (3, 'CUST-003', 'Beacon Health Analytics', 'ops@beaconhealth.org', '+1-312-555-0103', 'Chicago', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.customers VALUES (4, 'CUST-004', 'BlueSky SaaS Inc', 'admin@blueskycloud.net', '+1-512-555-0104', 'Austin', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.customers VALUES (5, 'CUST-005', 'Cascade Energy Corp', 'procure@cascadeenergy.com', '+1-206-555-0105', 'Seattle', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.customers VALUES (6, 'CUST-006', 'Catalyst BioSciences', 'lab@catalystbio.com', '+1-617-555-0106', 'Boston', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.customers VALUES (7, 'CUST-007', 'Coastal Logistics Group', 'support@coastallog.com', '+1-305-555-0107', 'Miami', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.customers VALUES (8, 'CUST-008', 'Crestline Capital Partners', 'deals@crestlinecap.com', '+1-212-555-0108', 'New York', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.customers VALUES (9, 'CUST-009', 'Delta Stream Media', 'tech@deltastream.com', '+1-310-555-0109', 'Los Angeles', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.customers VALUES (10, 'CUST-010', 'Elevate Retail Systems', 'orders@elevateretail.com', '+1-312-555-0110', 'Chicago', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.customers VALUES (11, 'CUST-011', 'Frontier Robotics Lab', 'info@frontierrob.io', '+1-206-555-0111', 'Seattle', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.customers VALUES (12, 'CUST-012', 'Horizon Cloud Services', 'it@horizonclouds.net', '+1-415-555-0112', 'San Francisco', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.customers VALUES (13, 'CUST-013', 'Ironclad Security Labs', 'ops@ironcladsec.com', '+1-512-555-0113', 'Austin', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.customers VALUES (14, 'CUST-014', 'Keystone Manufacturing', 'supply@keystonemfg.com', '+1-214-555-0114', 'Dallas', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.customers VALUES (15, 'CUST-015', 'Lighthouse Education Tech', 'admin@lighthouseed.org', '+1-617-555-0115', 'Boston', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.customers VALUES (16, 'CUST-016', 'Matrix AI Labs', 'founders@matrixailabs.com', '+1-415-555-0116', 'San Francisco', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.customers VALUES (17, 'CUST-017', 'Nexus Supply Chain', 'freight@nexussupply.com', '+1-303-555-0117', 'Denver', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.customers VALUES (18, 'CUST-018', 'OmniPay Payment Gateway', 'gateway@omnipaycorp.com', '+1-212-555-0118', 'New York', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.customers VALUES (19, 'CUST-019', 'Pinnacle Aerospace Systems', 'procure@pinnacleaero.com', '+1-206-555-0119', 'Seattle', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.customers VALUES (20, 'CUST-020', 'Quantum Medical Diagnostics', 'contact@quantummed.org', '+1-312-555-0120', 'Chicago', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.customers VALUES (21, 'CUST-021', 'Redwood Data Storage', 'support@redwooddata.com', '+1-415-555-0121', 'San Francisco', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.customers VALUES (22, 'CUST-022', 'Silverline Insurance Group', 'claims@silverlineins.com', '+1-214-555-0122', 'Dallas', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.customers VALUES (23, 'CUST-023', 'Solstice Energy Networks', 'green@solsticeenergy.com', '+1-303-555-0123', 'Denver', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.customers VALUES (24, 'CUST-024', 'Summit Wealth Management', 'wealth@summitwm.com', '+1-212-555-0124', 'New York', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.customers VALUES (25, 'CUST-025', 'Titanium Heavy Industries', 'heavy@titaniumind.com', '+1-312-555-0125', 'Chicago', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.customers VALUES (26, 'CUST-026', 'Vanguard Mobility Labs', 'fleet@vanguardmob.com', '+1-512-555-0126', 'Austin', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.customers VALUES (27, 'CUST-027', 'Vertex Biotechnology', 'research@vertexbio.net', '+1-617-555-0127', 'Boston', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.customers VALUES (28, 'CUST-028', 'Zephyr Global Trading', 'trade@zephyrtrade.com', '+1-305-555-0128', 'Miami', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.customers VALUES (29, 'CUST-029', 'Legacy Retail Distribution', 'closed@legacyretail.com', '+1-214-555-0129', 'Dallas', 'inactive', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.customers VALUES (30, 'CUST-030', 'OldTown Printing Services', 'inquiry@oldtownprint.com', '+1-303-555-0130', 'Denver', 'inactive', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.customers VALUES (1, 'CUST-001', 'Acme Logistics India', 'contact@acmelogistics.in', '+91-22-2555-0101', 'Mumbai', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.customers VALUES (2, 'CUST-002', 'Tata FinTech Solutions', 'billing@tatafintech.in', '+91-20-2555-0102', 'Pune', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.customers VALUES (3, 'CUST-003', 'Reliance Health Analytics', 'ops@reliancehealth.in', '+91-712-2555-0103', 'Nagpur', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.customers VALUES (4, 'CUST-004', 'BlueSky Cloud Services', 'admin@blueskycloud.in', '+91-253-2555-0104', 'Nashik', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.customers VALUES (5, 'CUST-005', 'Kirloskar Energy Corp', 'procure@kirloskar.in', '+91-20-2555-0105', 'Pune', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.customers VALUES (6, 'CUST-006', 'Serum BioSciences', 'lab@serumbio.in', '+91-20-2555-0106', 'Pune', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.customers VALUES (7, 'CUST-007', 'Coastal Freight Logistics', 'support@coastalfreight.in', '+91-22-2555-0107', 'Mumbai', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.customers VALUES (8, 'CUST-008', 'Godrej Capital Advisory', 'deals@godrejcap.in', '+91-22-2555-0108', 'Mumbai', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.customers VALUES (9, 'CUST-009', 'Zee Media Networks', 'tech@zeemedia.in', '+91-22-2555-0109', 'Mumbai', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.customers VALUES (10, 'CUST-010', 'Aura Retail Systems', 'orders@auraretail.in', '+91-240-2555-0110', 'Aurangabad', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.customers VALUES (11, 'CUST-011', 'Bharat Robotics Lab', 'info@bharatrobotics.in', '+91-40-2555-0111', 'Hyderabad', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.customers VALUES (12, 'CUST-012', 'Infosys Cloud Infrastructure', 'it@infosyscloud.in', '+91-20-2555-0112', 'Pune', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.customers VALUES (13, 'CUST-013', 'QuickHeal Security Labs', 'ops@quickhealsec.in', '+91-20-2555-0113', 'Pune', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.customers VALUES (14, 'CUST-014', 'Mahindra Manufacturing', 'supply@mahindramfg.in', '+91-253-2555-0114', 'Nashik', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.customers VALUES (15, 'CUST-015', 'Vidarbha Edutech Solutions', 'admin@vidarbhaedu.in', '+91-712-2555-0115', 'Nagpur', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.customers VALUES (16, 'CUST-016', 'Persistent AI Technologies', 'founders@persistentai.in', '+91-20-2555-0116', 'Pune', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.customers VALUES (17, 'CUST-017', 'Deccan Supply Chain', 'freight@deccansupply.in', '+91-40-2555-0117', 'Hyderabad', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.customers VALUES (18, 'CUST-018', 'Paytm Commerce Gateway', 'gateway@paytmcommerce.in', '+91-11-2555-0118', 'Delhi', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.customers VALUES (19, 'CUST-019', 'HAL Aerospace Components', 'procure@halaero.in', '+91-253-2555-0119', 'Nashik', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.customers VALUES (20, 'CUST-020', 'Maratha Diagnostics', 'contact@marathadiag.in', '+91-240-2555-0120', 'Aurangabad', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.customers VALUES (21, 'CUST-021', 'Wipro Data Systems', 'support@wiprodata.in', '+91-40-2555-0121', 'Hyderabad', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.customers VALUES (22, 'CUST-022', 'Bajaj Insurance Alliance', 'claims@bajajall.in', '+91-20-2555-0122', 'Pune', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.customers VALUES (23, 'CUST-023', 'Suzlon Green Power', 'green@suzlonpower.in', '+91-20-2555-0123', 'Pune', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.customers VALUES (24, 'CUST-024', 'Kotak Wealth Management', 'wealth@kotakwm.in', '+91-22-2555-0124', 'Mumbai', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.customers VALUES (25, 'CUST-025', 'Larsen Engineering Works', 'heavy@larseneng.in', '+91-22-2555-0125', 'Mumbai', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.customers VALUES (26, 'CUST-026', 'Delhi Mobility Labs', 'fleet@delhimobility.in', '+91-11-2555-0126', 'Delhi', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.customers VALUES (27, 'CUST-027', 'Cipla Life Sciences', 'research@ciplalife.in', '+91-22-2555-0127', 'Mumbai', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.customers VALUES (28, 'CUST-028', 'Hyderabad Global Exim', 'trade@hydexim.in', '+91-40-2555-0128', 'Hyderabad', 'active', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.customers VALUES (29, 'CUST-029', 'Nagpur Trading Syndicate', 'closed@nagpurtrade.in', '+91-712-2555-0129', 'Nagpur', 'inactive', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.customers VALUES (30, 'CUST-030', 'Ajanta Print Services', 'inquiry@ajantaprint.in', '+91-240-2555-0130', 'Aurangabad', 'inactive', '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
 
 
 --
 -- Data for Name: products; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.products VALUES (1, 'Enterprise Cloud Compute Node', 'Cloud Infrastructure', 450.00, true, '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.products VALUES (1, 'Cloud Virtual Server Node', 'Cloud Infrastructure', 450.00, true, '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
 INSERT INTO public.products VALUES (2, 'Managed PostgreSQL Cluster Dedicated', 'Cloud Infrastructure', 650.00, true, '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
 INSERT INTO public.products VALUES (3, 'Object Storage Tier 1 (10TB)', 'Cloud Infrastructure', 220.00, true, '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.products VALUES (4, 'BI Analytics Suite Pro License', 'Enterprise Software', 1200.00, true, '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.products VALUES (4, 'Business Analytics Pro License', 'Enterprise Software', 1200.00, true, '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
 INSERT INTO public.products VALUES (5, 'Customer Data Platform (CDP)', 'Enterprise Software', 2400.00, true, '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.products VALUES (6, 'Workflow Automator Enterprise', 'Enterprise Software', 850.00, true, '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.products VALUES (6, 'Workflow Automation Suite', 'Enterprise Software', 850.00, true, '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
 INSERT INTO public.products VALUES (7, 'Zero Trust Network Gateway', 'Cybersecurity', 1500.00, true, '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
 INSERT INTO public.products VALUES (8, 'Endpoint Detection & Response (EDR)', 'Cybersecurity', 950.00, true, '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.products VALUES (9, 'Threat Intelligence Real-time Feed', 'Cybersecurity', 1800.00, true, '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.products VALUES (10, 'Predictive Sales Forecast Engine', 'Analytics & AI', 3200.00, true, '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.products VALUES (11, 'AI Customer Copilot Integration', 'Analytics & AI', 2800.00, true, '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.products VALUES (9, 'Threat Intelligence Security Feed', 'Cybersecurity', 1800.00, true, '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.products VALUES (10, 'Sales Forecasting System', 'Analytics & AI', 3200.00, true, '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.products VALUES (11, 'AI Customer Support Integration', 'Analytics & AI', 2800.00, true, '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
 INSERT INTO public.products VALUES (12, 'Real-time Data Warehouse Connector', 'Analytics & AI', 750.00, true, '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.products VALUES (13, 'Enterprise Cloud Migration Consulting', 'Professional Services', 5000.00, true, '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.products VALUES (14, 'Custom BI Dashboard Implementation', 'Professional Services', 3500.00, true, '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
-INSERT INTO public.products VALUES (15, '24/7 Dedicated SLA Support Package', 'Professional Services', 1500.00, true, '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.products VALUES (13, 'Cloud Migration Advisory', 'Professional Services', 5000.00, true, '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.products VALUES (14, 'Custom Dashboard Implementation', 'Professional Services', 3500.00, true, '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
+INSERT INTO public.products VALUES (15, '24/7 Dedicated Support Package', 'Professional Services', 1500.00, true, '2026-10-13 11:02:24.070515+00', '2026-10-13 11:02:24.070515+00');
 
 
 --

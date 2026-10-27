@@ -43,7 +43,7 @@ const mockSummary = {
       customer_id: 1,
       customer_name: 'Nexus Corp',
       customer_code: 'CUST-001',
-      city: 'New York',
+      city: 'Pune',
       orders_count: 12,
       total_spent: '42000.00',
     },
@@ -61,7 +61,7 @@ const mockSummary = {
     {
       id: 101,
       customer_name: 'Nexus Corp',
-      city: 'New York',
+      city: 'Pune',
       sale_date: new Date().toISOString(),
       total_amount: '3500.00',
       status: 'completed',
@@ -97,7 +97,7 @@ describe('Dashboard Component', () => {
       expect(screen.getByText('Customer Accounts')).toBeInTheDocument();
       expect(screen.getByText('Catalog Offerings')).toBeInTheDocument();
       // Formatted numbers
-      expect(screen.getByText('$245,801')).toBeInTheDocument();
+      expect(screen.getByText('₹2,45,801')).toBeInTheDocument();
       expect(screen.getByText('154')).toBeInTheDocument();
       expect(screen.getByText('45')).toBeInTheDocument();
     });

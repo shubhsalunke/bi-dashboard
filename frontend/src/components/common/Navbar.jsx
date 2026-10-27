@@ -1,5 +1,5 @@
 import React from 'react';
-import { Menu, Shield, Sun, Moon } from 'lucide-react';
+import { Menu, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { Badge } from './Badge';
@@ -10,14 +10,14 @@ export const Navbar = ({ onToggleSidebar, title }) => {
 
   return (
     <header className="top-navbar">
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         <button
           onClick={onToggleSidebar}
           className="btn btn-secondary btn-sm"
-          style={{ display: 'none', padding: '8px' }}
+          style={{ display: 'none', padding: '6px' }}
           id="mobile-sidebar-toggle"
         >
-          <Menu size={18} />
+          <Menu size={16} />
         </button>
         <h1 className="page-title">{title}</h1>
       </div>
@@ -43,12 +43,9 @@ export const Navbar = ({ onToggleSidebar, title }) => {
           )}
         </button>
 
-        <Badge variant={user?.role} label={`${user?.role?.toUpperCase()} ACCESS`} />
-        
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)', fontSize: '0.8125rem' }}>
-          <Shield size={14} color="#10b981" />
-          <span>Session Secure</span>
-        </div>
+        {user?.role && (
+          <Badge variant={user.role} label={user.role} />
+        )}
       </div>
     </header>
   );

@@ -2,9 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Plus,
   Eye,
-  Calendar,
   Trash2,
-  AlertCircle,
 } from 'lucide-react';
 import { salesApi } from '../api/sales.api';
 import { customersApi } from '../api/customers.api';
@@ -16,22 +14,20 @@ import { Pagination } from '../components/common/Pagination';
 import { Badge } from '../components/common/Badge';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { formatCurrency, formatDate } from '../utils/format';
 
 export const Sales = () => {
   const [sales, setSales] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
   const [loading, setLoading] = useState(true);
 
-  // Filters
   const [statusFilter, setStatusFilter] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  // View Sale Modal
   const [viewingSale, setViewingSale] = useState(null);
   const [viewLoading, setViewLoading] = useState(false);
 
-  // Create Sale Modal
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
   const [customersList, setCustomersList] = useState([]);
@@ -57,7 +53,7 @@ export const Sales = () => {
       setSales(res.data);
       setPagination(res.pagination);
     } catch (err) {
-      showToast(err.message || 'Failed to fetch sales records', 'error');
+      showToast(err.message || 'Failed to load sales', 'error');
     } finally {
       setLoading(false);
     }
@@ -67,7 +63,6 @@ export const Sales = () => {
     fetchSales(1);
   }, [statusFilter, startDate, endDate]);
 
-  // Load active customers and products when opening create modal
   const handleOpenCreateModal = async () => {
     setFormError('');
     setIsCreateOpen(true);
@@ -80,8 +75,8 @@ export const Sales = () => {
       setProductsList(pRes.data || []);
       if (cRes.data?.length > 0) setSelectedCustomerId(cRes.data[0].id);
       if (pRes.data?.length > 0) setOrderItems([{ product_id: pRes.data[0].id, quantity: 1 }]);
-    } catch (err) {
-      showToast('Failed to load customers or products catalog', 'error');
+    } catch {
+      showToast('Failed to load customers or products list', 'error');
     }
   };
 
@@ -125,7 +120,7 @@ export const Sales = () => {
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
     if (!selectedCustomerId) {
-      setFormError('Please select a customer account');
+      setFormError('Please select a customer');
       return;
     }
 
@@ -144,44 +139,60 @@ export const Sales = () => {
         items: formattedItems,
       });
 
-      showToast(`Sale #${newSale.id} created successfully ($${newSale.total_amount})!`, 'success');
+      showToast(`Sale #${newSale.id} created successfully`, 'success');
       setIsCreateOpen(false);
       fetchSales(1);
     } catch (err) {
-      setFormError(err.message || 'Sale creation failed');
+      setFormError(err.message || 'Failed to create sale');
     } finally {
       setCreateLoading(false);
     }
   };
 
-  const formatCurrency = (val) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(val || 0);
-  };
+  const [sortField, setSortField] = useState('sale_date');
+  const [sortAsc, setSortAsc] = useState(false);
 
-  const formatDate = (val) => {
-    if (!val) return '—';
-    try {
-      return val.split('T')[0];
-    } catch {
-      return val;
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortAsc(!sortAsc);
+    } else {
+      setSortField(field);
+      setSortAsc(true);
     }
   };
 
+  const sortedSales = [...sales].sort((a, b) => {
+    if (sortField === 'id') {
+      return sortAsc ? a.id - b.id : b.id - a.id;
+    }
+    if (sortField === 'total_amount') {
+      const numA = parseFloat(a.total_amount) || 0;
+      const numB = parseFloat(b.total_amount) || 0;
+      return sortAsc ? numA - numB : numB - numA;
+    }
+    const valA = (a[sortField] || '').toString();
+    const valB = (b[sortField] || '').toString();
+    if (valA < valB) return sortAsc ? -1 : 1;
+    if (valA > valB) return sortAsc ? 1 : -1;
+    return 0;
+  });
+
   return (
-    <div className="animate-fade-in">
+    <div>
+      {/* Page Header */}
       <div className="page-header">
         <div>
-          <h2>Sales & Order Transactions</h2>
-          <p className="page-subtitle">Track orders, invoices, and server-validated transactional totals</p>
+          <h2>Sales</h2>
+          <p className="page-subtitle">Customer transactions and order records</p>
         </div>
 
         {canManage && (
-          <button className="btn btn-primary" onClick={handleOpenCreateModal}>
-            <Plus size={16} />
-            <span>Create New Sale</span>
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={handleOpenCreateModal}
+          >
+            <Plus size={14} />
+            <span>New Sale</span>
           </button>
         )}
       </div>
@@ -190,7 +201,7 @@ export const Sales = () => {
       <div className="filter-bar">
         <select
           className="form-control"
-          style={{ width: '160px' }}
+          style={{ width: '150px' }}
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
         >
@@ -200,216 +211,241 @@ export const Sales = () => {
           <option value="cancelled">Cancelled</option>
         </select>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Calendar size={16} color="var(--text-muted)" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <input
             type="date"
             className="form-control"
-            style={{ width: '145px' }}
+            style={{ width: '135px' }}
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
           />
-          <span style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>to</span>
+          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>to</span>
           <input
             type="date"
             className="form-control"
-            style={{ width: '145px' }}
+            style={{ width: '135px' }}
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
           />
-          {(startDate || endDate || statusFilter) && (
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={() => { setStartDate(''); setEndDate(''); setStatusFilter(''); }}
-            >
-              Reset
-            </button>
-          )}
         </div>
-      </div>
 
-      {/* Sales Table */}
-      <div className="table-responsive">
-        {loading ? (
-          <TableSkeleton rows={7} columns={7} />
-        ) : sales.length === 0 ? (
-          <EmptyState title="No sales found" message="Try adjusting your date range or status filters." />
-        ) : (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Order #</th>
-                <th>Client Customer</th>
-                <th>Sale Date</th>
-                <th>Items</th>
-                <th>Total Revenue</th>
-                <th>Created By</th>
-                <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Details</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sales.map((s) => (
-                <tr key={s.id}>
-                  <td style={{ fontWeight: 700, color: 'var(--primary)', fontFamily: 'var(--font-mono)' }}>
-                    #{s.id}
-                  </td>
-                  <td>
-                    <div style={{ fontWeight: 600 }}>{s.customer_name}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>{s.customer_code} • {s.city}</div>
-                  </td>
-                  <td>{formatDate(s.sale_date)}</td>
-                  <td>{s.item_count} item(s)</td>
-                  <td style={{ fontWeight: 700, color: 'var(--success)' }}>{formatCurrency(s.total_amount)}</td>
-                  <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{s.created_by_name || 'System'}</td>
-                  <td><Badge status={s.status} /></td>
-                  <td style={{ textAlign: 'right' }}>
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      style={{ padding: '6px' }}
-                      title="View Order Details & Line Items"
-                      onClick={() => handleViewSale(s.id)}
-                    >
-                      <Eye size={14} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        {(statusFilter || startDate || endDate) && (
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => { setStatusFilter(''); setStartDate(''); setEndDate(''); }}
+          >
+            Reset
+          </button>
         )}
       </div>
 
-      <Pagination
-        page={pagination.page}
-        totalPages={pagination.totalPages}
-        total={pagination.total}
-        limit={pagination.limit}
-        onPageChange={(p) => fetchSales(p)}
-      />
-
-      {/* View Sale Details Modal */}
-      <Modal
-        isOpen={!!viewingSale || viewLoading}
-        onClose={() => setViewingSale(null)}
-        title={viewingSale ? `Sale Order #${viewingSale.id}` : 'Loading Sale Details...'}
-        footer={
-          <button className="btn btn-secondary" onClick={() => setViewingSale(null)}>
-            Close
-          </button>
-        }
-      >
-        {viewLoading || !viewingSale ? (
-          <TableSkeleton rows={3} columns={4} />
+      {/* Table Panel */}
+      <div className="glass-panel" style={{ padding: '20px' }}>
+        {loading ? (
+          <TableSkeleton rows={5} columns={6} />
+        ) : sales.length === 0 ? (
+          <EmptyState
+            title="No sales found"
+            description={
+              statusFilter || startDate || endDate
+                ? 'No sales match your current date or status filters.'
+                : 'No sales transactions recorded yet.'
+            }
+            action={
+              (statusFilter || startDate || endDate) ? (
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => { setStatusFilter(''); setStartDate(''); setEndDate(''); }}
+                >
+                  Clear Filters
+                </button>
+              ) : canManage ? (
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={handleOpenCreateModal}
+                >
+                  <Plus size={14} />
+                  <span>Record First Sale</span>
+                </button>
+              ) : null
+            }
+          />
         ) : (
-          <div>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-              gap: '16px',
-              padding: '16px',
-              background: 'var(--bg-input)',
-              borderRadius: 'var(--radius-md)',
-              marginBottom: '20px',
-            }}>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Customer</div>
-                <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{viewingSale.customer_name}</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>{viewingSale.customer_code}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Sale Date</div>
-                <div style={{ fontWeight: 600 }}>{formatDate(viewingSale.sale_date)}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Status</div>
-                <Badge status={viewingSale.status} />
-              </div>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Total Amount</div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--success)' }}>
-                  {formatCurrency(viewingSale.total_amount)}
-                </div>
-              </div>
-            </div>
-
-            <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '12px' }}>Order Line Items</h4>
+          <>
             <div className="table-responsive">
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Product</th>
-                    <th>Category</th>
-                    <th>Qty</th>
-                    <th>Unit Price</th>
-                    <th>Line Total</th>
+                    <th onClick={() => handleSort('id')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                      Sale ID {sortField === 'id' ? (sortAsc ? '↑' : '↓') : ''}
+                    </th>
+                    <th onClick={() => handleSort('customer_name')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                      Customer {sortField === 'customer_name' ? (sortAsc ? '↑' : '↓') : ''}
+                    </th>
+                    <th onClick={() => handleSort('sale_date')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                      Date {sortField === 'sale_date' ? (sortAsc ? '↑' : '↓') : ''}
+                    </th>
+                    <th onClick={() => handleSort('total_amount')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                      Total Amount {sortField === 'total_amount' ? (sortAsc ? '↑' : '↓') : ''}
+                    </th>
+                    <th>Status</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {viewingSale.items?.map((item) => (
-                    <tr key={item.id}>
-                      <td style={{ fontWeight: 600 }}>{item.product_name}</td>
-                      <td style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{item.category}</td>
-                      <td>{item.quantity}</td>
-                      <td>{formatCurrency(item.unit_price)}</td>
-                      <td style={{ fontWeight: 700, color: 'var(--primary)' }}>{formatCurrency(item.line_total)}</td>
+                  {sortedSales.map((s) => (
+                    <tr key={s.id}>
+                      <td className="tabular-nums" style={{ fontWeight: 500, color: 'var(--primary)' }}>#{s.id}</td>
+                      <td>
+                        <div style={{ fontWeight: 500 }}>{s.customer_name}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>{s.city}</div>
+                      </td>
+                      <td className="tabular-nums">{formatDate(s.sale_date)}</td>
+                      <td className="tabular-nums" style={{ fontWeight: 600 }}>{formatCurrency(s.total_amount)}</td>
+                      <td>
+                        <Badge status={s.status} />
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => handleViewSale(s.id)}
+                          title="View sale items"
+                          style={{ padding: '4px 8px' }}
+                        >
+                          <Eye size={13} />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </div>
-        )}
-      </Modal>
 
-      {/* Create Transactional Sale Modal */}
-      <Modal
-        isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-        title="Create Transactional Sale Order"
-        maxWidth="740px"
-        footer={
-          <>
-            <button className="btn btn-secondary" onClick={() => setIsCreateOpen(false)} disabled={createLoading}>
-              Cancel
-            </button>
-            <button type="submit" form="create-sale-form" className="btn btn-primary" disabled={createLoading}>
-              {createLoading ? 'Processing Transaction...' : 'Submit & Execute Sale'}
-            </button>
+            <Pagination
+              page={pagination.page}
+              totalPages={pagination.totalPages}
+              total={pagination.total}
+              limit={pagination.limit}
+              onPageChange={(p) => fetchSales(p)}
+            />
           </>
-        }
-      >
-        <form id="create-sale-form" onSubmit={handleCreateSubmit}>
-          {formError && (
-            <div style={{
-              background: 'rgba(239, 68, 68, 0.15)',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
-              color: '#f87171',
-              padding: '12px',
-              borderRadius: '8px',
-              fontSize: '0.85rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              marginBottom: '16px',
-            }}>
-              <AlertCircle size={18} />
-              <span>{formError}</span>
+        )}
+      </div>
+
+      {/* View Sale Modal */}
+      {viewingSale && (
+        <Modal
+          isOpen={Boolean(viewingSale)}
+          onClose={() => setViewingSale(null)}
+          title={`Sale Details #${viewingSale.id}`}
+          footer={
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setViewingSale(null)}
+            >
+              Close
+            </button>
+          }
+        >
+          {viewLoading ? (
+            <p>Loading sale details...</p>
+          ) : (
+            <div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>Customer</div>
+                  <div style={{ fontWeight: 500 }}>{viewingSale.customer_name}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>Date</div>
+                  <div>{formatDate(viewingSale.sale_date)}</div>
+                </div>
+              </div>
+
+              <div style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '8px' }}>Line Items</div>
+              <div className="table-responsive">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Product</th>
+                      <th>Qty</th>
+                      <th>Unit Price</th>
+                      <th>Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {viewingSale.items?.map((item, idx) => (
+                      <tr key={idx}>
+                        <td>{item.product_name}</td>
+                        <td className="tabular-nums">{item.quantity}</td>
+                        <td className="tabular-nums">{formatCurrency(item.unit_price)}</td>
+                        <td className="tabular-nums" style={{ fontWeight: 600 }}>{formatCurrency(item.subtotal)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td colSpan={3} style={{ textAlign: 'right', fontWeight: 600 }}>Total</td>
+                      <td className="tabular-nums" style={{ fontWeight: 700, color: 'var(--primary)' }}>
+                        {formatCurrency(viewingSale.total_amount)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
             </div>
           )}
+        </Modal>
+      )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px', marginBottom: '20px' }}>
+      {/* Create Sale Modal */}
+      {isCreateOpen && (
+        <Modal
+          isOpen={isCreateOpen}
+          onClose={() => setIsCreateOpen(false)}
+          title="New Sale Order"
+          footer={
+            <>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setIsCreateOpen(false)}
+                disabled={createLoading}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="sale-create-form"
+                className="btn btn-primary"
+                disabled={createLoading}
+              >
+                {createLoading ? 'Saving...' : 'Create Sale'}
+              </button>
+            </>
+          }
+        >
+          <form id="sale-create-form" onSubmit={handleCreateSubmit}>
+            {formError && (
+              <div style={{ color: 'var(--danger)', fontSize: '0.8125rem', marginBottom: '12px' }}>
+                {formError}
+              </div>
+            )}
+
             <div className="form-group">
-              <label className="form-label">Client Customer Account *</label>
+              <label className="form-label">Customer *</label>
               <select
                 className="form-control"
                 value={selectedCustomerId}
                 onChange={(e) => setSelectedCustomerId(e.target.value)}
                 required
               >
+                <option value="">Select a customer</option>
                 {customersList.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.customer_name} ({c.customer_code} • {c.city})
+                    {c.customer_name} ({c.city})
                   </option>
                 ))}
               </select>
@@ -425,103 +461,64 @@ export const Sales = () => {
                 required
               />
             </div>
-          </div>
 
-          <div style={{ marginBottom: '16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <label className="form-label">Order Line Items *</label>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={handleAddItem}>
-                <Plus size={14} /> Add Line Item
+            <div style={{ marginTop: '16px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                Products
+              </span>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={handleAddItem}
+              >
+                Add Item
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {orderItems.map((item, index) => {
-                const prod = productsList.find((p) => p.id === parseInt(item.product_id, 10));
-                const price = prod ? parseFloat(prod.unit_price) : 0;
-                const lineTotal = price * (item.quantity || 1);
+            {orderItems.map((item, idx) => (
+              <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr auto', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
+                <select
+                  className="form-control"
+                  value={item.product_id}
+                  onChange={(e) => handleItemChange(idx, 'product_id', e.target.value)}
+                  required
+                >
+                  <option value="">Select product</option>
+                  {productsList.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.product_name} (₹{p.unit_price})
+                    </option>
+                  ))}
+                </select>
 
-                return (
-                  <div
-                    key={index}
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'minmax(0, 1fr) 75px 110px 36px',
-                      gap: '10px',
-                      alignItems: 'center',
-                      background: 'var(--bg-card-hover, #f8fafc)',
-                      border: '1px solid var(--border-subtle, #e2e8f0)',
-                      padding: '10px 14px',
-                      borderRadius: '8px',
-                    }}
+                <input
+                  type="number"
+                  min="1"
+                  className="form-control"
+                  value={item.quantity}
+                  onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
+                  required
+                />
+
+                {orderItems.length > 1 && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => handleRemoveItem(idx)}
+                    style={{ padding: '6px' }}
                   >
-                    <select
-                      className="form-control"
-                      style={{ width: '100%', minWidth: 0 }}
-                      value={item.product_id}
-                      onChange={(e) => handleItemChange(index, 'product_id', e.target.value)}
-                      required
-                    >
-                      {productsList.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.product_name} - {formatCurrency(p.unit_price)}
-                        </option>
-                      ))}
-                    </select>
-
-                    <input
-                      type="number"
-                      min="1"
-                      className="form-control"
-                      style={{ textAlign: 'center', padding: '8px 4px' }}
-                      value={item.quantity}
-                      onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                      required
-                    />
-
-                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--success, #059669)', textAlign: 'right' }}>
-                      {formatCurrency(lineTotal)}
-                    </div>
-
-                    <button
-                      type="button"
-                      className="btn btn-danger btn-sm"
-                      onClick={() => handleRemoveItem(index)}
-                      disabled={orderItems.length <= 1}
-                      style={{ padding: '6px' }}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '16px 20px',
-            background: 'var(--info-bg, #eff6ff)',
-            border: '1px solid var(--info-border, #bfdbfe)',
-            borderRadius: '10px',
-            marginTop: '20px',
-          }}>
-            <div>
-              <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-main)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Estimated Order Total
+                    <Trash2 size={14} />
+                  </button>
+                )}
               </div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                Server-validated transactional total with real-time price calculation
-              </div>
+            ))}
+
+            <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid var(--border-subtle)', textAlign: 'right', fontWeight: 600 }}>
+              Estimated Total: {formatCurrency(calculatePreviewTotal())}
             </div>
-            <div style={{ fontSize: '1.625rem', fontWeight: 800, color: 'var(--primary, #2563eb)' }}>
-              {formatCurrency(calculatePreviewTotal())}
-            </div>
-          </div>
-        </form>
-      </Modal>
+          </form>
+        </Modal>
+      )}
     </div>
   );
 };

@@ -37,11 +37,11 @@ async function seedDatabase() {
     // 2. Seed Exactly 5 Clean Customers
     console.log('  🏢 Seeding Customers (5 curated enterprise clients)...');
     const customerList = [
-      ['CUST-001', 'Acme Global Logistics', 'contact@acmelogistics.com', '+1-212-555-0101', 'New York', 'active'],
-      ['CUST-002', 'Apex FinTech Solutions', 'billing@apexfintech.io', '+1-415-555-0102', 'San Francisco', 'active'],
-      ['CUST-003', 'Beacon Health Analytics', 'ops@beaconhealth.org', '+1-312-555-0103', 'Chicago', 'active'],
-      ['CUST-004', 'BlueSky Cloud Inc', 'admin@blueskycloud.net', '+1-512-555-0104', 'Austin', 'active'],
-      ['CUST-005', 'Horizon Tech Systems', 'contact@horizontech.io', '+1-206-555-0105', 'Seattle', 'active'],
+      ['CUST-001', 'Acme Logistics India', 'contact@acmelogistics.in', '+91-22-2555-0101', 'Mumbai', 'active'],
+      ['CUST-002', 'Tata FinTech Solutions', 'billing@tatafintech.in', '+91-20-2555-0102', 'Pune', 'active'],
+      ['CUST-003', 'Reliance Health Analytics', 'ops@reliancehealth.in', '+91-712-2555-0103', 'Nagpur', 'active'],
+      ['CUST-004', 'Infosys Cloud Systems', 'admin@infosyscloud.in', '+91-40-2555-0104', 'Hyderabad', 'active'],
+      ['CUST-005', 'Mahindra Tech Systems', 'contact@mahindratech.in', '+91-11-2555-0105', 'Delhi', 'active'],
     ];
 
     const customerInsertSql = `
@@ -59,11 +59,11 @@ async function seedDatabase() {
     // 3. Seed Exactly 5 Clean Products
     console.log('  📦 Seeding Products (5 curated items)...');
     const productList = [
-      ['Enterprise Cloud Compute Node', 'Cloud Infrastructure', 450.00, true],
+      ['Cloud Virtual Server Node', 'Cloud Infrastructure', 450.00, true],
       ['Managed Cloud Database Cluster Dedicated', 'Cloud Infrastructure', 650.00, true],
       ['Object Storage Tier 1 (10TB)', 'Cloud Infrastructure', 220.00, true],
-      ['BI Analytics Suite Pro License', 'Enterprise Software', 1200.00, true],
-      ['AI Customer Copilot Integration', 'Analytics & AI', 2800.00, true],
+      ['Business Analytics Pro License', 'Enterprise Software', 1200.00, true],
+      ['AI Customer Analytics Integration', 'Analytics & AI', 2800.00, true],
     ];
 
     const productInsertSql = `

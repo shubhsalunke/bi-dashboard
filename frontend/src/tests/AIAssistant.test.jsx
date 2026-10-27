@@ -25,7 +25,7 @@ vi.mock('../api/auth.api', () => ({
 }));
 
 const mockCitySalesResponse = {
-  answer: 'During the last 3 months, top performing cities are Chicago ($45,000.00) and New York ($32,000.00).',
+  answer: 'During the last 3 months, top performing cities are Pune (₹45,000.00) and Mumbai (₹32,000.00).',
   reportTitle: 'City-Wise Sales Breakdown (Last 3 Months)',
   operation: 'CITY_SALES',
   dateRange: {
@@ -43,8 +43,8 @@ const mockCitySalesResponse = {
     { key: 'total_revenue', label: 'Total Revenue' },
   ],
   rows: [
-    { city: 'Chicago', orders_count: 15, total_revenue: '$45,000.00' },
-    { city: 'New York', orders_count: 10, total_revenue: '$32,000.00' },
+    { city: 'Pune', orders_count: 15, total_revenue: '₹45,000.00' },
+    { city: 'Mumbai', orders_count: 10, total_revenue: '₹32,000.00' },
   ],
 };
 
@@ -71,7 +71,7 @@ describe('AIAssistant Page Component', () => {
 
     expect(screen.getByText('AI Business Assistant')).toBeInTheDocument();
     expect(screen.getByText(/Strict Parameterized Query Safety/i)).toBeInTheDocument();
-    expect(screen.getByText(/Welcome! I am your AI Business Intelligence Assistant/i)).toBeInTheDocument();
+    expect(screen.getByText(/Ask a question about your sales, customers, or products/i)).toBeInTheDocument();
 
     expect(screen.getByText('What were total sales last month?')).toBeInTheDocument();
     expect(screen.getByText('Show the top 10 customers by sales.')).toBeInTheDocument();
@@ -102,17 +102,17 @@ describe('AIAssistant Page Component', () => {
     expect(screen.getByText('City-Wise Sales Breakdown (Last 3 Months)')).toBeInTheDocument();
 
     // Check structured table
-    expect(screen.getByText('Chicago')).toBeInTheDocument();
-    expect(screen.getByText('New York')).toBeInTheDocument();
-    expect(screen.getByText('$45,000.00')).toBeInTheDocument();
-    expect(screen.getByText('$32,000.00')).toBeInTheDocument();
+    expect(screen.getByText('Pune')).toBeInTheDocument();
+    expect(screen.getByText('Mumbai')).toBeInTheDocument();
+    expect(screen.getByText('₹45,000.00')).toBeInTheDocument();
+    expect(screen.getByText('₹32,000.00')).toBeInTheDocument();
 
     // Check summary metrics chips
     expect(screen.getByText(/cities Count:/i)).toBeInTheDocument();
     expect(screen.getByText('2')).toBeInTheDocument();
     expect(screen.getByText(/total Sales Count:/i)).toBeInTheDocument();
     expect(screen.getByText('25')).toBeInTheDocument();
-    expect(screen.getByText('$77,000.00')).toBeInTheDocument();
+    expect(screen.getByText('₹77,000.00')).toBeInTheDocument();
   });
 
   it('triggers query directly when sample question pill is clicked', async () => {
@@ -184,6 +184,6 @@ describe('AIAssistant Page Component', () => {
     fireEvent.click(clearBtn);
 
     expect(screen.queryByText(mockCitySalesResponse.answer)).not.toBeInTheDocument();
-    expect(screen.getByText(/Welcome! I am your AI Business Intelligence Assistant/i)).toBeInTheDocument();
+    expect(screen.getByText(/Ask a question about your sales, customers, or products/i)).toBeInTheDocument();
   });
 });
