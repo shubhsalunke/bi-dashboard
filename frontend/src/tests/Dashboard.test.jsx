@@ -6,7 +6,6 @@ import { Dashboard } from '../pages/Dashboard';
 import { AuthProvider } from '../context/AuthContext';
 import { ToastProvider } from '../context/ToastContext';
 import { dashboardApi } from '../api/dashboard.api';
-import { authApi } from '../api/auth.api';
 
 vi.mock('../api/dashboard.api', () => ({
   dashboardApi: {

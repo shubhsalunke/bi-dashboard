@@ -6,12 +6,9 @@ import {
   Edit2,
   Trash2,
   Activity,
-  CheckCircle,
-  XCircle,
   AlertCircle,
   RefreshCw,
   Search,
-  KeyRound,
 } from 'lucide-react';
 import { usersApi } from '../api/users.api';
 import { useAuth } from '../context/AuthContext';
@@ -215,7 +212,6 @@ export const UserManagement = () => {
 
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* Page Header */}
       <div className="page-header">
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -243,7 +239,6 @@ export const UserManagement = () => {
         )}
       </div>
 
-      {/* Tabs */}
       <div style={{ display: 'flex', gap: '10px' }}>
         <button
           type="button"
@@ -266,10 +261,8 @@ export const UserManagement = () => {
         </button>
       </div>
 
-      {/* TAB 1: USERS DIRECTORY */}
       {activeTab === 'users' && (
         <div>
-          {/* Search bar */}
           <div className="filter-bar">
             <div className="search-input-wrapper">
               <Search size={16} className="search-icon" />
@@ -293,7 +286,6 @@ export const UserManagement = () => {
             </button>
           </div>
 
-          {/* Table */}
           {loadingUsers ? (
             <div style={{ padding: '24px 0' }}>
               <LoadingSkeleton count={5} height={52} />
@@ -402,7 +394,6 @@ export const UserManagement = () => {
         </div>
       )}
 
-      {/* TAB 2: AUDIT LOGS */}
       {activeTab === 'audit' && (
         <div>
           <div className="filter-bar" style={{ justifyContent: 'space-between' }}>
@@ -501,7 +492,6 @@ export const UserManagement = () => {
         </div>
       )}
 
-      {/* CREATE / EDIT USER MODAL */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -593,7 +583,6 @@ export const UserManagement = () => {
         </form>
       </Modal>
 
-      {/* CONFIRM DEACTIVATE MODAL */}
       <Modal
         isOpen={!!userToDeactivate}
         onClose={() => setUserToDeactivate(null)}

@@ -1,11 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   ArrowLeft,
-  Mail,
-  Phone,
-  MapPin,
-  Calendar,
   Edit2,
   Copy,
   Check,
@@ -29,7 +25,7 @@ export const CustomerDetails = () => {
   const { canManage } = useAuth();
   const { showToast } = useToast();
 
-  const fetchCustomer = async () => {
+  const fetchCustomer = useCallback(async () => {
     setLoading(true);
     try {
       const data = await customersApi.getCustomerById(id);
@@ -39,11 +35,11 @@ export const CustomerDetails = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, showToast]);
 
   useEffect(() => {
     fetchCustomer();
-  }, [id]);
+  }, [fetchCustomer]);
 
   const handleCopyCode = (code) => {
     if (navigator?.clipboard?.writeText) {
@@ -81,7 +77,6 @@ export const CustomerDetails = () => {
 
   return (
     <div>
-      {/* Top Breadcrumb & Actions */}
       <div className="page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.875rem' }}>
           <Link to="/customers" className="btn btn-secondary btn-sm">
@@ -112,7 +107,6 @@ export const CustomerDetails = () => {
         </div>
       </div>
 
-      {/* Customer Information Card */}
       <div className="glass-panel" style={{ padding: '20px', marginBottom: '20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -137,7 +131,6 @@ export const CustomerDetails = () => {
           </div>
         </div>
 
-        {/* Contact Info List */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', paddingTop: '16px', borderTop: '1px solid var(--border-subtle)' }}>
           <div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginBottom: '2px' }}>Email</div>
@@ -163,7 +156,6 @@ export const CustomerDetails = () => {
         </div>
       </div>
 
-      {/* Stats Row */}
       <div className="grid-cols-4" style={{ marginBottom: '20px' }}>
         <StatCard
           title="Total Spent"
@@ -187,7 +179,6 @@ export const CustomerDetails = () => {
         />
       </div>
 
-      {/* Orders Table */}
       <div className="glass-panel" style={{ padding: '20px' }}>
         <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '4px' }}>Order History</h3>
         <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '14px' }}>

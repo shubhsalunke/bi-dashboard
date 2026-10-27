@@ -6,7 +6,6 @@ import { Customers } from '../pages/Customers';
 import { AuthProvider } from '../context/AuthContext';
 import { ToastProvider } from '../context/ToastContext';
 import { customersApi } from '../api/customers.api';
-import { authApi } from '../api/auth.api';
 
 // Mock customersApi
 vi.mock('../api/customers.api', () => ({

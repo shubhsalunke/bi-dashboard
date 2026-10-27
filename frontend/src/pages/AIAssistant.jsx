@@ -1,27 +1,32 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import {
-  Send,
-  RotateCcw,
-  AlertCircle,
-  Copy,
-  Check,
-} from 'lucide-react';
+import { Send, RotateCcw, AlertCircle } from 'lucide-react';
 import { aiApi } from '../api/ai.api';
+import { ChatMessageItem } from '../components/ai/ChatMessageItem';
+import { AIInitialState } from '../components/ai/AIInitialState';
 import { useToast } from '../context/ToastContext';
-import { formatCurrency, formatDate } from '../utils/format';
+
+const WELCOME_TEXT = 'Ask a question about your sales, customers, or products.';
+
+const SAMPLE_QUESTIONS = [
+  'What were total sales last month?',
+  'Show the top 10 customers by sales.',
+  'Which product generated the highest revenue?',
+  'Compare this month with the previous month.',
+  'Give me city-wise sales for the last three months.',
+  'Summarize business performance for the current quarter.',
+  'Which customers have reduced their purchases?',
+];
 
 export const AIAssistant = () => {
   const [searchParams] = useSearchParams();
   const initialPromptChecked = useRef(false);
 
-  const welcomeText = 'Ask a question about your sales, customers, or products.';
-
-  const [messages, setMessages] = useState([
+  const [messages, setMessages] = useState(() => [
     {
       id: 'welcome-1',
       role: 'assistant',
-      text: welcomeText,
+      text: WELCOME_TEXT,
       report: null,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
@@ -35,16 +40,6 @@ export const AIAssistant = () => {
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const { showToast } = useToast();
-
-  const sampleQuestions = [
-    'What were total sales last month?',
-    'Show the top 10 customers by sales.',
-    'Which product generated the highest revenue?',
-    'Compare this month with the previous month.',
-    'Give me city-wise sales for the last three months.',
-    'Summarize business performance for the current quarter.',
-    'Which customers have reduced their purchases?',
-  ];
 
   const scrollToBottom = () => {
     if (typeof messagesEndRef.current?.scrollIntoView === 'function') {
@@ -65,19 +60,20 @@ export const AIAssistant = () => {
     }
   };
 
-  const handleSend = async (questionToSend) => {
+  const handleSend = useCallback(async (questionToSend) => {
     const q = (questionToSend || inputQuery).trim();
     if (!q || loading) return;
 
     setInputQuery('');
     setLastError(null);
 
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const userMsgId = Date.now().toString();
     const newUserMessage = {
       id: userMsgId,
       role: 'user',
       text: q,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp: timeStr,
     };
 
     if (q.length < 3) {
@@ -86,7 +82,7 @@ export const AIAssistant = () => {
         role: 'assistant',
         text: 'Please ask a question with at least 3 characters.',
         report: null,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        timestamp: timeStr,
       };
       setMessages((prev) => [...prev, newUserMessage, assistantMsg]);
       return;
@@ -97,7 +93,6 @@ export const AIAssistant = () => {
 
     try {
       const data = await aiApi.askQuestion(q);
-
       const assistantMsg = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -105,7 +100,6 @@ export const AIAssistant = () => {
         report: data,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
-
       setMessages((prev) => [...prev, assistantMsg]);
     } catch (err) {
       const errorMsg =
@@ -129,13 +123,12 @@ export const AIAssistant = () => {
         text: errorMsg,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
-
       setMessages((prev) => [...prev, assistantErrMsg]);
     } finally {
       setLoading(false);
       setTimeout(() => inputRef.current?.focus(), 100);
     }
-  };
+  }, [inputQuery, loading, showToast]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -150,49 +143,38 @@ export const AIAssistant = () => {
       initialPromptChecked.current = true;
       handleSend(promptParam);
     }
-  }, [searchParams]);
+  }, [searchParams, handleSend]);
+
+  const handleClearChat = () => {
+    setMessages([
+      {
+        id: 'welcome-reset',
+        role: 'assistant',
+        text: WELCOME_TEXT,
+        report: null,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      },
+    ]);
+    setLastError(null);
+    showToast('Conversation cleared', 'info');
+  };
 
   const isInitialState = messages.length <= 1;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minHeight: 'calc(100vh - 120px)' }}>
-      {/* Header Bar */}
       <div className="page-header" style={{ marginBottom: 0 }}>
         <div>
           <h2 className="brand-title-serif">AI Business Assistant</h2>
-          <p className="page-subtitle">
-            Ask questions about your sales, customers, and products
-          </p>
+          <p className="page-subtitle">Strict Parameterized Query Safety • Grounded SQL Insights</p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-            Strict Parameterized Query Safety
-          </span>
-
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={() => {
-              setMessages([
-                {
-                  id: 'welcome-1',
-                  role: 'assistant',
-                  text: welcomeText,
-                  report: null,
-                  timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                },
-              ]);
-              setLastError(null);
-            }}
-          >
-            <RotateCcw size={13} />
-            <span>Clear Chat</span>
-          </button>
-        </div>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={handleClearChat}>
+          <RotateCcw size={14} />
+          <span>Clear Chat</span>
+        </button>
       </div>
 
-      {/* Unconfigured Provider Notice */}
       {unconfiguredNotice && (
         <div
           className="glass-panel"
@@ -215,7 +197,6 @@ export const AIAssistant = () => {
         </div>
       )}
 
-      {/* Main Chat Panel */}
       <div className="copilot-main-panel">
         <div
           style={{
@@ -228,207 +209,20 @@ export const AIAssistant = () => {
           }}
         >
           {isInitialState ? (
-            <div style={{ maxWidth: '720px', margin: '20px auto', width: '100%' }}>
-              <div
-                className="glass-panel"
-                style={{
-                  padding: '20px',
-                  marginBottom: '20px',
-                }}
-              >
-                <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '6px' }}>
-                  Ask a question
-                </h3>
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
-                  {welcomeText}
-                </p>
-              </div>
-
-              <div>
-                <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>
-                  Sample questions:
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {sampleQuestions.map((q) => (
-                    <button
-                      key={q}
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      style={{ textAlign: 'left', justifyContent: 'flex-start', padding: '8px 12px' }}
-                      disabled={loading}
-                      onClick={() => handleSend(q)}
-                    >
-                      {q}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <AIInitialState
+              welcomeText={WELCOME_TEXT}
+              sampleQuestions={SAMPLE_QUESTIONS}
+              loading={loading}
+              onSelectQuestion={handleSend}
+            />
           ) : (
-            /* Conversation Stream */
             messages.map((msg) => (
-              <div
+              <ChatMessageItem
                 key={msg.id}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '4px',
-                  alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                  maxWidth: msg.role === 'user' ? '75%' : '88%',
-                }}
-              >
-                <div
-                  style={{
-                    padding: '12px 16px',
-                    borderRadius: '6px',
-                    fontSize: '0.875rem',
-                    lineHeight: 1.5,
-                    backgroundColor: msg.role === 'user' ? 'var(--primary)' : 'var(--bg-card)',
-                    color: msg.role === 'user' ? '#ffffff' : msg.isError ? 'var(--danger)' : 'var(--text-main)',
-                    border: msg.role === 'user' ? 'none' : '1px solid var(--border-subtle)',
-                  }}
-                >
-                  {msg.role === 'assistant' && !msg.isError && (
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        marginBottom: '8px',
-                        paddingBottom: '6px',
-                        borderBottom: '1px solid var(--border-subtle)',
-                        fontSize: '0.75rem',
-                        color: 'var(--text-muted)',
-                      }}
-                    >
-                      <span>Assistant</span>
-                      <button
-                        type="button"
-                        onClick={() => handleCopyMessage(msg.text, msg.id)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: 'var(--text-muted)',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          fontSize: '0.75rem',
-                        }}
-                      >
-                        {copiedId === msg.id ? <Check size={12} color="var(--success)" /> : <Copy size={12} />}
-                        <span>{copiedId === msg.id ? 'Copied' : 'Copy'}</span>
-                      </button>
-                    </div>
-                  )}
-
-                  <div style={{ whiteSpace: 'pre-wrap' }}>{msg.text}</div>
-
-                  {/* Summary Metric Badges */}
-                  {msg.report?.summaryMetrics && Object.keys(msg.report.summaryMetrics).length > 0 && (
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        gap: '8px',
-                        marginTop: '12px',
-                        paddingTop: '10px',
-                        borderTop: '1px solid var(--border-subtle)',
-                      }}
-                    >
-                      {Object.entries(msg.report.summaryMetrics).map(([key, val]) => (
-                        <div
-                          key={key}
-                          style={{
-                            background: 'var(--bg-dark)',
-                            border: '1px solid var(--border-subtle)',
-                            padding: '4px 8px',
-                            borderRadius: '4px',
-                            fontSize: '0.75rem',
-                            display: 'flex',
-                            gap: '4px',
-                          }}
-                        >
-                          <span style={{ color: 'var(--text-muted)', textTransform: 'capitalize' }}>
-                            {key.replace(/([A-Z])/g, ' $1')}:
-                          </span>
-                          <span className="tabular-nums" style={{ fontWeight: 600 }}>
-                            {typeof val === 'number' &&
-                            (key.toLowerCase().includes('revenue') ||
-                              key.toLowerCase().includes('spend') ||
-                              key.toLowerCase().includes('amount') ||
-                              key.toLowerCase().includes('price'))
-                              ? formatCurrency(val, { decimals: 2 })
-                              : String(val)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Structured Data Table */}
-                  {msg.report?.rows && msg.report.rows.length > 0 && msg.report?.columns && (
-                    <div
-                      style={{
-                        marginTop: '12px',
-                        border: '1px solid var(--border-subtle)',
-                        borderRadius: '4px',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      {msg.report.reportTitle && (
-                        <div
-                          style={{
-                            padding: '8px 12px',
-                            background: 'var(--bg-dark)',
-                            borderBottom: '1px solid var(--border-subtle)',
-                            fontSize: '0.8125rem',
-                            fontWeight: 600,
-                          }}
-                        >
-                          {msg.report.reportTitle}
-                        </div>
-                      )}
-                      <div className="table-responsive" style={{ maxHeight: '280px', overflowY: 'auto' }}>
-                        <table className="data-table" style={{ fontSize: '0.8125rem' }}>
-                          <thead>
-                            <tr>
-                              {msg.report.columns.map((col) => (
-                                <th key={col.key}>{col.label}</th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {msg.report.rows.map((row, rIdx) => (
-                              <tr key={rIdx}>
-                                {msg.report.columns.map((col) => {
-                                  const cellVal = row[col.key];
-                                  const isNumeric = typeof cellVal === 'number' || (!isNaN(Number(cellVal)) && cellVal !== '');
-                                  return (
-                                    <td key={col.key} className={isNumeric ? 'tabular-nums' : ''}>
-                                      {cellVal}
-                                    </td>
-                                  );
-                                })}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <span
-                  style={{
-                    fontSize: '0.6875rem',
-                    color: 'var(--text-dim)',
-                    alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                  }}
-                >
-                  {msg.timestamp}
-                </span>
-              </div>
+                msg={msg}
+                copiedId={copiedId}
+                onCopy={handleCopyMessage}
+              />
             ))
           )}
 
@@ -441,7 +235,6 @@ export const AIAssistant = () => {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Retry Banner on Error */}
         {lastError && !loading && (
           <div
             style={{
@@ -454,10 +247,14 @@ export const AIAssistant = () => {
               fontSize: '0.8125rem',
             }}
           >
-            <span style={{ color: 'var(--danger)' }}>{lastError.message}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--danger)' }}>
+              <AlertCircle size={14} />
+              <span>Question failed to process</span>
+            </div>
             <button
               type="button"
               className="btn btn-secondary btn-sm"
+              style={{ padding: '3px 8px', fontSize: '0.75rem' }}
               onClick={() => handleSend(lastError.question)}
             >
               Retry Query
@@ -465,51 +262,35 @@ export const AIAssistant = () => {
           </div>
         )}
 
-        {/* Quick Prompts Bar during active conversation */}
-        {!isInitialState && (
-          <div className="copilot-pills-bar">
-            {sampleQuestions.map((q, idx) => (
-              <button
-                key={idx}
-                type="button"
-                className="copilot-quick-chip"
-                disabled={loading}
-                onClick={() => handleSend(q)}
-              >
-                {q}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Input Bar */}
-        <div className="copilot-input-dock">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSend();
-            }}
-          >
+        <div
+          style={{
+            padding: '16px 20px',
+            borderTop: '1px solid var(--border-subtle)',
+            backgroundColor: 'var(--bg-card)',
+          }}
+        >
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <input
               ref={inputRef}
               type="text"
-              placeholder="Ask about revenue, top customers, products..."
+              className="form-control"
+              placeholder="Ask about revenue, customer spending, or product metrics... (e.g. Which customer spent the most?)"
               value={inputQuery}
               onChange={(e) => setInputQuery(e.target.value)}
               onKeyDown={handleKeyDown}
               disabled={loading}
-              maxLength={500}
+              autoFocus
             />
             <button
-              type="submit"
+              type="button"
               className="btn btn-primary"
-              disabled={loading || !inputQuery.trim()}
-              style={{ padding: '6px 14px' }}
+              disabled={!inputQuery.trim() || loading}
+              onClick={() => handleSend()}
             >
+              <Send size={15} />
               <span>Ask AI</span>
-              <Send size={14} />
             </button>
-          </form>
+          </div>
         </div>
       </div>
     </div>

@@ -1,8 +1,8 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
-import { AuthProvider, useAuth } from '../context/AuthContext';
+import { MemoryRouter } from 'react-router-dom';
+import { AuthProvider } from '../context/AuthContext';
 import { ToastProvider } from '../context/ToastContext';
 import { authApi } from '../api/auth.api';
 import { AppRoutes } from '../App';

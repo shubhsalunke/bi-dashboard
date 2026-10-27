@@ -115,7 +115,6 @@ const PublicRoute = ({ children }) => {
 export function AppRoutes() {
   return (
     <Routes>
-      {/* Public Login Route */}
       <Route
         path="/login"
         element={
@@ -125,7 +124,6 @@ export function AppRoutes() {
         }
       />
 
-      {/* Authenticated Dashboard Layout Routes */}
       <Route
         element={
           <ProtectedRoute>
@@ -150,7 +148,6 @@ export function AppRoutes() {
         />
       </Route>
 
-      {/* Catch-all route */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

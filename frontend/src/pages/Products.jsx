@@ -1,21 +1,23 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Search,
-  Plus,
-  Edit2,
-  Trash2,
-  Download,
-} from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Search, Plus, Download } from 'lucide-react';
 import { productsApi } from '../api/products.api';
-import { Modal } from '../components/common/Modal';
 import { TableSkeleton } from '../components/common/LoadingSkeleton';
 import { EmptyState } from '../components/common/EmptyState';
 import { Pagination } from '../components/common/Pagination';
-import { Badge } from '../components/common/Badge';
+import { ProductFormModal } from '../components/products/ProductFormModal';
+import { ProductsTable } from '../components/products/ProductsTable';
+import { ProductDeleteModal } from '../components/products/ProductDeleteModal';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useDebounce } from '../hooks/useDebounce';
-import { formatCurrency } from '../utils/format';
+
+const CATEGORIES = [
+  'Cloud Infrastructure',
+  'Enterprise Software',
+  'Cybersecurity',
+  'Analytics & AI',
+  'Professional Services',
+];
 
 export const Products = () => {
   const [products, setProducts] = useState([]);
@@ -25,33 +27,21 @@ export const Products = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [activeFilter, setActiveFilter] = useState('');
-
   const debouncedSearch = useDebounce(searchTerm, 300);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [formData, setFormData] = useState({
-    product_name: '',
-    category: 'Cloud Infrastructure',
-    unit_price: '',
-    is_active: true,
-  });
   const [modalLoading, setModalLoading] = useState(false);
-  const [formError, setFormError] = useState('');
 
   const [deletingProduct, setDeletingProduct] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  const [sortField, setSortField] = useState('product_name');
+  const [sortAsc, setSortAsc] = useState(true);
+  const searchInputRef = useRef(null);
+
   const { canManage } = useAuth();
   const { showToast } = useToast();
-
-  const categoriesList = [
-    'Cloud Infrastructure',
-    'Enterprise Software',
-    'Cybersecurity',
-    'Analytics & AI',
-    'Professional Services',
-  ];
 
   const fetchProducts = useCallback(async (page = 1) => {
     setLoading(true);
@@ -74,85 +64,7 @@ export const Products = () => {
 
   useEffect(() => {
     fetchProducts(1);
-  }, [debouncedSearch, categoryFilter, activeFilter]);
-
-  const handleOpenModal = (prod = null) => {
-    if (prod) {
-      setEditingProduct(prod);
-      setFormData({
-        product_name: prod.product_name,
-        category: prod.category,
-        unit_price: prod.unit_price,
-        is_active: prod.is_active,
-      });
-    } else {
-      setEditingProduct(null);
-      setFormData({
-        product_name: '',
-        category: 'Cloud Infrastructure',
-        unit_price: '',
-        is_active: true,
-      });
-    }
-    setFormError('');
-    setIsModalOpen(true);
-  };
-
-  const handleFormSubmit = async (e) => {
-    e.preventDefault();
-    const priceNum = parseFloat(formData.unit_price);
-    if (!formData.product_name.trim()) {
-      setFormError('Product name is required');
-      return;
-    }
-    if (isNaN(priceNum) || priceNum <= 0) {
-      setFormError('Unit price must be a valid number greater than zero');
-      return;
-    }
-
-    setModalLoading(true);
-    try {
-      const payload = {
-        product_name: formData.product_name.trim(),
-        category: formData.category,
-        unit_price: priceNum,
-        is_active: formData.is_active,
-      };
-
-      if (editingProduct) {
-        await productsApi.updateProduct(editingProduct.id, payload);
-        showToast(`Product updated successfully`, 'success');
-      } else {
-        await productsApi.createProduct(payload);
-        showToast(`Product created successfully`, 'success');
-      }
-      setIsModalOpen(false);
-      fetchProducts(pagination.page);
-    } catch (err) {
-      setFormError(err.message || 'Failed to save product');
-    } finally {
-      setModalLoading(false);
-    }
-  };
-
-  const handleDeleteProduct = async () => {
-    if (!deletingProduct) return;
-    setDeleteLoading(true);
-    try {
-      await productsApi.deleteProduct(deletingProduct.id);
-      showToast('Product status updated', 'success');
-      setDeletingProduct(null);
-      fetchProducts(pagination.page);
-    } catch (err) {
-      showToast(err.message || 'Failed to update product status', 'error');
-    } finally {
-      setDeleteLoading(false);
-    }
-  };
-
-  const searchInputRef = React.useRef(null);
-  const [sortField, setSortField] = useState('product_name');
-  const [sortAsc, setSortAsc] = useState(true);
+  }, [fetchProducts]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -178,27 +90,46 @@ export const Products = () => {
     }
   };
 
-  const sortedProducts = [...products].sort((a, b) => {
-    if (sortField === 'unit_price') {
-      const numA = parseFloat(a.unit_price) || 0;
-      const numB = parseFloat(b.unit_price) || 0;
-      return sortAsc ? numA - numB : numB - numA;
+  const handleSaveProduct = async (payload, setFormError) => {
+    setModalLoading(true);
+    try {
+      if (editingProduct) {
+        await productsApi.updateProduct(editingProduct.id, payload);
+        showToast('Product updated successfully', 'success');
+      } else {
+        await productsApi.createProduct(payload);
+        showToast('Product created successfully', 'success');
+      }
+      setIsModalOpen(false);
+      fetchProducts(pagination.page);
+    } catch (err) {
+      setFormError(err.message || 'Failed to save product');
+    } finally {
+      setModalLoading(false);
     }
-    const valA = (a[sortField] || '').toString().toLowerCase();
-    const valB = (b[sortField] || '').toString().toLowerCase();
-    if (valA < valB) return sortAsc ? -1 : 1;
-    if (valA > valB) return sortAsc ? 1 : -1;
-    return 0;
-  });
+  };
+
+  const handleDeleteProduct = async () => {
+    if (!deletingProduct) return;
+    setDeleteLoading(true);
+    try {
+      await productsApi.deleteProduct(deletingProduct.id);
+      showToast('Product status updated', 'success');
+      setDeletingProduct(null);
+      fetchProducts(pagination.page);
+    } catch (err) {
+      showToast(err.message || 'Failed to update product status', 'error');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
 
   const exportCSV = () => {
     if (!products || products.length === 0) return;
-    const lines = [];
-    lines.push('Product ID,Product Name,Category,Unit Price,Status');
+    const lines = ['Product ID,Product Name,Category,Unit Price,Status'];
     products.forEach((p) => {
       lines.push(`"${p.id}","${p.product_name}","${p.category}","${p.unit_price}","${p.is_active ? 'Active' : 'Inactive'}"`);
     });
-
     const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -208,9 +139,16 @@ export const Products = () => {
     showToast('Exported products to CSV', 'success');
   };
 
+  const sortedProducts = [...products].sort((a, b) => {
+    const valA = (a[sortField] || '').toString().toLowerCase();
+    const valB = (b[sortField] || '').toString().toLowerCase();
+    if (valA < valB) return sortAsc ? -1 : 1;
+    if (valA > valB) return sortAsc ? 1 : -1;
+    return 0;
+  });
+
   return (
     <div>
-      {/* Page Header */}
       <div className="page-header">
         <div>
           <h2>Products</h2>
@@ -218,19 +156,14 @@ export const Products = () => {
         </div>
 
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={exportCSV}
-          >
+          <button type="button" className="btn btn-secondary btn-sm" onClick={exportCSV}>
             <Download size={14} />
             <span>Export CSV</span>
           </button>
-
           {canManage && (
             <button
               className="btn btn-primary btn-sm"
-              onClick={() => handleOpenModal()}
+              onClick={() => { setEditingProduct(null); setIsModalOpen(true); }}
             >
               <Plus size={14} />
               <span>Add Product</span>
@@ -239,7 +172,6 @@ export const Products = () => {
         </div>
       </div>
 
-      {/* Filter Bar */}
       <div className="filter-bar">
         <div className="search-input-wrapper">
           <Search size={15} className="search-icon" />
@@ -247,30 +179,20 @@ export const Products = () => {
             ref={searchInputRef}
             type="text"
             className="form-control search-input"
-            placeholder="Search products... (Press / to search)"
+            placeholder="Search products by name... (Press / to search)"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
-        <select
-          className="form-control"
-          style={{ width: '180px' }}
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-        >
+        <select className="form-control" style={{ width: '180px' }} value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
           <option value="">All Categories</option>
-          {categoriesList.map((c) => (
+          {CATEGORIES.map((c) => (
             <option key={c} value={c}>{c}</option>
           ))}
         </select>
 
-        <select
-          className="form-control"
-          style={{ width: '130px' }}
-          value={activeFilter}
-          onChange={(e) => setActiveFilter(e.target.value)}
-        >
+        <select className="form-control" style={{ width: '130px' }} value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)}>
           <option value="">All Statuses</option>
           <option value="true">Active</option>
           <option value="false">Inactive</option>
@@ -286,17 +208,16 @@ export const Products = () => {
         )}
       </div>
 
-      {/* Table Panel */}
-      <div className="glass-panel" style={{ padding: '20px' }}>
+      <div className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
         {loading ? (
-          <TableSkeleton rows={5} columns={5} />
-        ) : products.length === 0 ? (
+          <TableSkeleton rows={8} cols={6} />
+        ) : sortedProducts.length === 0 ? (
           <EmptyState
             title="No products found"
             description={
               searchTerm || categoryFilter || activeFilter
-                ? 'No products match your filter criteria.'
-                : 'No products in catalog yet.'
+                ? 'Try adjusting your search criteria or category filter.'
+                : 'No products registered yet.'
             }
             action={
               (searchTerm || categoryFilter || activeFilter) ? (
@@ -309,7 +230,7 @@ export const Products = () => {
               ) : canManage ? (
                 <button
                   className="btn btn-primary btn-sm"
-                  onClick={() => handleOpenModal()}
+                  onClick={() => { setEditingProduct(null); setIsModalOpen(true); }}
                 >
                   <Plus size={14} />
                   <span>Add First Product</span>
@@ -319,65 +240,15 @@ export const Products = () => {
           />
         ) : (
           <>
-            <div className="table-responsive">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th onClick={() => handleSort('id')} style={{ cursor: 'pointer', userSelect: 'none' }}>
-                      ID {sortField === 'id' ? (sortAsc ? '↑' : '↓') : ''}
-                    </th>
-                    <th onClick={() => handleSort('product_name')} style={{ cursor: 'pointer', userSelect: 'none' }}>
-                      Product Name {sortField === 'product_name' ? (sortAsc ? '↑' : '↓') : ''}
-                    </th>
-                    <th onClick={() => handleSort('category')} style={{ cursor: 'pointer', userSelect: 'none' }}>
-                      Category {sortField === 'category' ? (sortAsc ? '↑' : '↓') : ''}
-                    </th>
-                    <th onClick={() => handleSort('unit_price')} style={{ cursor: 'pointer', userSelect: 'none' }}>
-                      Unit Price {sortField === 'unit_price' ? (sortAsc ? '↑' : '↓') : ''}
-                    </th>
-                    <th>Status</th>
-                    {canManage && <th>Actions</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedProducts.map((p) => (
-                    <tr key={p.id}>
-                      <td className="tabular-nums" style={{ color: 'var(--text-muted)' }}>#{p.id}</td>
-                      <td style={{ fontWeight: 500 }}>{p.product_name}</td>
-                      <td>{p.category}</td>
-                      <td className="tabular-nums" style={{ fontWeight: 600 }}>{formatCurrency(p.unit_price)}</td>
-                      <td>
-                        <Badge status={p.is_active ? 'active' : 'inactive'} />
-                      </td>
-                      {canManage && (
-                        <td>
-                          <div style={{ display: 'flex', gap: '6px' }}>
-                            <button
-                              type="button"
-                              className="btn btn-secondary btn-sm"
-                              onClick={() => handleOpenModal(p)}
-                              title="Edit product"
-                              style={{ padding: '4px 8px' }}
-                            >
-                              <Edit2 size={13} />
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-danger btn-sm"
-                              onClick={() => setDeletingProduct(p)}
-                              title="Toggle status"
-                              style={{ padding: '4px 8px' }}
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ProductsTable
+              products={sortedProducts}
+              sortField={sortField}
+              sortAsc={sortAsc}
+              onSort={handleSort}
+              canManage={canManage}
+              onEdit={(prod) => { setEditingProduct(prod); setIsModalOpen(true); }}
+              onToggleStatus={(prod) => setDeletingProduct(prod)}
+            />
 
             <Pagination
               page={pagination.page}
@@ -390,126 +261,23 @@ export const Products = () => {
         )}
       </div>
 
-      {/* Add / Edit Product Modal */}
       {isModalOpen && (
-        <Modal
+        <ProductFormModal
           isOpen={isModalOpen}
+          product={editingProduct}
+          categories={CATEGORIES}
           onClose={() => setIsModalOpen(false)}
-          title={editingProduct ? 'Edit Product' : 'Add Product'}
-          footer={
-            <>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setIsModalOpen(false)}
-                disabled={modalLoading}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                form="product-form"
-                className="btn btn-primary"
-                disabled={modalLoading}
-              >
-                {modalLoading ? 'Saving...' : editingProduct ? 'Save Changes' : 'Add Product'}
-              </button>
-            </>
-          }
-        >
-          <form id="product-form" onSubmit={handleFormSubmit}>
-            {formError && (
-              <div style={{ color: 'var(--danger)', fontSize: '0.8125rem', marginBottom: '12px' }}>
-                {formError}
-              </div>
-            )}
-
-            <div className="form-group">
-              <label className="form-label">Product Name *</label>
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Product name"
-                value={formData.product_name}
-                onChange={(e) => setFormData({ ...formData, product_name: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Category *</label>
-              <select
-                className="form-control"
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              >
-                {categoriesList.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Unit Price (₹) *</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0.01"
-                className="form-control"
-                placeholder="0.00"
-                value={formData.unit_price}
-                onChange={(e) => setFormData({ ...formData, unit_price: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Status</label>
-              <select
-                className="form-control"
-                value={formData.is_active ? 'true' : 'false'}
-                onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'true' })}
-              >
-                <option value="true">Active</option>
-                <option value="false">Inactive</option>
-              </select>
-            </div>
-          </form>
-        </Modal>
+          onSubmit={handleSaveProduct}
+          loading={modalLoading}
+        />
       )}
 
-      {/* Delete / Deactivate Modal */}
-      {deletingProduct && (
-        <Modal
-          isOpen={Boolean(deletingProduct)}
-          onClose={() => setDeletingProduct(null)}
-          title="Update Product Status"
-          footer={
-            <>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setDeletingProduct(null)}
-                disabled={deleteLoading}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn btn-danger"
-                onClick={handleDeleteProduct}
-                disabled={deleteLoading}
-              >
-                {deleteLoading ? 'Updating...' : 'Confirm'}
-              </button>
-            </>
-          }
-        >
-          <p style={{ color: 'var(--text-main)', fontSize: '0.875rem' }}>
-            Are you sure you want to deactivate <strong>{deletingProduct.product_name}</strong>?
-          </p>
-        </Modal>
-      )}
+      <ProductDeleteModal
+        product={deletingProduct}
+        loading={deleteLoading}
+        onConfirm={handleDeleteProduct}
+        onClose={() => setDeletingProduct(null)}
+      />
     </div>
   );
 };

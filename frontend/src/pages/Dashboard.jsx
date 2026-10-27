@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { RefreshCw } from 'lucide-react';
 import {
   LineChart,
@@ -23,7 +23,7 @@ export const Dashboard = () => {
   const [lastUpdated, setLastUpdated] = useState('');
   const { showToast } = useToast();
 
-  const fetchDashboard = async () => {
+  const fetchDashboard = useCallback(async () => {
     setLoading(true);
     try {
       const summary = await dashboardApi.getSummary({
@@ -37,11 +37,11 @@ export const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [startDate, endDate, showToast]);
 
   useEffect(() => {
     fetchDashboard();
-  }, [startDate, endDate]);
+  }, [fetchDashboard]);
 
   const setPreset = (days) => {
     if (!days) {
@@ -99,7 +99,6 @@ export const Dashboard = () => {
 
   return (
     <div>
-      {/* Header and Filters */}
       <div className="page-header">
         <div>
           <h2>Dashboard</h2>
@@ -166,7 +165,6 @@ export const Dashboard = () => {
         </div>
       </div>
 
-      {/* KPI Cards */}
       <div className="grid-cols-4" style={{ marginBottom: '20px' }}>
         {loading || !data ? (
           <>
@@ -203,7 +201,6 @@ export const Dashboard = () => {
         )}
       </div>
 
-      {/* Sales Trend Chart */}
       <div className="glass-panel" style={{ padding: '20px', marginBottom: '20px' }}>
         <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '2px' }}>Monthly Revenue</h3>
 
@@ -263,9 +260,7 @@ export const Dashboard = () => {
         </div>
       </div>
 
-      {/* Tables Row: Top Products & Top Customers */}
       <div className="grid-cols-2" style={{ marginBottom: '20px' }}>
-        {/* Top Products */}
         <div className="glass-panel" style={{ padding: '20px' }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '4px' }}>Top Products</h3>
           <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
@@ -298,7 +293,6 @@ export const Dashboard = () => {
           </div>
         </div>
 
-        {/* Top Clients */}
         <div className="glass-panel" style={{ padding: '20px' }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '4px' }}>Top Client Accounts</h3>
           <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
@@ -335,7 +329,6 @@ export const Dashboard = () => {
         </div>
       </div>
 
-      {/* Recent Sales Activity */}
       <div className="glass-panel" style={{ padding: '20px' }}>
         <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '4px' }}>Recent Sales Activity</h3>
         <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
