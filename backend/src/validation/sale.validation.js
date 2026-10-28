@@ -7,6 +7,10 @@ const createSaleSchema = {
     }),
     sale_date: Joi.date().iso().allow(null),
     status: Joi.string().valid('completed', 'pending', 'cancelled').default('completed'),
+    discount: Joi.number().min(0).max(100).default(0).messages({
+      'number.min': 'Discount must be at least 0',
+      'number.max': 'Discount cannot exceed 100',
+    }),
     items: Joi.array()
       .min(1)
       .items(
@@ -14,8 +18,10 @@ const createSaleSchema = {
           product_id: Joi.number().integer().positive().required().messages({
             'any.required': 'Product ID is required for each sale item',
           }),
-          quantity: Joi.number().integer().positive().required().messages({
-            'number.positive': 'Quantity must be at least 1',
+          quantity: Joi.number().integer().min(1).max(100000).required().messages({
+            'number.min': 'Quantity must be at least 1',
+            'number.max': 'Quantity cannot exceed 100,000',
+            'number.integer': 'Quantity must be a whole number',
             'any.required': 'Quantity is required for each sale item',
           }),
         })

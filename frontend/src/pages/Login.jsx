@@ -5,12 +5,15 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { Logo } from '../components/common/Logo';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [touched, setTouched] = useState({ email: false, password: false });
 
   const { login } = useAuth();
   const { showToast } = useToast();
@@ -19,13 +22,53 @@ export const Login = () => {
 
   const from = location.state?.from?.pathname || '/';
 
+  // Email validation
+  const getEmailError = () => {
+    const trimmed = email.trim();
+    if (!trimmed) {
+      return touched.email ? 'Email address is required' : '';
+    }
+    if (trimmed.length > 254) {
+      return 'Email must not exceed 254 characters';
+    }
+    if (!EMAIL_REGEX.test(trimmed)) {
+      return 'Please enter a valid email address';
+    }
+    return '';
+  };
+
+  // Password validation
+  const getPasswordError = () => {
+    if (!password) {
+      return touched.password ? 'Password is required' : '';
+    }
+    if (password.length > 128) {
+      return 'Password must not exceed 128 characters';
+    }
+    return '';
+  };
+
+  const emailError = getEmailError();
+  const passwordError = getPasswordError();
+  const isFormValid =
+    email.trim().length > 0 &&
+    email.trim().length <= 254 &&
+    EMAIL_REGEX.test(email.trim()) &&
+    password.length > 0 &&
+    password.length <= 128;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!isFormValid) {
+      setTouched({ email: true, password: true });
+      return;
+    }
+
     setError(null);
     setLoading(true);
 
     try {
-      const user = await login({ email, password });
+      const user = await login({ email: email.trim(), password });
       showToast(`Welcome back, ${user.name}`, 'success');
       navigate(from, { replace: true });
     } catch (err) {
@@ -38,6 +81,7 @@ export const Login = () => {
   const handleQuickFill = (roleEmail, rolePassword) => {
     setEmail(roleEmail);
     setPassword(rolePassword);
+    setTouched({ email: true, password: true });
     setError(null);
   };
 
@@ -82,7 +126,7 @@ export const Login = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           <div className="form-group">
             <label className="form-label" htmlFor="email">Email Address</label>
             <input
@@ -90,10 +134,17 @@ export const Login = () => {
               type="email"
               className="form-control"
               placeholder="user@example.com"
+              maxLength={254}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              onBlur={() => setTouched((prev) => ({ ...prev, email: true }))}
               required
             />
+            {emailError && (
+              <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.8125rem', marginTop: '4px' }}>
+                {emailError}
+              </div>
+            )}
           </div>
 
           <div className="form-group" style={{ marginBottom: '20px' }}>
@@ -104,8 +155,10 @@ export const Login = () => {
                 type={showPassword ? 'text' : 'password'}
                 className="form-control"
                 placeholder="Password"
+                maxLength={128}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onBlur={() => setTouched((prev) => ({ ...prev, password: true }))}
                 required
                 style={{ paddingRight: '36px' }}
               />
@@ -131,13 +184,18 @@ export const Login = () => {
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+            {passwordError && (
+              <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.8125rem', marginTop: '4px' }}>
+                {passwordError}
+              </div>
+            )}
           </div>
 
           <button
             type="submit"
             className="btn btn-primary"
             style={{ width: '100%', padding: '10px' }}
-            disabled={loading}
+            disabled={loading || !isFormValid}
           >
             {loading ? 'Signing in...' : 'Sign in to Workspace'}
           </button>
@@ -152,6 +210,7 @@ export const Login = () => {
               type="button"
               className="btn btn-secondary btn-sm"
               onClick={() => handleQuickFill('admin@bi.corp', 'Admin123!')}
+              style={{ fontSize: '0.75rem' }}
             >
               Admin
             </button>
@@ -159,6 +218,7 @@ export const Login = () => {
               type="button"
               className="btn btn-secondary btn-sm"
               onClick={() => handleQuickFill('manager@bi.corp', 'Manager123!')}
+              style={{ fontSize: '0.75rem' }}
             >
               Manager
             </button>
@@ -166,6 +226,7 @@ export const Login = () => {
               type="button"
               className="btn btn-secondary btn-sm"
               onClick={() => handleQuickFill('analyst@bi.corp', 'Analyst123!')}
+              style={{ fontSize: '0.75rem' }}
             >
               Analyst
             </button>

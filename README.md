@@ -39,7 +39,7 @@ bi-dashboard/
 Start the PostgreSQL container:
 
 ```bash
-docker run -d --name bi_postgres -p 5432:5432 \
+docker run -d --name bi_postgres -p 127.0.0.1:5432:5432 \
   -e POSTGRES_DB=business_intelligence \
   -e POSTGRES_USER=postgres \
   -e POSTGRES_PASSWORD=postgres \

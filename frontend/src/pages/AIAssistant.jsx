@@ -276,6 +276,7 @@ export const AIAssistant = () => {
               type="text"
               className="form-control"
               placeholder="Ask about revenue, customer spending, or product metrics... (e.g. Which customer spent the most?)"
+              maxLength={500}
               value={inputQuery}
               onChange={(e) => setInputQuery(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -285,12 +286,15 @@ export const AIAssistant = () => {
             <button
               type="button"
               className="btn btn-primary"
-              disabled={!inputQuery.trim() || loading}
+              disabled={!inputQuery.trim() || inputQuery.length > 500 || loading}
               onClick={() => handleSend()}
             >
               <Send size={15} />
               <span>Ask AI</span>
             </button>
+          </div>
+          <div style={{ textAlign: 'right', fontSize: '0.75rem', color: inputQuery.length >= 500 ? 'var(--danger)' : 'var(--text-muted)', marginTop: '4px' }}>
+            {inputQuery.length}/500
           </div>
         </div>
       </div>

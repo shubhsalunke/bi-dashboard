@@ -150,7 +150,7 @@ export const Products = () => {
 
   const exportCSV = () => {
     if (!products || products.length === 0) return;
-    const headers = ['SKU', 'Name', 'Category', 'Brand', 'Supplier', 'Unit Price', 'Cost Price', 'Stock', 'Status'];
+    const headers = ['Product Code', 'Name', 'Category', 'Brand', 'Supplier', 'Unit Price', 'Cost Price', 'Stock', 'Status'];
     const rows = products.map((p) => [
       `"${(p.sku || '').replace(/"/g, '""')}"`,
       `"${(p.product_name || '').replace(/"/g, '""')}"`,

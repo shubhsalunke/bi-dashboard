@@ -81,7 +81,7 @@ describe('Customer API Endpoints (/api/customers)', () => {
       customer_code: `CUST-TEST-${uniqueSuffix}`,
       customer_name: `Test Enterprise ${uniqueSuffix}`,
       email: `test${uniqueSuffix}@enterprise.io`,
-      phone: '+91-98201-99019',
+      phone: '9820199019',
       city: 'Pune',
       status: 'active',
     };

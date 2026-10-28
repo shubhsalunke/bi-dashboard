@@ -276,7 +276,7 @@ class ProductService {
     if (sku) {
       const existing = await query('SELECT id FROM products WHERE LOWER(sku) = LOWER($1)', [sku]);
       if (existing.rowCount > 0) {
-        throw ApiError.conflict(`Product with SKU '${sku}' already exists`);
+        throw ApiError.conflict(`Product with Product Code '${sku}' already exists`);
       }
     } else {
       const maxIdRes = await query('SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM products');
@@ -344,7 +344,7 @@ class ProductService {
       };
     } catch (err) {
       if (err.code === '23505') {
-        throw ApiError.conflict(`Product with SKU '${sku}' already exists`);
+        throw ApiError.conflict(`Product with Product Code '${sku}' already exists`);
       }
       throw err;
     }
@@ -366,7 +366,7 @@ class ProductService {
         [sku, id]
       );
       if (existingSku.rowCount > 0) {
-        throw ApiError.conflict(`Product with SKU '${sku}' already exists`);
+        throw ApiError.conflict(`Product with Product Code '${sku}' already exists`);
       }
     }
 
@@ -464,7 +464,7 @@ class ProductService {
       };
     } catch (err) {
       if (err.code === '23505') {
-        throw ApiError.conflict(`Product with SKU '${data.sku}' already exists`);
+        throw ApiError.conflict(`Product with Product Code '${data.sku}' already exists`);
       }
       throw err;
     }

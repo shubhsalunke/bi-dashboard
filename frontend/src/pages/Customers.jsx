@@ -153,6 +153,7 @@ export const Customers = () => {
             type="text"
             className="form-control search-input"
             placeholder="Search by company name, email, or code... (Press / to search)"
+            maxLength={100}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />

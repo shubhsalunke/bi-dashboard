@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Users,
   Shield,
@@ -121,19 +121,46 @@ export const UserManagement = () => {
   // Form Validation
   const validateForm = () => {
     const errors = {};
-    if (!formData.name.trim()) errors.name = 'Full name is required';
-    if (!formData.email.trim()) errors.email = 'Email address is required';
+    if (!formData.name.trim()) {
+      errors.name = 'Full name is required';
+    } else if (formData.name.length > 100) {
+      errors.name = 'Name must not exceed 100 characters';
+    }
+
+    if (!formData.email.trim()) {
+      errors.email = 'Email address is required';
+    } else if (formData.email.length > 254) {
+      errors.email = 'Email must not exceed 254 characters';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      errors.email = 'Please provide a valid email address';
+    }
+
     if (!editingUser && !formData.password) {
       errors.password = 'Password is required for new accounts';
     } else if (formData.password && formData.password.length < 6) {
       errors.password = 'Password must be at least 6 characters long';
+    } else if (formData.password && formData.password.length > 128) {
+      errors.password = 'Password must not exceed 128 characters';
     }
+
     if (!['admin', 'manager', 'analyst'].includes(formData.role)) {
       errors.role = 'Invalid role specified';
     }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
+
+  const isUserFormValid = useMemo(() => {
+    if (!formData.name.trim() || formData.name.length > 100) return false;
+    if (!formData.email.trim() || formData.email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) return false;
+    if (!['admin', 'manager', 'analyst'].includes(formData.role)) return false;
+    if (!editingUser) {
+      if (!formData.password || formData.password.length < 6 || formData.password.length > 128) return false;
+    } else {
+      if (formData.password && (formData.password.length < 6 || formData.password.length > 128)) return false;
+    }
+    return true;
+  }, [formData, editingUser]);
 
   // Submit User Form
   const handleSubmitUser = async (e) => {
@@ -269,6 +296,7 @@ export const UserManagement = () => {
               <input
                 type="text"
                 placeholder="Search users by name, email, or role..."
+                maxLength={100}
                 value={userSearch}
                 onChange={(e) => setUserSearch(e.target.value)}
                 className="form-control search-input"
@@ -504,11 +532,12 @@ export const UserManagement = () => {
               id="user-name"
               type="text"
               className="form-control"
+              maxLength={100}
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="e.g. Alex Johnson"
             />
-            {formErrors.name && <div className="form-error">{formErrors.name}</div>}
+            {formErrors.name && <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.8125rem', marginTop: '4px' }}>{formErrors.name}</div>}
           </div>
 
           <div className="form-group" style={{ marginBottom: 0 }}>
@@ -517,11 +546,12 @@ export const UserManagement = () => {
               id="user-email"
               type="email"
               className="form-control"
+              maxLength={254}
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               placeholder="e.g. alex@bi.corp"
             />
-            {formErrors.email && <div className="form-error">{formErrors.email}</div>}
+            {formErrors.email && <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.8125rem', marginTop: '4px' }}>{formErrors.email}</div>}
           </div>
 
           <div className="form-group" style={{ marginBottom: 0 }}>
@@ -536,7 +566,7 @@ export const UserManagement = () => {
               <option value="manager">Manager (Manage customers, products, and record sales)</option>
               <option value="admin">Administrator (Full administrative access & user control)</option>
             </select>
-            {formErrors.role && <div className="form-error">{formErrors.role}</div>}
+            {formErrors.role && <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.8125rem', marginTop: '4px' }}>{formErrors.role}</div>}
           </div>
 
           <div className="form-group" style={{ marginBottom: 0 }}>
@@ -547,11 +577,12 @@ export const UserManagement = () => {
               id="user-password"
               type="password"
               className="form-control"
+              maxLength={128}
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               placeholder={editingUser ? '••••••••' : 'Enter strong password (min 6 chars)'}
             />
-            {formErrors.password && <div className="form-error">{formErrors.password}</div>}
+            {formErrors.password && <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.8125rem', marginTop: '4px' }}>{formErrors.password}</div>}
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0' }}>
@@ -576,7 +607,7 @@ export const UserManagement = () => {
             >
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary" disabled={submitting}>
+            <button type="submit" className="btn btn-primary" disabled={submitting || !isUserFormValid}>
               {submitting ? 'Saving...' : editingUser ? 'Update User' : 'Create User'}
             </button>
           </div>

@@ -101,7 +101,7 @@ describe('Product API Endpoints (/api/products)', () => {
       .post('/api/products')
       .set('Authorization', `Bearer ${managerToken}`)
       .send({
-        sku: 'SKU-TEST-999',
+        sku: 'TEST-999',
         product_name: 'Enterprise Security Enclave',
         category: 'Cybersecurity',
         unit_price: 2500.00,
@@ -112,7 +112,7 @@ describe('Product API Endpoints (/api/products)', () => {
       });
 
     expect(res.status).toBe(201);
-    expect(res.body.data.sku).toBe('SKU-TEST-999');
+    expect(res.body.data.sku).toBe('TEST-999');
     expect(res.body.data.cost_price).toBe(1500.00);
     expect(res.body.data.stock_quantity).toBe(15);
     expect(res.body.data.description).toBe('Isolated hardware security module for key management.');
@@ -123,7 +123,7 @@ describe('Product API Endpoints (/api/products)', () => {
       .post('/api/products')
       .set('Authorization', `Bearer ${managerToken}`)
       .send({
-        sku: 'SKU-TEST-999',
+        sku: 'TEST-999',
         product_name: 'Duplicate SKU Item',
         category: 'Cybersecurity',
         unit_price: 999.00,
@@ -138,7 +138,7 @@ describe('Product API Endpoints (/api/products)', () => {
       .post('/api/products')
       .set('Authorization', `Bearer ${managerToken}`)
       .send({
-        sku: 'SKU-NEG-001',
+        sku: 'NEG-001',
         product_name: 'Negative Cost Item',
         category: 'Cybersecurity',
         unit_price: 100.00,
@@ -150,7 +150,7 @@ describe('Product API Endpoints (/api/products)', () => {
       .post('/api/products')
       .set('Authorization', `Bearer ${managerToken}`)
       .send({
-        sku: 'SKU-NEG-002',
+        sku: 'NEG-002',
         product_name: 'Negative Stock Item',
         category: 'Cybersecurity',
         unit_price: 100.00,
@@ -190,7 +190,7 @@ describe('Product API Endpoints (/api/products)', () => {
       .post('/api/products')
       .set('Authorization', `Bearer ${managerToken}`)
       .send({
-        sku: 'SKU-VAL-001',
+        sku: 'VAL-001',
         product_name: 'Invalid GST Product',
         category: 'Cybersecurity',
         unit_price: 100.00,
@@ -203,7 +203,7 @@ describe('Product API Endpoints (/api/products)', () => {
       .post('/api/products')
       .set('Authorization', `Bearer ${managerToken}`)
       .send({
-        sku: 'SKU-VAL-002',
+        sku: 'VAL-002',
         product_name: 'Tata Cloud Shield',
         category: 'Cybersecurity',
         brand: 'Tata',
@@ -271,7 +271,7 @@ describe('Product API Endpoints (/api/products)', () => {
   });
 
   afterAll(async () => {
-    await query("DELETE FROM products WHERE product_name IN ('AI Neural Accelerator Add-on', 'Enterprise Security Enclave', 'Duplicate SKU Item', 'Tata Cloud Shield') OR sku IN ('SKU-TEST-999', 'SKU-VAL-001', 'SKU-VAL-002')");
+    await query("DELETE FROM products WHERE product_name IN ('AI Neural Accelerator Add-on', 'Enterprise Security Enclave', 'Duplicate SKU Item', 'Tata Cloud Shield') OR sku IN ('TEST-999', 'VAL-001', 'VAL-002')");
     await query("UPDATE products SET is_active = true, unit_price = 450.00 WHERE id = 1");
   });
 });

@@ -25,9 +25,24 @@ export const SaleCreateModal = ({
     setOrderItems(orderItems.filter((_, i) => i !== index));
   };
 
+  const handleNumberKeyDown = (e) => {
+    if (['e', 'E', '+', '-', '.'].includes(e.key)) {
+      e.preventDefault();
+    }
+  };
+
   const handleItemChange = (index, field, value) => {
     const updated = [...orderItems];
-    updated[index][field] = field === 'quantity' ? parseInt(value, 10) || 1 : value;
+    if (field === 'quantity') {
+      let clean = String(value);
+      if (/^0[0-9]+/.test(clean)) {
+        clean = clean.replace(/^0+/, '');
+      }
+      const parsed = parseInt(clean, 10);
+      updated[index][field] = isNaN(parsed) ? '' : parsed;
+    } else {
+      updated[index][field] = value;
+    }
     setOrderItems(updated);
   };
 
@@ -39,15 +54,32 @@ export const SaleCreateModal = ({
     }, 0);
   };
 
+  const isFormValid =
+    !!selectedCustomerId &&
+    orderItems.length > 0 &&
+    orderItems.every(
+      (it) =>
+        Boolean(it.product_id) &&
+        Number.isInteger(Number(it.quantity)) &&
+        Number(it.quantity) >= 1 &&
+        Number(it.quantity) <= 100000
+    );
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!selectedCustomerId) {
       setFormError('Please select a customer');
       return;
     }
-    const invalidItem = orderItems.find((it) => !it.product_id || it.quantity < 1);
+    const invalidItem = orderItems.find(
+      (it) =>
+        !it.product_id ||
+        !Number.isInteger(Number(it.quantity)) ||
+        Number(it.quantity) < 1 ||
+        Number(it.quantity) > 100000
+    );
     if (invalidItem) {
-      setFormError('All items must have a selected product and quantity >= 1');
+      setFormError('All items must have a selected product and whole quantity between 1 and 100,000');
       return;
     }
 
@@ -82,14 +114,14 @@ export const SaleCreateModal = ({
             type="submit"
             form="sale-create-form"
             className="btn btn-primary"
-            disabled={loading}
+            disabled={loading || !isFormValid}
           >
             {loading ? 'Saving...' : 'Create Sale'}
           </button>
         </>
       }
     >
-      <form id="sale-create-form" onSubmit={handleSubmit}>
+      <form id="sale-create-form" onSubmit={handleSubmit} noValidate>
         {formError && (
           <div style={{ color: 'var(--danger)', fontSize: '0.8125rem', marginBottom: '12px' }}>
             {formError}
@@ -137,43 +169,58 @@ export const SaleCreateModal = ({
           </button>
         </div>
 
-        {orderItems.map((item, idx) => (
-          <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr auto', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
-            <select
-              className="form-control"
-              value={item.product_id}
-              onChange={(e) => handleItemChange(idx, 'product_id', e.target.value)}
-              required
-            >
-              <option value="">Select product</option>
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.product_name} ({formatCurrency(p.unit_price)})
-                </option>
-              ))}
-            </select>
+        {orderItems.map((item, idx) => {
+          const itemQty = Number(item.quantity);
+          const hasQtyError = item.quantity !== '' && (!Number.isInteger(itemQty) || itemQty < 1 || itemQty > 100000);
+          return (
+            <div key={idx} style={{ marginBottom: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr auto', gap: '8px', alignItems: 'center' }}>
+                <select
+                  className="form-control"
+                  value={item.product_id}
+                  onChange={(e) => handleItemChange(idx, 'product_id', e.target.value)}
+                  required
+                >
+                  <option value="">Select product</option>
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.product_name} ({formatCurrency(p.unit_price)})
+                    </option>
+                  ))}
+                </select>
 
-            <input
-              type="number"
-              min="1"
-              className="form-control"
-              value={item.quantity}
-              onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
-              required
-            />
+                <input
+                  type="number"
+                  min="1"
+                  max="100000"
+                  step="1"
+                  className="form-control"
+                  placeholder="Qty"
+                  value={item.quantity}
+                  onKeyDown={handleNumberKeyDown}
+                  onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
+                  required
+                />
 
-            {orderItems.length > 1 && (
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => handleRemoveItem(idx)}
-                style={{ padding: '6px' }}
-              >
-                <Trash2 size={14} />
-              </button>
-            )}
-          </div>
-        ))}
+                {orderItems.length > 1 && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => handleRemoveItem(idx)}
+                    style={{ padding: '6px' }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </div>
+              {hasQtyError && (
+                <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '2px' }}>
+                  Quantity must be a whole number between 1 and 100,000
+                </div>
+              )}
+            </div>
+          );
+        })}
 
         <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid var(--border-subtle)', textAlign: 'right', fontWeight: 600 }}>
           Estimated Total: {formatCurrency(calculatePreviewTotal())}

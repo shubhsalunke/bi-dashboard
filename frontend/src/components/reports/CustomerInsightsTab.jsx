@@ -22,6 +22,7 @@ export const CustomerInsightsTab = ({
             type="text"
             className="form-control search-input"
             placeholder="Search customers by name, code, or city... (Press / to search)"
+            maxLength={100}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />

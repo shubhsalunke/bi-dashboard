@@ -87,7 +87,7 @@ export const ProductDetailsModal = ({ productId, isOpen, onClose }) => {
           >
             <div>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                SKU
+                Product Code
               </span>
               <div style={{ fontWeight: 600, marginTop: '2px' }}>{details.sku || '—'}</div>
             </div>

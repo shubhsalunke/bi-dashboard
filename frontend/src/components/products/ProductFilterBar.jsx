@@ -39,7 +39,8 @@ export const ProductFilterBar = ({
           ref={searchInputRef}
           type="text"
           className="form-control search-input"
-          placeholder="Search products by name or SKU... (Press / to search)"
+          placeholder="Search products by name or code..."
+          maxLength={100}
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
         />
@@ -91,6 +92,7 @@ export const ProductFilterBar = ({
           style={{ width: '85px' }}
           placeholder="Min ₹"
           min="0"
+          max="10000000"
           value={minPrice}
           onChange={(e) => onMinPriceChange(e.target.value)}
         />
@@ -101,6 +103,7 @@ export const ProductFilterBar = ({
           style={{ width: '85px' }}
           placeholder="Max ₹"
           min="0"
+          max="10000000"
           value={maxPrice}
           onChange={(e) => onMaxPriceChange(e.target.value)}
         />

@@ -59,11 +59,11 @@ async function seedDatabase() {
     // 3. Seed Exactly 5 Clean Products
     console.log('  📦 Seeding Products (5 curated items)...');
     const productList = [
-      ['Cloud Virtual Server Node', 'Cloud Infrastructure', 450.00, true, 'SKU-CLD-001', 280.00, 45, 'Scalable multi-core cloud compute instance for production workloads.', 'Tata', 'Tata Communications Ltd', 'per instance/mo', 18.00, 15, 12],
-      ['Managed Cloud Database Cluster Dedicated', 'Cloud Infrastructure', 650.00, true, 'SKU-DB-002', 420.00, 20, 'High-availability PostgreSQL cluster with automated backups.', 'Infosys', 'Infosys Cloud Platforms', 'per cluster/mo', 18.00, 10, 24],
-      ['Object Storage Tier 1 (10TB)', 'Cloud Infrastructure', 220.00, true, 'SKU-STR-003', 130.00, 85, 'Durable distributed object storage with high throughput.', 'Reliance', 'Reliance Jio Data Infra', 'per 10TB/mo', 18.00, 25, 12],
-      ['Business Analytics Pro License', 'Enterprise Software', 1200.00, true, 'SKU-SFT-004', 750.00, 8, 'Annual enterprise seat for advanced business intelligence and reporting.', 'Mahindra', 'Mahindra Tejas Tech', 'per user/yr', 18.00, 10, 12],
-      ['AI Customer Analytics Integration', 'Analytics & AI', 2800.00, true, 'SKU-AI-011', 1700.00, 0, 'Conversational customer engagement and tier-1 issue resolution bot.', 'Bharat', 'Bharat AI Innovations', 'per deployment', 18.00, 5, 24],
+      ['Cloud Virtual Server Node', 'Cloud Infrastructure', 450.00, true, 'CLD-001', 280.00, 45, 'Scalable multi-core cloud compute instance for production workloads.', 'Tata', 'Tata Communications Ltd', 'per instance/mo', 18.00, 15, 12],
+      ['Managed Cloud Database Cluster Dedicated', 'Cloud Infrastructure', 650.00, true, 'DB-002', 420.00, 20, 'High-availability PostgreSQL cluster with automated backups.', 'Infosys', 'Infosys Cloud Platforms', 'per cluster/mo', 18.00, 10, 24],
+      ['Object Storage Tier 1 (10TB)', 'Cloud Infrastructure', 220.00, true, 'STR-003', 130.00, 85, 'Durable distributed object storage with high throughput.', 'Reliance', 'Reliance Jio Data Infra', 'per 10TB/mo', 18.00, 25, 12],
+      ['Business Analytics Pro License', 'Enterprise Software', 1200.00, true, 'SFT-004', 750.00, 8, 'Annual enterprise seat for advanced business intelligence and reporting.', 'Mahindra', 'Mahindra Tejas Tech', 'per user/yr', 18.00, 10, 12],
+      ['AI Customer Analytics Integration', 'Analytics & AI', 2800.00, true, 'AI-011', 1700.00, 0, 'Conversational customer engagement and tier-1 issue resolution bot.', 'Bharat', 'Bharat AI Innovations', 'per deployment', 18.00, 5, 24],
     ];
 
     const productInsertSql = `

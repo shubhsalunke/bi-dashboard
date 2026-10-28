@@ -72,7 +72,7 @@ Provides endpoints for CRM, catalog, transactional sales, executive reporting, A
         type: 'object',
         properties: {
           id: { type: 'integer', example: 1 },
-          sku: { type: 'string', example: 'SKU-SFT-004' },
+          sku: { type: 'string', example: 'SFT-004' },
           product_name: { type: 'string', example: 'BI Analytics Suite Pro License' },
           category: { type: 'string', example: 'Enterprise Software' },
           brand: { type: 'string', example: 'Tata' },

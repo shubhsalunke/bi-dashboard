@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Modal } from '../common/Modal';
 
 export const ProductFormModal = ({
@@ -64,55 +64,164 @@ export const ProductFormModal = ({
       });
     }
     setFormError('');
-  }, [product, categories]);
+  }, [product, categories, isOpen]);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!formData.product_name.trim()) {
-      setFormError('Product name is required');
-      return;
+  // Handle number key down: block 'e', 'E', '+', '-' and '.' on integer inputs
+  const handleNumberKeyDown = (e, isInteger = false) => {
+    if (['e', 'E', '+', '-'].includes(e.key) || (isInteger && e.key === '.')) {
+      e.preventDefault();
+    }
+  };
+
+  // Strip leading zeros (000123 -> 123)
+  const handleNumberChange = (field, rawValue, isInteger = false) => {
+    let val = rawValue;
+    if (val !== '') {
+      if (/^0[0-9]+/.test(val)) {
+        val = val.replace(/^0+/, '');
+        if (val === '') val = '0';
+      } else if (!isInteger && /^0[0-9]/.test(val)) {
+        val = val.replace(/^0+(?=\d)/, '');
+      }
+    }
+    setFormData((prev) => ({ ...prev, [field]: val }));
+  };
+
+  // Live validation calculations
+  const fieldErrors = useMemo(() => {
+    const errs = {};
+
+    // Product Name
+    if (!formData.product_name || !formData.product_name.trim()) {
+      errs.product_name = 'Product name is required';
+    } else if (formData.product_name.length > 150) {
+      errs.product_name = 'Product name must not exceed 150 characters';
     }
 
+    // Product Code (SKU)
+    if (formData.sku) {
+      if (formData.sku.length > 30) {
+        errs.sku = 'Product Code must not exceed 30 characters';
+      } else if (!/^[A-Z0-9-]+$/.test(formData.sku)) {
+        errs.sku = 'Product Code must only contain letters, numbers, and hyphens';
+      }
+    }
+
+    // Brand
+    if (formData.brand && formData.brand.length > 60) {
+      errs.brand = 'Brand must not exceed 60 characters';
+    }
+
+    // Supplier
+    if (formData.supplier && formData.supplier.length > 100) {
+      errs.supplier = 'Supplier must not exceed 100 characters';
+    }
+
+    // Unit
+    if (formData.unit && formData.unit.length > 30) {
+      errs.unit = 'Unit must not exceed 30 characters';
+    }
+
+    // Unit Price
     const priceNum = parseFloat(formData.unit_price);
-    if (isNaN(priceNum) || priceNum <= 0) {
-      setFormError('Unit price must be a valid number greater than zero');
-      return;
+    if (formData.unit_price === '' || formData.unit_price === null || formData.unit_price === undefined || isNaN(priceNum) || priceNum <= 0) {
+      errs.unit_price = 'Unit price must be a valid number greater than zero';
+    } else if (priceNum < 0.01) {
+      errs.unit_price = 'Unit price must be at least ₹0.01';
+    } else if (priceNum > 10000000) {
+      errs.unit_price = 'Unit price cannot exceed ₹10,000,000 (1 crore)';
+    } else if (!/^\d+(\.\d{1,2})?$/.test(String(formData.unit_price).trim())) {
+      errs.unit_price = 'Unit price cannot have more than 2 decimal places';
     }
 
+    // Cost Price
     let costNum = null;
     if (formData.cost_price !== '' && formData.cost_price !== null && formData.cost_price !== undefined) {
       costNum = parseFloat(formData.cost_price);
       if (isNaN(costNum) || costNum < 0) {
-        setFormError('Cost price must be a valid number greater than or equal to zero');
-        return;
+        errs.cost_price = 'Cost price must be a valid number greater than or equal to zero';
+      } else if (costNum > 10000000) {
+        errs.cost_price = 'Cost price cannot exceed ₹10,000,000';
+      } else if (!/^\d+(\.\d{1,2})?$/.test(String(formData.cost_price).trim())) {
+        errs.cost_price = 'Cost price cannot have more than 2 decimal places';
+      } else if (!isNaN(priceNum) && costNum > priceNum) {
+        errs.cost_price = 'Cost price must not be greater than Unit Price';
       }
     }
 
+    // GST %
+    if (formData.gst_percent !== '' && formData.gst_percent !== null && formData.gst_percent !== undefined) {
+      const gstNum = parseFloat(formData.gst_percent);
+      if (isNaN(gstNum) || gstNum < 0 || gstNum > 28) {
+        errs.gst_percent = 'GST % must be a number between 0 and 28';
+      } else if (!/^\d+(\.\d{1,2})?$/.test(String(formData.gst_percent).trim())) {
+        errs.gst_percent = 'GST % cannot have more than 2 decimal places';
+      }
+    }
+
+    // Stock Quantity
+    if (formData.stock_quantity === '' || formData.stock_quantity === null || formData.stock_quantity === undefined) {
+      errs.stock_quantity = 'Stock quantity is required';
+    } else {
+      const stockNum = Number(formData.stock_quantity);
+      if (isNaN(stockNum) || !Number.isInteger(stockNum) || stockNum < 0) {
+        errs.stock_quantity = 'Stock quantity must be a whole number greater than or equal to zero';
+      } else if (stockNum > 1000000) {
+        errs.stock_quantity = 'Stock quantity cannot exceed 1,000,000';
+      }
+    }
+
+    // Reorder Level
+    if (formData.reorder_level === '' || formData.reorder_level === null || formData.reorder_level === undefined) {
+      errs.reorder_level = 'Reorder level is required';
+    } else {
+      const reorderNum = Number(formData.reorder_level);
+      if (isNaN(reorderNum) || !Number.isInteger(reorderNum) || reorderNum < 0) {
+        errs.reorder_level = 'Reorder level must be a whole number greater than or equal to zero';
+      } else if (reorderNum > 1000000) {
+        errs.reorder_level = 'Reorder level cannot exceed 1,000,000';
+      }
+    }
+
+    // Warranty
+    if (formData.warranty_months !== '' && formData.warranty_months !== null && formData.warranty_months !== undefined) {
+      const warrantyNum = Number(formData.warranty_months);
+      if (isNaN(warrantyNum) || !Number.isInteger(warrantyNum) || warrantyNum < 0) {
+        errs.warranty_months = 'Warranty months must be a whole number greater than or equal to zero';
+      } else if (warrantyNum > 120) {
+        errs.warranty_months = 'Warranty months cannot exceed 120';
+      }
+    }
+
+    // Description
+    if (formData.description && formData.description.length > 1000) {
+      errs.description = 'Description cannot exceed 1000 characters';
+    }
+
+    return errs;
+  }, [formData]);
+
+  const isFormValid = Object.keys(fieldErrors).length === 0;
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    if (!isFormValid) {
+      return;
+    }
+
+    const priceNum = parseFloat(formData.unit_price);
+    let costNum = null;
+    if (formData.cost_price !== '' && formData.cost_price !== null && formData.cost_price !== undefined) {
+      costNum = parseFloat(formData.cost_price);
+    }
     const stockNum = parseInt(formData.stock_quantity, 10);
-    if (isNaN(stockNum) || stockNum < 0 || stockNum !== Number(formData.stock_quantity)) {
-      setFormError('Stock quantity must be a whole number greater than or equal to zero');
-      return;
-    }
-
     const gstNum = parseFloat(formData.gst_percent);
-    if (isNaN(gstNum) || gstNum < 0 || gstNum > 28) {
-      setFormError('GST % must be a number between 0 and 28');
-      return;
-    }
-
     const reorderNum = parseInt(formData.reorder_level, 10);
-    if (isNaN(reorderNum) || reorderNum < 0 || reorderNum !== Number(formData.reorder_level)) {
-      setFormError('Reorder level must be a whole number greater than or equal to zero');
-      return;
-    }
 
     let warrantyNum = null;
     if (formData.warranty_months !== '' && formData.warranty_months !== null && formData.warranty_months !== undefined) {
       warrantyNum = parseInt(formData.warranty_months, 10);
-      if (isNaN(warrantyNum) || warrantyNum < 0 || warrantyNum !== Number(formData.warranty_months)) {
-        setFormError('Warranty months must be a whole number greater than or equal to zero');
-        return;
-      }
     }
 
     const payload = {
@@ -157,14 +266,14 @@ export const ProductFormModal = ({
             type="submit"
             form="product-form"
             className="btn btn-primary"
-            disabled={loading}
+            disabled={loading || !isFormValid}
           >
             {loading ? 'Saving...' : product ? 'Save Changes' : 'Add Product'}
           </button>
         </>
       }
     >
-      <form id="product-form" onSubmit={handleSubmit}>
+      <form id="product-form" onSubmit={handleSubmit} noValidate>
         {formError && (
           <div style={{ color: 'var(--danger)', fontSize: '0.8125rem', marginBottom: '12px' }}>
             {formError}
@@ -173,15 +282,24 @@ export const ProductFormModal = ({
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           <div className="form-group">
-            <label htmlFor="product-sku" className="form-label">SKU</label>
+            <label htmlFor="product-sku" className="form-label">Product Code</label>
             <input
               id="product-sku"
               type="text"
               className="form-control"
-              placeholder="e.g. SKU-PRD-001"
+              placeholder="e.g. PRD-001"
+              maxLength={30}
               value={formData.sku}
-              onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+              onChange={(e) => {
+                const upper = e.target.value.toUpperCase();
+                setFormData((prev) => ({ ...prev, sku: upper }));
+              }}
             />
+            {fieldErrors.sku && (
+              <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '2px' }}>
+                {fieldErrors.sku}
+              </div>
+            )}
           </div>
 
           <div className="form-group">
@@ -206,10 +324,16 @@ export const ProductFormModal = ({
             type="text"
             className="form-control"
             placeholder="Product name"
+            maxLength={150}
             value={formData.product_name}
             onChange={(e) => setFormData({ ...formData, product_name: e.target.value })}
             required
           />
+          {fieldErrors.product_name && (
+            <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '2px' }}>
+              {fieldErrors.product_name}
+            </div>
+          )}
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -220,9 +344,15 @@ export const ProductFormModal = ({
               type="text"
               className="form-control"
               placeholder="e.g. Tata, Infosys, Reliance"
+              maxLength={60}
               value={formData.brand}
               onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
             />
+            {fieldErrors.brand && (
+              <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '2px' }}>
+                {fieldErrors.brand}
+              </div>
+            )}
           </div>
 
           <div className="form-group">
@@ -232,9 +362,15 @@ export const ProductFormModal = ({
               type="text"
               className="form-control"
               placeholder="Supplier or distributor name"
+              maxLength={100}
               value={formData.supplier}
               onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
             />
+            {fieldErrors.supplier && (
+              <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '2px' }}>
+                {fieldErrors.supplier}
+              </div>
+            )}
           </div>
         </div>
 
@@ -246,12 +382,19 @@ export const ProductFormModal = ({
               type="number"
               step="0.01"
               min="0.01"
+              max="10000000"
               className="form-control"
               placeholder="0.00"
               value={formData.unit_price}
-              onChange={(e) => setFormData({ ...formData, unit_price: e.target.value })}
+              onKeyDown={(e) => handleNumberKeyDown(e, false)}
+              onChange={(e) => handleNumberChange('unit_price', e.target.value, false)}
               required
             />
+            {fieldErrors.unit_price && (
+              <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '2px' }}>
+                {fieldErrors.unit_price}
+              </div>
+            )}
           </div>
 
           <div className="form-group">
@@ -261,11 +404,18 @@ export const ProductFormModal = ({
               type="number"
               step="0.01"
               min="0"
+              max="10000000"
               className="form-control"
               placeholder="0.00"
               value={formData.cost_price}
-              onChange={(e) => setFormData({ ...formData, cost_price: e.target.value })}
+              onKeyDown={(e) => handleNumberKeyDown(e, false)}
+              onChange={(e) => handleNumberChange('cost_price', e.target.value, false)}
             />
+            {fieldErrors.cost_price && (
+              <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '2px' }}>
+                {fieldErrors.cost_price}
+              </div>
+            )}
           </div>
         </div>
 
@@ -277,9 +427,15 @@ export const ProductFormModal = ({
               type="text"
               className="form-control"
               placeholder="e.g. per unit, per mo"
+              maxLength={30}
               value={formData.unit}
               onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
             />
+            {fieldErrors.unit && (
+              <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '2px' }}>
+                {fieldErrors.unit}
+              </div>
+            )}
           </div>
 
           <div className="form-group">
@@ -293,8 +449,14 @@ export const ProductFormModal = ({
               className="form-control"
               placeholder="18"
               value={formData.gst_percent}
-              onChange={(e) => setFormData({ ...formData, gst_percent: e.target.value })}
+              onKeyDown={(e) => handleNumberKeyDown(e, false)}
+              onChange={(e) => handleNumberChange('gst_percent', e.target.value, false)}
             />
+            {fieldErrors.gst_percent && (
+              <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '2px' }}>
+                {fieldErrors.gst_percent}
+              </div>
+            )}
           </div>
         </div>
 
@@ -306,12 +468,19 @@ export const ProductFormModal = ({
               type="number"
               step="1"
               min="0"
+              max="1000000"
               className="form-control"
               placeholder="0"
               value={formData.stock_quantity}
-              onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })}
+              onKeyDown={(e) => handleNumberKeyDown(e, true)}
+              onChange={(e) => handleNumberChange('stock_quantity', e.target.value, true)}
               required
             />
+            {fieldErrors.stock_quantity && (
+              <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '2px' }}>
+                {fieldErrors.stock_quantity}
+              </div>
+            )}
           </div>
 
           <div className="form-group">
@@ -321,12 +490,19 @@ export const ProductFormModal = ({
               type="number"
               step="1"
               min="0"
+              max="1000000"
               className="form-control"
               placeholder="10"
               value={formData.reorder_level}
-              onChange={(e) => setFormData({ ...formData, reorder_level: e.target.value })}
+              onKeyDown={(e) => handleNumberKeyDown(e, true)}
+              onChange={(e) => handleNumberChange('reorder_level', e.target.value, true)}
               required
             />
+            {fieldErrors.reorder_level && (
+              <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '2px' }}>
+                {fieldErrors.reorder_level}
+              </div>
+            )}
           </div>
         </div>
 
@@ -338,11 +514,18 @@ export const ProductFormModal = ({
               type="number"
               step="1"
               min="0"
+              max="120"
               className="form-control"
               placeholder="e.g. 12"
               value={formData.warranty_months}
-              onChange={(e) => setFormData({ ...formData, warranty_months: e.target.value })}
+              onKeyDown={(e) => handleNumberKeyDown(e, true)}
+              onChange={(e) => handleNumberChange('warranty_months', e.target.value, true)}
             />
+            {fieldErrors.warranty_months && (
+              <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '2px' }}>
+                {fieldErrors.warranty_months}
+              </div>
+            )}
           </div>
 
           <div className="form-group">
@@ -360,15 +543,26 @@ export const ProductFormModal = ({
         </div>
 
         <div className="form-group">
-          <label htmlFor="product-description" className="form-label">Description</label>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <label htmlFor="product-description" className="form-label">Description</label>
+            <span style={{ fontSize: '0.75rem', color: (formData.description || '').length >= 1000 ? 'var(--danger)' : 'var(--text-muted)' }}>
+              {(formData.description || '').length}/1000
+            </span>
+          </div>
           <textarea
             id="product-description"
             className="form-control"
             rows="3"
             placeholder="Product description and technical specifications..."
+            maxLength={1000}
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           />
+          {fieldErrors.description && (
+            <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '2px' }}>
+              {fieldErrors.description}
+            </div>
+          )}
         </div>
       </form>
     </Modal>

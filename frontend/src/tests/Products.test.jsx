@@ -16,7 +16,7 @@ describe('Products Module Components', () => {
   const sampleProducts = [
     {
       id: 1,
-      sku: 'SKU-CLD-001',
+      sku: 'CLD-001',
       product_name: 'Cloud Virtual Server Node',
       category: 'Cloud Infrastructure',
       brand: 'Tata',
@@ -31,7 +31,7 @@ describe('Products Module Components', () => {
     },
     {
       id: 2,
-      sku: 'SKU-EDR-008',
+      sku: 'EDR-008',
       product_name: 'Endpoint Detection & Response',
       category: 'Cybersecurity',
       brand: 'Infosys',
@@ -46,7 +46,7 @@ describe('Products Module Components', () => {
     },
     {
       id: 3,
-      sku: 'SKU-OUT-009',
+      sku: 'OUT-009',
       product_name: 'Out of Stock Hardware',
       category: 'Cloud Infrastructure',
       brand: 'Reliance',
@@ -62,7 +62,7 @@ describe('Products Module Components', () => {
   ];
 
   describe('ProductsTable Component', () => {
-    it('renders SKU, Brand, Stock, Units Sold, and badges correctly', () => {
+    it('renders Product Code, Brand, Stock, Units Sold, and badges correctly', () => {
       render(
         <ProductsTable
           products={sampleProducts}
@@ -76,9 +76,9 @@ describe('Products Module Components', () => {
         />
       );
 
-      expect(screen.getByText('SKU-CLD-001')).toBeInTheDocument();
-      expect(screen.getByText('SKU-EDR-008')).toBeInTheDocument();
-      expect(screen.getByText('SKU-OUT-009')).toBeInTheDocument();
+      expect(screen.getByText('CLD-001')).toBeInTheDocument();
+      expect(screen.getByText('EDR-008')).toBeInTheDocument();
+      expect(screen.getByText('OUT-009')).toBeInTheDocument();
 
       // Brand column
       expect(screen.getByText('Tata')).toBeInTheDocument();
@@ -136,7 +136,7 @@ describe('Products Module Components', () => {
         />
       );
 
-      expect(screen.getByLabelText(/SKU/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Product Code/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/Product Name \*/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/Brand/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/Supplier/i)).toBeInTheDocument();
@@ -193,8 +193,8 @@ describe('Products Module Components', () => {
         />
       );
 
-      fireEvent.change(screen.getByPlaceholderText('e.g. SKU-PRD-001'), {
-        target: { value: 'SKU-NEW-001' },
+      fireEvent.change(screen.getByPlaceholderText('e.g. PRD-001'), {
+        target: { value: 'NEW-001' },
       });
       fireEvent.change(screen.getByPlaceholderText('Product name'), {
         target: { value: 'New Test Gateway' },
@@ -228,7 +228,7 @@ describe('Products Module Components', () => {
 
       expect(onSubmit).toHaveBeenCalledWith(
         expect.objectContaining({
-          sku: 'SKU-NEW-001',
+          sku: 'NEW-001',
           product_name: 'New Test Gateway',
           brand: 'Mahindra',
           supplier: 'Tech Mahindra Ltd',
@@ -252,7 +252,7 @@ describe('Products Module Components', () => {
     it('loads and renders product details, brand, supplier, GST %, Price with GST, and margin', async () => {
       productsApi.getProductDetails.mockResolvedValueOnce({
         id: 1,
-        sku: 'SKU-CLD-001',
+        sku: 'CLD-001',
         product_name: 'Cloud Virtual Server Node',
         category: 'Cloud Infrastructure',
         brand: 'Tata',
@@ -295,7 +295,7 @@ describe('Products Module Components', () => {
         expect(screen.getByText('Cloud Virtual Server Node')).toBeInTheDocument();
       });
 
-      expect(screen.getByText('SKU-CLD-001')).toBeInTheDocument();
+      expect(screen.getByText('CLD-001')).toBeInTheDocument();
       expect(screen.getByText('Tata')).toBeInTheDocument();
       expect(screen.getByText('Tata Communications Ltd')).toBeInTheDocument();
       expect(screen.getByText('18%')).toBeInTheDocument();

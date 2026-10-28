@@ -20,7 +20,7 @@ export const ProductsTable = ({
         <thead>
           <tr>
             <TableHeader label="ID" field="id" sortField={sortField} sortAsc={sortAsc} onSort={onSort} />
-            <TableHeader label="SKU" field="sku" sortField={sortField} sortAsc={sortAsc} onSort={onSort} />
+            <TableHeader label="Product Code" field="sku" sortField={sortField} sortAsc={sortAsc} onSort={onSort} />
             <TableHeader label="Product Name" field="product_name" sortField={sortField} sortAsc={sortAsc} onSort={onSort} />
             <TableHeader label="Brand" field="brand" sortField={sortField} sortAsc={sortAsc} onSort={onSort} />
             <TableHeader label="Category" field="category" sortField={sortField} sortAsc={sortAsc} onSort={onSort} />
