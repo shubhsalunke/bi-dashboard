@@ -3,18 +3,18 @@ import {
   BarChart,
   Bar,
   Cell,
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
+  LabelList,
   ResponsiveContainer,
 } from 'recharts';
 import { StatCard } from '../common/StatCard';
 import { EmptyState } from '../common/EmptyState';
 import { CardSkeleton } from '../common/LoadingSkeleton';
-import { formatCurrency, formatCompactCurrency } from '../../utils/format';
+import { MonthlyRevenueChart } from '../charts/MonthlyRevenueChart';
+import { formatCurrency, formatChartValue, formatMonth } from '../../utils/format';
 
 const CITIES = ['Pune', 'Mumbai', 'Nagpur', 'Nashik', 'Aurangabad', 'Hyderabad', 'Delhi'];
 
@@ -29,7 +29,6 @@ export const SalesReportTab = ({
   setCityFilter,
   handlePreset,
   monthlyTimeline,
-  peakMonth,
   peakCity,
   totalPeriodRevenue,
 }) => {
@@ -39,6 +38,11 @@ export const SalesReportTab = ({
   const isAllTime = !startDate && !endDate;
   const is30Days = diffDays === 30;
   const is90Days = diffDays === 90;
+
+  const monthlyChartData = (monthlyTimeline || []).map((m) => ({
+    ...m,
+    monthLabel: formatMonth(m.month),
+  }));
 
   const cityChartData = (salesReport?.byCity || []).map((c) => ({
     ...c,
@@ -128,179 +132,107 @@ export const SalesReportTab = ({
             <StatCard
               title="Total Sales"
               value={salesReport.summary?.total_orders || 0}
-              subtitle="Orders processed"
             />
             <StatCard
               title="Total Revenue"
               value={formatCurrency(salesReport.summary?.total_revenue)}
-              subtitle="Gross revenue"
             />
             <StatCard
               title="Unique Customers"
               value={salesReport.summary?.unique_customers || 0}
-              subtitle="Active buyers"
             />
             <StatCard
               title="Average Order Value"
               value={formatCurrency(salesReport.summary?.average_order_value)}
-              subtitle="Per order"
             />
           </>
         )}
       </div>
 
-      <section className="card" aria-label="Monthly Revenue">
-        <h3 className="section-heading">Monthly Revenue</h3>
-        <p className="section-subheading" style={{ marginBottom: peakMonth ? 'var(--space-1)' : 'var(--space-4)' }}>
-          Monthly sales revenue over time
-        </p>
-        {peakMonth && (
-          <p className="chart-insight-sentence">
-            Highest sales in {peakMonth.month}:{' '}
-            <span className="chart-insight-highlight">{formatCompactCurrency(peakMonth.revenueNum)}</span>
-          </p>
-        )}
-
-        <div className="chart-box">
-          {loading || !salesReport ? (
-            <div className="skeleton" style={{ width: '100%', height: '100%' }} />
-          ) : monthlyTimeline.length === 0 ? (
-            <EmptyState
-              title="No monthly sales data"
-              description="No revenue records match the selected date and city filters."
-            />
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={monthlyTimeline} margin={{ top: 8, right: 16, left: 4, bottom: 4 }}>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--chart-grid)" />
-                <XAxis
-                  dataKey="month"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: 'var(--chart-axis)', fontSize: 12 }}
-                  dy={6}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: 'var(--chart-axis)', fontSize: 12 }}
-                  tickFormatter={(v) => formatCompactCurrency(v)}
-                  width={56}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: 'var(--bg-surface)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 'var(--radius-md)',
-                    boxShadow: 'var(--shadow-md)',
-                    color: 'var(--text-primary)',
-                    fontSize: '0.8125rem',
-                  }}
-                  formatter={(val) => [formatCurrency(val), 'Revenue']}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="revenueNum"
-                  stroke="var(--accent-text)"
-                  strokeWidth={2}
-                  dot={(props) => {
-                    const isPeak = peakMonth && props.payload.month === peakMonth.month;
-                    return (
-                      <circle
-                        key={props.key || props.index}
-                        cx={props.cx}
-                        cy={props.cy}
-                        r={isPeak ? 5 : 3}
-                        fill={isPeak ? 'var(--accent-text)' : 'var(--bg-surface)'}
-                        stroke="var(--accent-text)"
-                        strokeWidth={2}
-                      />
-                    );
-                  }}
-                  activeDot={{ r: 5, fill: 'var(--accent)', stroke: 'var(--bg-surface)', strokeWidth: 2 }}
-                  isAnimationActive={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-      </section>
+      <MonthlyRevenueChart
+        data={monthlyChartData}
+        loading={loading || !salesReport}
+        emptyTitle="No monthly sales data"
+        emptyDescription="No revenue records match the selected date and city filters."
+      />
 
       <div className="grid-cols-2">
-        <section className="card" aria-label="Sales by City">
-          <h3 className="section-heading">Sales by City</h3>
-          <p className="section-subheading" style={{ marginBottom: peakCity ? 'var(--space-1)' : 'var(--space-4)' }}>
-            Revenue generated per city
-          </p>
-          {peakCity && (
-            <p className="chart-insight-sentence">
-              Highest city sales in {peakCity.city}:{' '}
-              <span className="chart-insight-highlight">{formatCompactCurrency(peakCity.revenue)}</span>
-            </p>
-          )}
+        <section className="card card-flush" aria-label="Sales by City">
+          <div className="card-header">
+            <h3 className="section-heading" style={{ marginBottom: 0 }}>Sales by City</h3>
+          </div>
 
-          <div className="chart-box-sm">
-            {loading || !salesReport ? (
-              <div className="skeleton" style={{ width: '100%', height: '100%' }} />
-            ) : cityChartData.length === 0 ? (
-              <EmptyState
-                title="No city data"
-                description="No city-level sales recorded for this filter."
-              />
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={cityChartData} margin={{ top: 8, right: 8, left: 4, bottom: 4 }}>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--chart-grid)" />
-                  <XAxis
-                    dataKey="city"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: 'var(--chart-axis)', fontSize: 11 }}
-                    dy={6}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: 'var(--chart-axis)', fontSize: 11 }}
-                    tickFormatter={(v) => formatCompactCurrency(v)}
-                    width={54}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      background: 'var(--bg-surface)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 'var(--radius-md)',
-                      boxShadow: 'var(--shadow-md)',
-                      color: 'var(--text-primary)',
-                      fontSize: '0.8125rem',
-                    }}
-                    formatter={(val) => [formatCurrency(val), 'Revenue']}
-                  />
-                  <Bar dataKey="revenueNum" radius={[4, 4, 0, 0]} isAnimationActive={false}>
-                    {cityChartData.map((entry, index) => {
-                      const isPeak = peakCity && entry.city === peakCity.city;
-                      return (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={isPeak ? 'var(--accent)' : 'var(--chart-muted)'}
+          <div className="card-body">
+            <div className="chart-box-sm">
+              {loading || !salesReport ? (
+                <div className="skeleton" style={{ width: '100%', height: '100%' }} />
+              ) : cityChartData.length === 0 ? (
+                <EmptyState
+                  title="No city data"
+                  description="No city-level sales recorded for this filter."
+                />
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={cityChartData} barCategoryGap="24%" margin={{ top: cityChartData.length <= 6 ? 20 : 12, right: 8, left: 0, bottom: 4 }}>
+                    <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                    <XAxis
+                      dataKey="city"
+                      axisLine={{ stroke: 'var(--border)' }}
+                      tickLine={false}
+                      tick={{ fill: 'var(--chart-axis)', fontSize: 12 }}
+                      dy={6}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: 'var(--chart-axis)', fontSize: 12 }}
+                      tickFormatter={(v) => formatChartValue(v)}
+                      padding={{ top: 20 }}
+                      width={52}
+                    />
+                    <Tooltip
+                      cursor={{ fill: 'rgba(37, 99, 235, 0.06)' }}
+                      contentStyle={{
+                        background: 'var(--bg-surface)',
+                        border: '1px solid var(--border-strong)',
+                        borderRadius: 'var(--radius-md)',
+                        boxShadow: 'var(--shadow-md)',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.8125rem',
+                      }}
+                      formatter={(val) => [formatCurrency(val), 'Revenue']}
+                    />
+                    <Bar dataKey="revenueNum" radius={[2, 2, 0, 0]} maxBarSize={52} isAnimationActive={false}>
+                      {cityChartData.map((entry, index) => {
+                        const isPeak = peakCity && entry.city === peakCity.city;
+                        return (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={isPeak ? 'var(--accent)' : 'var(--chart-muted)'}
+                          />
+                        );
+                      })}
+                      {cityChartData.length <= 6 && (
+                        <LabelList
+                          dataKey="revenueNum"
+                          position="top"
+                          offset={6}
+                          formatter={(v) => (Number(v) > 0 ? formatChartValue(v) : '')}
+                          fill="var(--text-secondary)"
+                          fontSize={12}
                         />
-                      );
-                    })}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
+                      )}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
           </div>
         </section>
 
         <section className="card card-flush" aria-label="Sales by Category">
           <div className="card-header">
-            <div>
-              <h3 className="section-heading" style={{ marginBottom: 0 }}>Sales by Category</h3>
-              <p className="section-subheading" style={{ marginBottom: 0 }}>
-                Revenue contribution per category
-              </p>
-            </div>
+            <h3 className="section-heading" style={{ marginBottom: 0 }}>Sales by Category</h3>
           </div>
 
           {!salesReport?.byCategory || salesReport.byCategory.length === 0 ? (

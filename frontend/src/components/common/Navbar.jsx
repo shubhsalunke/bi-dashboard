@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { Badge } from './Badge';
 
-export const Navbar = ({ isSidebarOpen = false, onToggleSidebar, title }) => {
+export const Navbar = ({ isSidebarOpen = false, onToggleSidebar }) => {
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
@@ -21,7 +21,6 @@ export const Navbar = ({ isSidebarOpen = false, onToggleSidebar, title }) => {
         >
           <Menu size={16} />
         </button>
-        <h1 className="page-title">{title}</h1>
       </div>
 
       <div className="navbar-actions">

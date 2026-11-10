@@ -36,10 +36,10 @@ describe('Login Page Component', () => {
   it('renders login form elements and quick fill buttons', () => {
     renderLogin();
 
-    expect(screen.getByText('Smart BI')).toBeInTheDocument();
+    expect(screen.getByText('Sales Admin')).toBeInTheDocument();
     expect(screen.getByLabelText(/Email Address/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Password/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Sign in to Workspace/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Sign in$/i })).toBeInTheDocument();
     expect(screen.getByText('Admin')).toBeInTheDocument();
     expect(screen.getByText('Manager')).toBeInTheDocument();
     expect(screen.getByText('Analyst')).toBeInTheDocument();
@@ -69,7 +69,7 @@ describe('Login Page Component', () => {
 
     const emailInput = screen.getByLabelText(/Email Address/i);
     const passwordInput = screen.getByLabelText(/Password/i);
-    const submitBtn = screen.getByRole('button', { name: /Sign in to Workspace/i });
+    const submitBtn = screen.getByRole('button', { name: /^Sign in$/i });
 
     fireEvent.change(emailInput, { target: { value: 'admin@bi.corp' } });
     fireEvent.change(passwordInput, { target: { value: 'Admin123!' } });
@@ -91,7 +91,7 @@ describe('Login Page Component', () => {
 
     const emailInput = screen.getByLabelText(/Email Address/i);
     const passwordInput = screen.getByLabelText(/Password/i);
-    const submitBtn = screen.getByRole('button', { name: /Sign in to Workspace/i });
+    const submitBtn = screen.getByRole('button', { name: /^Sign in$/i });
 
     fireEvent.change(emailInput, { target: { value: 'wrong@bi.corp' } });
     fireEvent.change(passwordInput, { target: { value: 'wrongpass' } });

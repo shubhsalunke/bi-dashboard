@@ -1,22 +1,14 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { RefreshCw, AlertCircle } from 'lucide-react';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts';
 import { dashboardApi } from '../api/dashboard.api';
 import { StatCard } from '../components/common/StatCard';
 import { Badge } from '../components/common/Badge';
 import { EmptyState } from '../components/common/EmptyState';
 import { CardSkeleton, TableSkeleton } from '../components/common/LoadingSkeleton';
+import { MonthlyRevenueChart } from '../components/charts/MonthlyRevenueChart';
 import { useToast } from '../context/ToastContext';
-import { formatCurrency, formatCompactCurrency, formatDate } from '../utils/format';
+import { formatCurrency, formatDate, formatMonth } from '../utils/format';
 
 export const Dashboard = () => {
   const [data, setData] = useState(null);
@@ -25,7 +17,6 @@ export const Dashboard = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [activePreset, setActivePreset] = useState('all');
-  const [lastUpdated, setLastUpdated] = useState('');
   const { showToast } = useToast();
 
   const fetchDashboard = useCallback(async () => {
@@ -37,7 +28,6 @@ export const Dashboard = () => {
         endDate: endDate || undefined,
       });
       setData(summary);
-      setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     } catch (err) {
       const msg = err.message || 'Failed to load dashboard summary';
       setError(msg);
@@ -66,70 +56,43 @@ export const Dashboard = () => {
     setActivePreset(String(days));
   };
 
-  // Compute comparison numbers from existing monthly sales data
-  const { revenueComparison, ordersComparison } = useMemo(() => {
+  // Compute month-over-month revenue comparison from existing monthly sales data
+  const revenueComparison = useMemo(() => {
     const list = data?.monthlySales;
     if (!list || list.length < 2) {
-      return { revenueComparison: null, ordersComparison: null };
+      return null;
     }
     const curr = list[list.length - 1];
     const prev = list[list.length - 2];
     const currRev = parseFloat(curr.revenue) || 0;
     const prevRev = parseFloat(prev.revenue) || 0;
-    const currOrders = parseInt(curr.sales_count, 10) || 0;
-    const prevOrders = parseInt(prev.sales_count, 10) || 0;
 
-    let revComp = null;
-    if (prevRev > 0) {
-      const diff = ((currRev - prevRev) / prevRev) * 100;
-      revComp = {
-        text: `${diff >= 0 ? '+' : ''}${diff.toFixed(1)}% vs last month`,
-        isPositive: diff >= 0,
-      };
+    if (prevRev <= 0) {
+      return null;
     }
-
-    let ordersComp = null;
-    if (prevOrders > 0) {
-      const diff = ((currOrders - prevOrders) / prevOrders) * 100;
-      ordersComp = {
-        text: `${diff >= 0 ? '+' : ''}${diff.toFixed(1)}% vs last month`,
-        isPositive: diff >= 0,
-      };
-    }
-
-    return { revenueComparison: revComp, ordersComparison: ordersComp };
+    const diff = ((currRev - prevRev) / prevRev) * 100;
+    return {
+      text: `${diff >= 0 ? '+' : ''}${diff.toFixed(1)}% vs last month`,
+      isPositive: diff >= 0,
+    };
   }, [data]);
 
   const monthlyChartData = useMemo(() => {
     return (data?.monthlySales || []).map((m) => ({
       ...m,
+      monthLabel: formatMonth(m.month),
       revenueNum: parseFloat(m.revenue) || 0,
     }));
   }, [data]);
-
-  // Highest revenue point in monthly timeline
-  const maxRevenuePoint = useMemo(() => {
-    if (!monthlyChartData || monthlyChartData.length === 0) return null;
-    return monthlyChartData.reduce(
-      (max, cur) => (cur.revenueNum > max.revenueNum ? cur : max),
-      monthlyChartData[0]
-    );
-  }, [monthlyChartData]);
 
   return (
     <div className="stack-lg">
       <div className="page-header" style={{ marginBottom: 0 }}>
         <div>
           <h2>Dashboard</h2>
-          <p className="page-subtitle">Overview of sales, orders, and customer activity</p>
         </div>
 
         <div className="header-actions">
-          {lastUpdated && (
-            <span className="cell-secondary tabular-nums" style={{ marginRight: 'var(--space-1)' }}>
-              Last updated: {lastUpdated}
-            </span>
-          )}
 
           <div className="segmented-group" role="group" aria-label="Date range presets">
             <button
@@ -223,23 +186,19 @@ export const Dashboard = () => {
               title="Total Revenue"
               value={formatCurrency(data.kpi?.total_revenue)}
               comparison={revenueComparison}
-              subtitle="Completed sales orders"
             />
             <StatCard
               title="Total Orders"
               value={data.kpi?.total_sales_count || 0}
-              comparison={ordersComparison}
               subtitle={`Avg: ${formatCurrency(data.kpi?.average_order_value)}`}
             />
             <StatCard
-              title="Customer Accounts"
+              title="Customers"
               value={data.kpi?.total_customers || 0}
-              subtitle={`${data.kpi?.active_customers || 0} active clients`}
             />
             <StatCard
-              title="Catalog Offerings"
+              title="Products"
               value={data.kpi?.active_products || 0}
-              subtitle="Active offerings"
             />
             <Link to="/products?stock_status=low" className="stat-card-link">
               <StatCard
@@ -252,90 +211,15 @@ export const Dashboard = () => {
         )}
       </div>
 
-      <section className="card" aria-label="Monthly Revenue">
-        <h3 className="section-heading">Monthly Revenue</h3>
-
-        {maxRevenuePoint ? (
-          <p className="chart-insight-sentence">
-            Highest sales in {maxRevenuePoint.month}:{' '}
-            <span className="chart-insight-highlight">{formatCompactCurrency(maxRevenuePoint.revenueNum)}</span>
-          </p>
-        ) : (
-          <p className="section-subheading">Revenue trajectory over time</p>
-        )}
-
-        <div className="chart-box">
-          {loading || !data ? (
-            <div className="skeleton" style={{ width: '100%', height: '100%' }} />
-          ) : monthlyChartData.length === 0 ? (
-            <EmptyState
-              title="No revenue data"
-              description="No monthly sales were found for the selected date range."
-            />
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={monthlyChartData} margin={{ top: 8, right: 16, left: 4, bottom: 4 }}>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--chart-grid)" />
-                <XAxis
-                  dataKey="month"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: 'var(--chart-axis)', fontSize: 12 }}
-                  dy={6}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: 'var(--chart-axis)', fontSize: 12 }}
-                  tickFormatter={(v) => formatCompactCurrency(v)}
-                  width={56}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: 'var(--bg-surface)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 'var(--radius-md)',
-                    boxShadow: 'var(--shadow-md)',
-                    color: 'var(--text-primary)',
-                    fontSize: '0.8125rem',
-                  }}
-                  formatter={(val) => [formatCurrency(val), 'Revenue']}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="revenueNum"
-                  stroke="var(--accent-text)"
-                  strokeWidth={2}
-                  dot={(props) => {
-                    const isMax = maxRevenuePoint && props.payload.month === maxRevenuePoint.month;
-                    return (
-                      <circle
-                        key={props.key || props.index}
-                        cx={props.cx}
-                        cy={props.cy}
-                        r={isMax ? 5 : 3}
-                        fill={isMax ? 'var(--accent-text)' : 'var(--bg-surface)'}
-                        stroke="var(--accent-text)"
-                        strokeWidth={2}
-                      />
-                    );
-                  }}
-                  activeDot={{ r: 5, fill: 'var(--accent)', stroke: 'var(--bg-surface)', strokeWidth: 2 }}
-                  isAnimationActive={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-      </section>
+      <MonthlyRevenueChart
+        data={monthlyChartData}
+        loading={loading || !data}
+      />
 
       <div className="grid-cols-2">
         <section className="card card-flush" aria-label="Top Products">
           <div className="card-header">
-            <div>
-              <h3 className="section-heading" style={{ marginBottom: 0 }}>Top Products</h3>
-              <p className="section-subheading" style={{ marginBottom: 0 }}>Products by sales revenue</p>
-            </div>
+            <h3 className="section-heading" style={{ marginBottom: 0 }}>Top Products</h3>
           </div>
 
           {loading || !data ? (
@@ -371,12 +255,9 @@ export const Dashboard = () => {
           )}
         </section>
 
-        <section className="card card-flush" aria-label="Top Client Accounts">
+        <section className="card card-flush" aria-label="Top Customers">
           <div className="card-header">
-            <div>
-              <h3 className="section-heading" style={{ marginBottom: 0 }}>Top Client Accounts</h3>
-              <p className="section-subheading" style={{ marginBottom: 0 }}>Customers by total spent</p>
-            </div>
+            <h3 className="section-heading" style={{ marginBottom: 0 }}>Top Customers</h3>
           </div>
 
           {loading || !data ? (
@@ -416,12 +297,9 @@ export const Dashboard = () => {
         </section>
       </div>
 
-      <section className="card card-flush" aria-label="Recent Sales Activity">
+      <section className="card card-flush" aria-label="Recent Sales">
         <div className="card-header">
-          <div>
-            <h3 className="section-heading" style={{ marginBottom: 0 }}>Recent Sales Activity</h3>
-            <p className="section-subheading" style={{ marginBottom: 0 }}>Latest orders placed in the system</p>
-          </div>
+          <h3 className="section-heading" style={{ marginBottom: 0 }}>Recent Sales</h3>
         </div>
 
         {loading || !data ? (

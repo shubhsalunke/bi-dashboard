@@ -94,8 +94,8 @@ describe('Dashboard Component', () => {
     await waitFor(() => {
       expect(screen.getByText('Total Revenue')).toBeInTheDocument();
       expect(screen.getByText('Total Orders')).toBeInTheDocument();
-      expect(screen.getByText('Customer Accounts')).toBeInTheDocument();
-      expect(screen.getByText('Catalog Offerings')).toBeInTheDocument();
+      expect(screen.getByText('Customers')).toBeInTheDocument();
+      expect(screen.getByText('Products')).toBeInTheDocument();
       expect(screen.getByText('Low stock products')).toBeInTheDocument();
       // Formatted numbers
       expect(screen.getByText('₹2,45,801')).toBeInTheDocument();
@@ -108,8 +108,8 @@ describe('Dashboard Component', () => {
     renderDashboard();
 
     await waitFor(() => {
-      expect(screen.getByText('Top Client Accounts')).toBeInTheDocument();
-      expect(screen.getByText('Recent Sales Activity')).toBeInTheDocument();
+      expect(screen.getByText('Top Customers')).toBeInTheDocument();
+      expect(screen.getByText('Recent Sales')).toBeInTheDocument();
       expect(screen.getAllByText('Nexus Corp').length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText('Enterprise Cloud Platform')).toBeInTheDocument();
     });

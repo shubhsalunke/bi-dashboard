@@ -84,7 +84,7 @@ describe('Customers Directory Component', () => {
     renderCustomers();
 
     await waitFor(() => {
-      expect(screen.getByText('Customer Directory')).toBeInTheDocument();
+      expect(screen.getByText('Customers')).toBeInTheDocument();
       expect(screen.getByText('Acme Corporation')).toBeInTheDocument();
       expect(screen.getByText('contact@acme.com')).toBeInTheDocument();
       expect(screen.getByText('Stark Global')).toBeInTheDocument();

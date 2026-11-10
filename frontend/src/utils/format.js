@@ -36,6 +36,22 @@ export const formatCompactCurrency = (val) => {
   return `₹${num}`;
 };
 
+export const formatChartValue = (val) => {
+  const num = typeof val === 'number' ? val : parseFloat(val) || 0;
+  if (num >= 10000000) {
+    return `₹${(Math.round((num / 10000000) * 100) / 100).toString()}Cr`;
+  }
+  if (num >= 100000) {
+    const l = Math.round((num / 100000) * 10) / 10;
+    return `₹${l}L`;
+  }
+  if (num >= 1000) {
+    const k = Math.round((num / 1000) * 10) / 10;
+    return `₹${k}k`;
+  }
+  return `₹${num}`;
+};
+
 export const formatDate = (val) => {
   if (!val) return '-';
   try {
@@ -48,4 +64,15 @@ export const formatDate = (val) => {
   } catch {
     return String(val);
   }
+};
+
+export const formatMonth = (val) => {
+  if (!val) return '';
+  const match = String(val).trim().match(/^(\d{4})-(\d{2})$/);
+  if (!match) return String(val);
+  const year = Number(match[1]);
+  const monthIdx = Number(match[2]) - 1;
+  const d = new Date(year, monthIdx, 1);
+  if (isNaN(d.getTime())) return String(val);
+  return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 };

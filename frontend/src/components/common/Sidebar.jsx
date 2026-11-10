@@ -39,8 +39,8 @@ export const Sidebar = ({ isOpen, onClose }) => {
       <aside className={`sidebar ${isOpen ? 'open' : ''}`} aria-label="Sidebar">
         <div className="sidebar-header">
           <div className="sidebar-brand">
-            <Logo size={28} />
-            <span className="brand-text">Smart BI</span>
+            <Logo size={24} />
+            <span className="brand-text">Sales Admin</span>
           </div>
           <button
             type="button"
@@ -59,7 +59,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
             onClick={onClose}
           >
-            <LayoutDashboard size={16} aria-hidden="true" />
+            <LayoutDashboard size={15} aria-hidden="true" />
             <span>Dashboard</span>
           </NavLink>
 
@@ -68,7 +68,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
             onClick={onClose}
           >
-            <Users size={16} aria-hidden="true" />
+            <Users size={15} aria-hidden="true" />
             <span>Customers</span>
           </NavLink>
 
@@ -77,7 +77,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
             onClick={onClose}
           >
-            <Package size={16} aria-hidden="true" />
+            <Package size={15} aria-hidden="true" />
             <span>Products</span>
           </NavLink>
 
@@ -86,7 +86,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
             onClick={onClose}
           >
-            <TrendingUp size={16} aria-hidden="true" />
+            <TrendingUp size={15} aria-hidden="true" />
             <span>Sales</span>
           </NavLink>
 
@@ -95,7 +95,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
             onClick={onClose}
           >
-            <BarChart2 size={16} aria-hidden="true" />
+            <BarChart2 size={15} aria-hidden="true" />
             <span>Reports</span>
           </NavLink>
 
@@ -104,7 +104,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
             onClick={onClose}
           >
-            <MessageSquare size={16} aria-hidden="true" />
+            <MessageSquare size={15} aria-hidden="true" />
             <span>AI Assistant</span>
           </NavLink>
 
@@ -114,7 +114,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
               className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
               onClick={onClose}
             >
-              <UserCheck size={16} aria-hidden="true" />
+              <UserCheck size={15} aria-hidden="true" />
               <span>Users</span>
             </NavLink>
           )}

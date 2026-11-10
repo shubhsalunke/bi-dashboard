@@ -191,33 +191,24 @@ export const CustomerDetails = () => {
         <StatCard
           title="Total Spent"
           value={formatCurrency(customer.metrics?.total_revenue)}
-          subtitle="Verified sales orders"
         />
         <StatCard
           title="Total Orders"
           value={customer.metrics?.total_orders || 0}
-          subtitle="Completed orders"
         />
         <StatCard
           title="Average Order"
           value={formatCurrency(customer.metrics?.avg_order_value)}
-          subtitle="Revenue per order"
         />
         <StatCard
           title="Last Order Date"
           value={formatDate(customer.metrics?.last_order_date)}
-          subtitle="Recent purchase"
         />
       </div>
 
       <section className="card card-flush" aria-label="Order History">
         <div className="card-header">
-          <div>
-            <h3 className="section-heading" style={{ marginBottom: 0 }}>Order History</h3>
-            <p className="section-subheading" style={{ marginBottom: 0 }}>
-              Past orders placed by this customer
-            </p>
-          </div>
+          <h3 className="section-heading" style={{ marginBottom: 0 }}>Order History</h3>
         </div>
 
         {customer.sales?.length > 0 ? (

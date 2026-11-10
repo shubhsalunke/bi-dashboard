@@ -69,8 +69,7 @@ describe('AIAssistant Page Component', () => {
   it('renders page header, welcome message, and 9 sample question pills', () => {
     renderAIAssistant();
 
-    expect(screen.getByText('AI Business Assistant')).toBeInTheDocument();
-    expect(screen.getByText('Answers come from your sales database.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'AI Assistant' })).toBeInTheDocument();
     expect(screen.getByText(/Ask a question about your sales, customers, or products/i)).toBeInTheDocument();
 
     expect(screen.getByText('What were total sales last month?')).toBeInTheDocument();
@@ -144,7 +143,7 @@ describe('AIAssistant Page Component', () => {
     const input = screen.getByPlaceholderText(/Ask about revenue/i);
     fireEvent.change(input, { target: { value: 'Give me city-wise sales for the last three months.' } });
 
-    const submitBtn = screen.getByRole('button', { name: /Ask AI/i });
+    const submitBtn = screen.getByRole('button', { name: /^Send$/i });
     fireEvent.click(submitBtn);
 
     expect(aiApi.askQuestion).toHaveBeenCalledWith('Give me city-wise sales for the last three months.');
@@ -189,7 +188,7 @@ describe('AIAssistant Page Component', () => {
 
     const input = screen.getByPlaceholderText(/Ask about revenue/i);
     fireEvent.change(input, { target: { value: 'What were total sales last month?' } });
-    fireEvent.click(screen.getByRole('button', { name: /Ask AI/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Send$/i }));
 
     await waitFor(() => {
       expect(screen.getAllByText(/Network timeout contacting AI service/i).length).toBeGreaterThanOrEqual(1);
@@ -214,7 +213,7 @@ describe('AIAssistant Page Component', () => {
 
     const input = screen.getByPlaceholderText(/Ask about revenue/i);
     fireEvent.change(input, { target: { value: 'Summarize business performance for the current quarter.' } });
-    fireEvent.click(screen.getByRole('button', { name: /Ask AI/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Send$/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/AI Provider Configuration Notice/i)).toBeInTheDocument();
@@ -229,7 +228,7 @@ describe('AIAssistant Page Component', () => {
 
     const input = screen.getByPlaceholderText(/Ask about revenue/i);
     fireEvent.change(input, { target: { value: 'Give me city-wise sales for the last three months.' } });
-    fireEvent.click(screen.getByRole('button', { name: /Ask AI/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Send$/i }));
 
     await waitFor(() => {
       expect(screen.getByText(mockCitySalesResponse.answer)).toBeInTheDocument();
@@ -264,7 +263,7 @@ describe('AIAssistant Page Component', () => {
     renderAIAssistant();
     const input = screen.getByPlaceholderText(/Ask about revenue/i);
     fireEvent.change(input, { target: { value: 'City revenue in Pune' } });
-    fireEvent.click(screen.getByRole('button', { name: /Ask AI/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Send$/i }));
 
     await waitFor(() => {
       expect(screen.getByText('₹1,24,500')).toBeInTheDocument();

@@ -22,7 +22,7 @@ describe('Frontend Input Validation & Boundaries', () => {
         </MemoryRouter>
       );
 
-      const submitBtn = screen.getByRole('button', { name: /Sign in to Workspace/i });
+      const submitBtn = screen.getByRole('button', { name: /^Sign in$/i });
       expect(submitBtn).toBeDisabled();
 
       const emailInput = screen.getByLabelText(/Email Address/i);

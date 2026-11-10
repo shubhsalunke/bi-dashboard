@@ -132,8 +132,7 @@ export const Sales = () => {
     <div>
       <div className="page-header">
         <div>
-          <h2>Sales Transactions</h2>
-          <p className="page-subtitle">Historical sales and line items</p>
+          <h2>Sales</h2>
         </div>
 
         {canManage && (

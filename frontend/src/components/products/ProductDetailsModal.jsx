@@ -53,7 +53,7 @@ export const ProductDetailsModal = ({ productId, isOpen, onClose }) => {
       }
     >
       {loading ? (
-        <div style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--text-muted)' }}>
+        <div style={{ padding: 'var(--space-5)', textAlign: 'center', color: 'var(--text-muted)' }}>
           Loading product details...
         </div>
       ) : error ? (

@@ -92,10 +92,8 @@ export const Login = () => {
           <div className="login-logo">
             <Logo size={40} />
           </div>
-          <h1 className="login-title">Smart BI</h1>
-          <p className="login-subtitle">
-            A simple dashboard for tracking sales, customers, and business revenue.
-          </p>
+          <h1 className="login-title">Sales Admin</h1>
+          <p className="login-subtitle">Sign in to your account</p>
         </div>
 
         {error && (
@@ -121,7 +119,7 @@ export const Login = () => {
             {emailError && <div className="form-error">{emailError}</div>}
           </div>
 
-          <div className="form-group" style={{ marginBottom: 'var(--space-6)' }}>
+          <div className="form-group" style={{ marginBottom: 'var(--space-5)' }}>
             <label className="form-label" htmlFor="password">Password</label>
             <div className="password-wrapper">
               <input
@@ -153,7 +151,7 @@ export const Login = () => {
             className="btn btn-primary btn-block"
             disabled={loading || !isFormValid}
           >
-            {loading ? 'Signing in...' : 'Sign in to Workspace'}
+            {loading ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
 

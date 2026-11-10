@@ -205,7 +205,6 @@ export const Products = () => {
       <div className="page-header">
         <div>
           <h2>Products</h2>
-          <p className="page-subtitle">Product catalog, inventory and pricing</p>
         </div>
 
         <div className="header-actions">

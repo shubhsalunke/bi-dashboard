@@ -156,7 +156,6 @@ export const Reports = () => {
       <div className="page-header" style={{ marginBottom: 0 }}>
         <div>
           <h2>Reports</h2>
-          <p className="page-subtitle">Revenue, geographic trends, and customer purchase patterns</p>
         </div>
 
         <div className="header-actions">

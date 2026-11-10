@@ -128,8 +128,7 @@ export const Customers = () => {
     <div>
       <div className="page-header">
         <div>
-          <h2>Customer Directory</h2>
-          <p className="page-subtitle">Manage customer records and contact details</p>
+          <h2>Customers</h2>
         </div>
 
         <div className="header-actions">

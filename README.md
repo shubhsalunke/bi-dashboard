@@ -190,17 +190,19 @@ cd ../frontend && npm ci
 #   GEMINI_MODEL=gemini-2.5-flash
 #   VITE_API_URL=/api
 
-# 4. Apply any new PostgreSQL migrations (001–008)
+# 4. Apply PostgreSQL migrations (001–008)
 cd ../backend
 npm run migrate
+# Fresh server only (skip on existing live DB because seed truncates tables):
+# npm run seed
 
-# 5. Rebuild frontend production bundle
+# 5. Build frontend production bundle
 cd ../frontend
 npm run build
 
-# 6. Restart backend & frontend processes with PM2
-pm2 restart bi-backend || pm2 start ../backend/src/server.js --name bi-backend
-pm2 restart bi-frontend || pm2 start "npm run preview -- --host 0.0.0.0 --port 5173" --name bi-frontend --cwd /path/to/bi-dashboard/frontend
+# 6. Start / restart backend & frontend processes with PM2
+pm2 restart bi-backend || pm2 start src/server.js --name bi-backend --cwd /path/to/bi-dashboard/backend
+pm2 restart bi-frontend || pm2 start npm --name bi-frontend --cwd /path/to/bi-dashboard/frontend -- run preview -- --host 0.0.0.0 --port 5173
 pm2 save
 ```
 

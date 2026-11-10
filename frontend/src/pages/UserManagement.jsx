@@ -247,13 +247,7 @@ export const UserManagement = () => {
     <div className="stack-lg">
       <div className="page-header" style={{ marginBottom: 0 }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-            <h2>User & Role Management</h2>
-            <Badge variant="admin">Admin Only</Badge>
-          </div>
-          <p className="page-subtitle">
-            Manage staff accounts, assign granular role permissions, and inspect system audit trail.
-          </p>
+          <h2>Users</h2>
         </div>
 
         <div className="header-actions">
@@ -265,7 +259,7 @@ export const UserManagement = () => {
               className={`segmented-btn ${activeTab === 'users' ? 'active' : ''}`}
               onClick={() => setActiveTab('users')}
             >
-              Active Users ({users.length})
+              Users ({users.length})
             </button>
             <button
               type="button"
@@ -423,14 +417,9 @@ export const UserManagement = () => {
       {activeTab === 'audit' && (
         <div className="card card-flush">
           <div className="card-header">
-            <div>
-              <h3 className="section-heading" style={{ marginBottom: 0 }}>
-                System Security Audit Trail
-              </h3>
-              <p className="section-subheading" style={{ marginBottom: 0 }}>
-                Immutable ledger of critical system changes, authentication events, and administrative actions.
-              </p>
-            </div>
+            <h3 className="section-heading" style={{ marginBottom: 0 }}>
+              Audit Log
+            </h3>
             <button
               type="button"
               className="btn btn-secondary btn-sm"

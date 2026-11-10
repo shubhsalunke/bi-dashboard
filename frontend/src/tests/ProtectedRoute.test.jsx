@@ -58,7 +58,7 @@ describe('Route Protection & Navigation', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Sign in to Workspace/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^Sign in$/i })).toBeInTheDocument();
     });
   });
 
@@ -82,7 +82,7 @@ describe('Route Protection & Navigation', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Executive Intelligence Dashboard')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
       expect(screen.getByText('Manager User')).toBeInTheDocument();
     });
   });
@@ -108,7 +108,7 @@ describe('Route Protection & Navigation', () => {
 
     // Manager should be redirected away to dashboard
     await waitFor(() => {
-      expect(screen.getByText('Executive Intelligence Dashboard')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
     });
   });
 });

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Send, RotateCcw, AlertCircle } from 'lucide-react';
+import { RotateCcw, AlertCircle } from 'lucide-react';
 import { aiApi } from '../api/ai.api';
 import { ChatMessageItem } from '../components/ai/ChatMessageItem';
 import { AIInitialState } from '../components/ai/AIInitialState';
@@ -192,8 +192,7 @@ export const AIAssistant = () => {
     <div className="chat-page">
       <div className="page-header" style={{ marginBottom: 0 }}>
         <div>
-          <h2>AI Business Assistant</h2>
-          <p className="page-subtitle">Answers come from your sales database.</p>
+          <h2>AI Assistant</h2>
         </div>
 
         <button type="button" className="btn btn-secondary btn-sm" onClick={handleClearChat}>
@@ -268,7 +267,7 @@ export const AIAssistant = () => {
             <input
               ref={inputRef}
               type="text"
-              aria-label="Ask a business intelligence question"
+              aria-label="Ask a question"
               className="form-control"
               placeholder="Ask about revenue, customer spending, or product metrics... (e.g. Which customer spent the most?)"
               maxLength={500}
@@ -284,8 +283,7 @@ export const AIAssistant = () => {
               disabled={!inputQuery.trim() || inputQuery.length > 500 || loading}
               onClick={() => handleSend()}
             >
-              <Send size={14} aria-hidden="true" />
-              <span>Ask AI</span>
+              <span>Send</span>
             </button>
           </div>
           <div

@@ -8,14 +8,11 @@ export const AIInitialState = ({
 }) => {
   return (
     <div className="chat-initial">
-      <div className="chat-initial-intro">
-        <h3 className="chat-initial-title">Ask a question</h3>
-        <p className="chat-initial-desc">{welcomeText}</p>
-      </div>
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>{welcomeText}</p>
 
       <div>
         <div className="chat-prompts-label">Sample questions:</div>
-        <div className="chat-prompts-grid">
+        <div className="chat-prompts-list">
           {sampleQuestions.map((q) => (
             <button
               key={q}
