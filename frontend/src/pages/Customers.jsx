@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Search, Plus, Download } from 'lucide-react';
+import { Search, Plus, Download, AlertCircle } from 'lucide-react';
 import { customersApi } from '../api/customers.api';
 import { CustomerFormModal } from './CustomerFormModal';
 import { TableSkeleton } from '../components/common/LoadingSkeleton';
@@ -17,6 +17,7 @@ export const Customers = () => {
   const [customers, setCustomers] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [cityFilter, setCityFilter] = useState('');
@@ -37,6 +38,7 @@ export const Customers = () => {
 
   const fetchCustomers = useCallback(async (page = 1) => {
     setLoading(true);
+    setError(null);
     try {
       const res = await customersApi.getCustomers({
         page,
@@ -48,7 +50,9 @@ export const Customers = () => {
       setCustomers(res.data || []);
       setPagination(res.pagination || { page: 1, limit: 10, total: 0, totalPages: 1 });
     } catch (err) {
-      showToast(err.message || 'Failed to load customers', 'error');
+      const msg = err.message || 'Failed to load customers';
+      setError(msg);
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -128,17 +132,18 @@ export const Customers = () => {
           <p className="page-subtitle">Manage customer records and contact details</p>
         </div>
 
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <div className="header-actions">
           <button type="button" className="btn btn-secondary btn-sm" onClick={exportDirectoryCSV}>
-            <Download size={14} />
+            <Download size={14} aria-hidden="true" />
             <span>Export CSV</span>
           </button>
           {canManage && (
             <button
+              type="button"
               className="btn btn-primary btn-sm"
               onClick={() => { setEditingCustomer(null); setIsFormOpen(true); }}
             >
-              <Plus size={14} />
+              <Plus size={14} aria-hidden="true" />
               <span>Add Customer</span>
             </button>
           )}
@@ -147,10 +152,11 @@ export const Customers = () => {
 
       <div className="filter-bar">
         <div className="search-input-wrapper">
-          <Search size={15} className="search-icon" />
+          <Search size={15} className="search-icon" aria-hidden="true" />
           <input
             ref={searchInputRef}
             type="text"
+            aria-label="Search customers"
             className="form-control search-input"
             placeholder="Search by company name, email, or code... (Press / to search)"
             maxLength={100}
@@ -159,14 +165,24 @@ export const Customers = () => {
           />
         </div>
 
-        <select className="form-control" style={{ width: '140px' }} value={cityFilter} onChange={(e) => setCityFilter(e.target.value)}>
+        <select
+          className="form-control filter-select"
+          aria-label="Filter by city"
+          value={cityFilter}
+          onChange={(e) => setCityFilter(e.target.value)}
+        >
           <option value="">All Cities</option>
           {CITIES.map((city) => (
             <option key={city} value={city}>{city}</option>
           ))}
         </select>
 
-        <select className="form-control" style={{ width: '130px' }} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+        <select
+          className="form-control filter-select"
+          aria-label="Filter by status"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
           <option value="">All Statuses</option>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
@@ -174,6 +190,7 @@ export const Customers = () => {
 
         {(searchTerm || cityFilter || statusFilter) && (
           <button
+            type="button"
             className="btn btn-secondary btn-sm"
             onClick={() => { setSearchTerm(''); setCityFilter(''); setStatusFilter(''); }}
           >
@@ -182,9 +199,20 @@ export const Customers = () => {
         )}
       </div>
 
-      <div className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
+      <div className="card card-flush">
         {loading ? (
-          <TableSkeleton rows={8} cols={7} />
+          <TableSkeleton rows={8} columns={7} />
+        ) : error && customers.length === 0 ? (
+          <EmptyState
+            icon={AlertCircle}
+            title="Unable to load customers"
+            description={error}
+            action={
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => fetchCustomers(1)}>
+                Retry
+              </button>
+            }
+          />
         ) : sortedCustomers.length === 0 ? (
           <EmptyState
             title="No customers found"
@@ -196,6 +224,7 @@ export const Customers = () => {
             action={
               (searchTerm || cityFilter || statusFilter) ? (
                 <button
+                  type="button"
                   className="btn btn-secondary btn-sm"
                   onClick={() => { setSearchTerm(''); setCityFilter(''); setStatusFilter(''); }}
                 >
@@ -203,10 +232,11 @@ export const Customers = () => {
                 </button>
               ) : canManage ? (
                 <button
+                  type="button"
                   className="btn btn-primary btn-sm"
                   onClick={() => { setEditingCustomer(null); setIsFormOpen(true); }}
                 >
-                  <Plus size={14} />
+                  <Plus size={14} aria-hidden="true" />
                   <span>Add First Customer</span>
                 </button>
               ) : null
@@ -270,7 +300,7 @@ export const Customers = () => {
             </>
           }
         >
-          <p style={{ color: 'var(--text-main)', fontSize: '0.875rem' }}>
+          <p style={{ color: 'var(--text-primary)', fontSize: '0.875rem' }}>
             Are you sure you want to delete customer <strong>{deletingCustomer.customer_name}</strong>?
           </p>
         </Modal>

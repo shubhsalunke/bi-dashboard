@@ -110,10 +110,13 @@ describe('AI Business Assistant API (POST /api/ai/ask)', () => {
       expect(res.body.success).toBe(true);
       expect(res.body.data.intent).toBe('TOTAL_SALES');
       expect(res.body.data.reportTitle).toContain('Total Sales');
-      expect(res.body.data.answer).toContain('$');
+      expect(res.body.data.answer).toContain('₹');
+      expect(res.body.data.answer).not.toContain('$');
       expect(res.body.data.summaryMetrics).toHaveProperty('totalRevenue');
       expect(res.body.data.summaryMetrics).toHaveProperty('totalOrders');
       expect(res.body.data.rows.length).toBeGreaterThan(0);
+      expect(res.body.data.rows.some((r) => String(r.value).includes('₹'))).toBe(true);
+      expect(JSON.stringify(res.body.data)).not.toContain('$');
     });
 
     it('Question 2: Top 10 customers by sales', async () => {
@@ -129,8 +132,10 @@ describe('AI Business Assistant API (POST /api/ai/ask)', () => {
       expect(res.body.data.rows.length).toBeGreaterThan(0);
       expect(res.body.data.rows[0]).toHaveProperty('customer_name');
       expect(res.body.data.rows[0]).toHaveProperty('total_revenue');
-      // Grounded check: answer mentions leading customer
+      // Grounded check: answer mentions leading customer and uses INR formatting
       expect(res.body.data.answer).toContain(res.body.data.rows[0].customer_name);
+      expect(res.body.data.answer).toContain('₹');
+      expect(JSON.stringify(res.body.data)).not.toContain('$');
     });
 
     it('Question 3: Highest revenue product', async () => {
@@ -157,6 +162,8 @@ describe('AI Business Assistant API (POST /api/ai/ask)', () => {
       expect(res.body.data.intent).toBe('MOM_COMPARISON');
       expect(res.body.data.summaryMetrics).toHaveProperty('growthPercentage');
       expect(res.body.data.answer).toContain('Month-over-month');
+      expect(res.body.data.answer).toContain('₹');
+      expect(JSON.stringify(res.body.data)).not.toContain('$');
     });
 
     it('Question 5: City-wise sales for the last three months', async () => {
@@ -169,6 +176,8 @@ describe('AI Business Assistant API (POST /api/ai/ask)', () => {
       expect(res.body.data.intent).toBe('CITY_SALES');
       expect(res.body.data.columns.some((c) => c.key === 'city')).toBe(true);
       expect(res.body.data.rows.length).toBeGreaterThan(0);
+      expect(res.body.data.answer).toContain('₹');
+      expect(JSON.stringify(res.body.data)).not.toContain('$');
     });
 
     it('Question 6: Summarize business performance for the current quarter', async () => {
@@ -182,6 +191,8 @@ describe('AI Business Assistant API (POST /api/ai/ask)', () => {
       expect(res.body.data.summaryMetrics).toHaveProperty('totalRevenue');
       expect(res.body.data.summaryMetrics).toHaveProperty('topProduct');
       expect(res.body.data.answer).toContain('quarterly summary');
+      expect(res.body.data.answer).toContain('₹');
+      expect(JSON.stringify(res.body.data)).not.toContain('$');
     });
 
     it('Question 7: Which customers have reduced their purchases', async () => {
@@ -226,6 +237,8 @@ describe('AI Business Assistant API (POST /api/ai/ask)', () => {
       if (res.body.data.rows.length > 1) {
         expect(res.body.data.rows[0].total_spent).toBeGreaterThanOrEqual(res.body.data.rows[1].total_spent);
       }
+      expect(res.body.data.answer).toContain('₹');
+      expect(JSON.stringify(res.body.data)).not.toContain('$');
     });
 
     it('Question 9: CUSTOMER_LIST with city filter filters customers by parameterized city', async () => {

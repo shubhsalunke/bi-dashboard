@@ -123,43 +123,45 @@ export const SaleCreateModal = ({
     >
       <form id="sale-create-form" onSubmit={handleSubmit} noValidate>
         {formError && (
-          <div style={{ color: 'var(--danger)', fontSize: '0.8125rem', marginBottom: '12px' }}>
+          <div className="alert alert-danger" style={{ marginBottom: 'var(--space-4)' }}>
             {formError}
           </div>
         )}
 
-        <div className="form-group">
-          <label className="form-label">Customer *</label>
-          <select
-            className="form-control"
-            value={selectedCustomerId}
-            onChange={(e) => setSelectedCustomerId(e.target.value)}
-            required
-          >
-            <option value="">Select a customer</option>
-            {customers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.customer_name} ({c.city})
-              </option>
-            ))}
-          </select>
+        <div className="form-grid-2" style={{ marginBottom: 'var(--space-4)' }}>
+          <div className="form-group form-group-flush">
+            <label htmlFor="sale-customer" className="form-label">Customer *</label>
+            <select
+              id="sale-customer"
+              className="form-control"
+              value={selectedCustomerId}
+              onChange={(e) => setSelectedCustomerId(e.target.value)}
+              required
+            >
+              <option value="">Select a customer</option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.customer_name} ({c.city})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group form-group-flush">
+            <label htmlFor="sale-date" className="form-label">Sale Date *</label>
+            <input
+              id="sale-date"
+              type="date"
+              className="form-control"
+              value={saleDate}
+              onChange={(e) => setSaleDate(e.target.value)}
+              required
+            />
+          </div>
         </div>
 
-        <div className="form-group">
-          <label className="form-label">Sale Date *</label>
-          <input
-            type="date"
-            className="form-control"
-            value={saleDate}
-            onChange={(e) => setSaleDate(e.target.value)}
-            required
-          />
-        </div>
-
-        <div style={{ marginTop: '16px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-muted)' }}>
-            Products
-          </span>
+        <div style={{ marginBottom: 'var(--space-2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span className="form-label" style={{ fontWeight: 600 }}>Products</span>
           <button
             type="button"
             className="btn btn-secondary btn-sm"
@@ -169,61 +171,78 @@ export const SaleCreateModal = ({
           </button>
         </div>
 
-        {orderItems.map((item, idx) => {
-          const itemQty = Number(item.quantity);
-          const hasQtyError = item.quantity !== '' && (!Number.isInteger(itemQty) || itemQty < 1 || itemQty > 100000);
-          return (
-            <div key={idx} style={{ marginBottom: '12px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr auto', gap: '8px', alignItems: 'center' }}>
-                <select
-                  className="form-control"
-                  value={item.product_id}
-                  onChange={(e) => handleItemChange(idx, 'product_id', e.target.value)}
-                  required
-                >
-                  <option value="">Select product</option>
-                  {products.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.product_name} ({formatCurrency(p.unit_price)})
-                    </option>
-                  ))}
-                </select>
-
-                <input
-                  type="number"
-                  min="1"
-                  max="100000"
-                  step="1"
-                  className="form-control"
-                  placeholder="Qty"
-                  value={item.quantity}
-                  onKeyDown={handleNumberKeyDown}
-                  onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
-                  required
-                />
-
-                {orderItems.length > 1 && (
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => handleRemoveItem(idx)}
-                    style={{ padding: '6px' }}
+        <div className="stack-md" style={{ gap: 'var(--space-3)' }}>
+          {orderItems.map((item, idx) => {
+            const itemQty = Number(item.quantity);
+            const hasQtyError = item.quantity !== '' && (!Number.isInteger(itemQty) || itemQty < 1 || itemQty > 100000);
+            return (
+              <div key={idx}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 96px auto', gap: 'var(--space-2)', alignItems: 'center' }}>
+                  <select
+                    aria-label={`Product line ${idx + 1}`}
+                    className="form-control"
+                    value={item.product_id}
+                    onChange={(e) => handleItemChange(idx, 'product_id', e.target.value)}
+                    required
                   >
-                    <Trash2 size={14} />
-                  </button>
+                    <option value="">Select product</option>
+                    {products.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.product_name} ({formatCurrency(p.unit_price)})
+                      </option>
+                    ))}
+                  </select>
+
+                  <input
+                    type="number"
+                    aria-label={`Quantity line ${idx + 1}`}
+                    min="1"
+                    max="100000"
+                    step="1"
+                    className="form-control tabular-nums"
+                    placeholder="Qty"
+                    value={item.quantity}
+                    onKeyDown={handleNumberKeyDown}
+                    onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
+                    required
+                  />
+
+                  {orderItems.length > 1 && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-icon"
+                      onClick={() => handleRemoveItem(idx)}
+                      aria-label={`Remove item ${idx + 1}`}
+                      title="Remove item"
+                    >
+                      <Trash2 size={14} aria-hidden="true" />
+                    </button>
+                  )}
+                </div>
+                {hasQtyError && (
+                  <div className="form-error">
+                    Quantity must be a whole number between 1 and 100,000
+                  </div>
                 )}
               </div>
-              {hasQtyError && (
-                <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '2px' }}>
-                  Quantity must be a whole number between 1 and 100,000
-                </div>
-              )}
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
 
-        <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid var(--border-subtle)', textAlign: 'right', fontWeight: 600 }}>
-          Estimated Total: {formatCurrency(calculatePreviewTotal())}
+        <div
+          className="tabular-nums"
+          style={{
+            marginTop: 'var(--space-4)',
+            paddingTop: 'var(--space-3)',
+            borderTop: '1px solid var(--border)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            fontWeight: 600,
+          }}
+        >
+          <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Estimated Total</span>
+          <span>{formatCurrency(calculatePreviewTotal())}</span>
         </div>
       </form>
     </Modal>

@@ -42,6 +42,7 @@ const config = {
     openaiApiKey: process.env.OPENAI_API_KEY || '',
     openaiModel: process.env.OPENAI_MODEL || 'gpt-4o-mini',
     timeoutMs: parseInt(process.env.AI_TIMEOUT_MS || '15000', 10),
+    sqlTimeoutMs: parseInt(process.env.AI_SQL_TIMEOUT_MS || process.env.AI_TIMEOUT_MS || '30000', 10),
     dynamicSql: process.env.AI_DYNAMIC_SQL === 'true',
   },
 
@@ -50,5 +51,22 @@ const config = {
     password: process.env.AI_DB_PASSWORD || 'ai_readonly_password',
   },
 };
+
+if (config.env === 'production') {
+  const placeholderSecrets = new Set([
+    'dev_jwt_access_secret_key_antigravity_bi_2026_super_secure_32',
+    'dev_jwt_refresh_secret_key_antigravity_bi_2026_super_secure_32',
+    'your_jwt_access_secret_key_minimum_32_characters_here',
+    'your_jwt_refresh_secret_key_minimum_32_characters_here',
+  ]);
+  if (
+    !process.env.JWT_ACCESS_SECRET ||
+    !process.env.JWT_REFRESH_SECRET ||
+    placeholderSecrets.has(config.jwt.accessSecret) ||
+    placeholderSecrets.has(config.jwt.refreshSecret)
+  ) {
+    throw new Error('Production startup aborted: set non-default JWT_ACCESS_SECRET and JWT_REFRESH_SECRET in .env.');
+  }
+}
 
 module.exports = config;

@@ -1,6 +1,7 @@
 const app = require('./app');
 const config = require('./config/env');
 const { pool, checkHealth } = require('./config/db');
+const aiSqlGeneratorService = require('./services/aiSqlGenerator.service');
 
 async function startServer() {
   console.log('==================================================');
@@ -19,6 +20,11 @@ async function startServer() {
     console.error('❌ Critical: Failed to reach PostgreSQL:', err.message);
     process.exit(1);
   }
+
+  // Warm up AI schema & distinct value cache in background
+  aiSqlGeneratorService.getSchemaContext().catch((err) => {
+    console.warn('⚠️ AI schema warmup warning:', err.message);
+  });
 
   const server = app.listen(config.port, () => {
     console.log(`✅ Server listening on port ${config.port} (Environment: ${config.env})`);

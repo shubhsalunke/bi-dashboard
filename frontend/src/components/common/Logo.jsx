@@ -12,7 +12,7 @@ export const Logo = ({ size = 32, className = '' }) => {
       style={{ display: 'block', flexShrink: 0 }}
       aria-label="Smart BI Logo"
     >
-      <rect width="32" height="32" rx="4" fill="#0f766e" />
+      <rect width="32" height="32" rx="6" fill="var(--accent, #2563eb)" />
       <rect x="7" y="16" width="4" height="9" rx="1" fill="#ffffff" />
       <rect x="14" y="11" width="4" height="14" rx="1" fill="#ffffff" />
       <rect x="21" y="7" width="4" height="18" rx="1" fill="#ffffff" />

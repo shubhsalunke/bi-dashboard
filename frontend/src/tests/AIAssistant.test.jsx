@@ -241,4 +241,35 @@ describe('AIAssistant Page Component', () => {
     expect(screen.queryByText(mockCitySalesResponse.answer)).not.toBeInTheDocument();
     expect(screen.getByText(/Ask a question about your sales, customers, or products/i)).toBeInTheDocument();
   });
+
+  it('formats dynamic SQL numeric string money cells and averageOrderValue in INR (₹)', async () => {
+    aiApi.askQuestion.mockResolvedValueOnce({
+      answer: 'Pune leads with ₹1,24,500 across 2 orders.',
+      reportTitle: 'Dynamic Query Results',
+      intent: 'DYNAMIC_SQL',
+      summaryMetrics: {
+        rowsShown: 1,
+        averageOrderValue: 62250,
+      },
+      columns: [
+        { key: 'city', label: 'City' },
+        { key: 'total_revenue', label: 'Total Revenue' },
+        { key: 'avg_order_value', label: 'Avg Order Value' },
+      ],
+      rows: [
+        { city: 'Pune', total_revenue: '124500.00', avg_order_value: '62250.00' },
+      ],
+    });
+
+    renderAIAssistant();
+    const input = screen.getByPlaceholderText(/Ask about revenue/i);
+    fireEvent.change(input, { target: { value: 'City revenue in Pune' } });
+    fireEvent.click(screen.getByRole('button', { name: /Ask AI/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('₹1,24,500')).toBeInTheDocument();
+      expect(screen.getByText('₹62,250')).toBeInTheDocument();
+      expect(screen.getByText('₹62,250.00')).toBeInTheDocument();
+    });
+  });
 });

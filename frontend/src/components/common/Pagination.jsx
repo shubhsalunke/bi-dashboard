@@ -22,32 +22,35 @@ export const Pagination = ({
   const end = Math.min(activePage * activeLimit, activeTotal);
 
   return (
-    <div className="pagination-container">
-      <div className="pagination-info">
-        Showing <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{start}</span> to{' '}
-        <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{end}</span> of{' '}
-        <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{activeTotal}</span> entries
+    <nav className="pagination-container" aria-label="Pagination">
+      <div className="pagination-info tabular-nums">
+        Showing <strong>{start}</strong> to <strong>{end}</strong> of{' '}
+        <strong>{activeTotal}</strong> entries
       </div>
       <div className="pagination-controls">
         <button
+          type="button"
           className="btn btn-secondary btn-sm"
           disabled={activePage <= 1}
           onClick={() => onPageChange(activePage - 1)}
         >
-          <ChevronLeft size={16} /> Prev
+          <ChevronLeft size={14} aria-hidden="true" />
+          <span>Prev</span>
         </button>
-        <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', padding: '0 8px' }}>
+        <span className="pagination-page-label tabular-nums">
           Page {activePage} of {activeTotalPages}
         </span>
         <button
+          type="button"
           className="btn btn-secondary btn-sm"
           disabled={activePage >= activeTotalPages}
           onClick={() => onPageChange(activePage + 1)}
         >
-          Next <ChevronRight size={16} />
+          <span>Next</span>
+          <ChevronRight size={14} aria-hidden="true" />
         </button>
       </div>
-    </div>
+    </nav>
   );
 };
 

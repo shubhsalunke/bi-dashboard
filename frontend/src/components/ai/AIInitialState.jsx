@@ -7,33 +7,20 @@ export const AIInitialState = ({
   onSelectQuestion,
 }) => {
   return (
-    <div style={{ maxWidth: '720px', margin: '20px auto', width: '100%' }}>
-      <div
-        className="glass-panel"
-        style={{
-          padding: '20px',
-          marginBottom: '20px',
-        }}
-      >
-        <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '6px' }}>
-          Ask a question
-        </h3>
-        <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
-          {welcomeText}
-        </p>
+    <div className="chat-initial">
+      <div className="chat-initial-intro">
+        <h3 className="chat-initial-title">Ask a question</h3>
+        <p className="chat-initial-desc">{welcomeText}</p>
       </div>
 
       <div>
-        <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>
-          Sample questions:
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div className="chat-prompts-label">Sample questions:</div>
+        <div className="chat-prompts-grid">
           {sampleQuestions.map((q) => (
             <button
               key={q}
               type="button"
-              className="btn btn-secondary btn-sm"
-              style={{ textAlign: 'left', justifyContent: 'flex-start', padding: '8px 12px' }}
+              className="btn btn-secondary btn-sm chat-prompt-btn"
               disabled={loading}
               onClick={() => onSelectQuestion(q)}
             >

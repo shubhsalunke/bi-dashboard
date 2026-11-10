@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Download } from 'lucide-react';
+import { Download, AlertCircle } from 'lucide-react';
 import { dashboardApi } from '../api/dashboard.api';
+import { EmptyState } from '../components/common/EmptyState';
 import { SalesReportTab } from '../components/reports/SalesReportTab';
 import { CustomerInsightsTab } from '../components/reports/CustomerInsightsTab';
 import { BrandSalesChart } from '../components/reports/BrandSalesChart';
@@ -11,6 +12,7 @@ export const Reports = () => {
   const [customerInsights, setCustomerInsights] = useState([]);
   const [brandSales, setBrandSales] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('sales');
 
   const [startDate, setStartDate] = useState('');
@@ -25,6 +27,7 @@ export const Reports = () => {
 
   const fetchReports = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const [salesRes, insightsRes, brandRes] = await Promise.all([
         dashboardApi.getSalesReport({
@@ -39,7 +42,9 @@ export const Reports = () => {
       setCustomerInsights(insightsRes || []);
       setBrandSales(brandRes || []);
     } catch (err) {
-      showToast(err.message || 'Failed to load reports', 'error');
+      const msg = err.message || 'Failed to load reports';
+      setError(msg);
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -147,25 +152,29 @@ export const Reports = () => {
   }, [customerInsights, insightSearch, trendFilter]);
 
   return (
-    <div>
-      <div className="page-header">
+    <div className="stack-lg">
+      <div className="page-header" style={{ marginBottom: 0 }}>
         <div>
           <h2>Reports</h2>
           <p className="page-subtitle">Revenue, geographic trends, and customer purchase patterns</p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', gap: '4px' }}>
+        <div className="header-actions">
+          <div className="segmented-group" role="tablist" aria-label="Report views">
             <button
               type="button"
-              className={`btn btn-sm ${activeTab === 'sales' ? 'btn-primary' : 'btn-secondary'}`}
+              role="tab"
+              aria-selected={activeTab === 'sales'}
+              className={`segmented-btn ${activeTab === 'sales' ? 'active' : ''}`}
               onClick={() => setActiveTab('sales')}
             >
               Sales Summary
             </button>
             <button
               type="button"
-              className={`btn btn-sm ${activeTab === 'insights' ? 'btn-primary' : 'btn-secondary'}`}
+              role="tab"
+              aria-selected={activeTab === 'insights'}
+              className={`segmented-btn ${activeTab === 'insights' ? 'active' : ''}`}
               onClick={() => setActiveTab('insights')}
             >
               Customer Trends
@@ -177,14 +186,27 @@ export const Reports = () => {
             className="btn btn-secondary btn-sm"
             onClick={activeTab === 'sales' ? exportSalesReportCSV : exportCustomerInsightsCSV}
           >
-            <Download size={14} />
+            <Download size={14} aria-hidden="true" />
             <span>Export CSV</span>
           </button>
         </div>
       </div>
 
-      {activeTab === 'sales' ? (
-        <>
+      {!loading && error && !salesReport ? (
+        <div className="card">
+          <EmptyState
+            icon={AlertCircle}
+            title="Unable to load reports"
+            description={error}
+            action={
+              <button type="button" className="btn btn-secondary btn-sm" onClick={fetchReports}>
+                Retry
+              </button>
+            }
+          />
+        </div>
+      ) : activeTab === 'sales' ? (
+        <div className="stack-lg">
           <SalesReportTab
             loading={loading}
             salesReport={salesReport}
@@ -201,7 +223,7 @@ export const Reports = () => {
             totalPeriodRevenue={totalPeriodRevenue}
           />
           <BrandSalesChart brandSales={brandSales} loading={loading} />
-        </>
+        </div>
       ) : (
         <CustomerInsightsTab
           insights={filteredInsights}

@@ -77,8 +77,18 @@ const errorHandler = (err, req, res, next) => {
     details = { detail: err.detail };
   }
 
-  // Hide internal stack trace details in production
-  if (process.env.NODE_ENV !== 'test' && statusCode === 500) {
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  // Hide internal details in production for 5xx errors and Postgres constraints
+  if (isProduction && statusCode >= 500) {
+    message = 'An unexpected server error occurred';
+    details = null;
+  } else if (isProduction && details && details.detail) {
+    details = null;
+  }
+
+  // Log server errors cleanly outside test runs
+  if (process.env.NODE_ENV !== 'test' && statusCode >= 500) {
     console.error(`[Unhandled Error] ${req.method} ${req.originalUrl}:`, err);
   }
 

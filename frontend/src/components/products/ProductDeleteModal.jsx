@@ -30,7 +30,7 @@ export const ProductDeleteModal = ({ product, loading, onConfirm, onClose }) => 
         </>
       }
     >
-      <p style={{ color: 'var(--text-main)', fontSize: '0.875rem' }}>
+      <p style={{ color: 'var(--text-primary)', fontSize: '0.875rem' }}>
         Are you sure you want to deactivate <strong>{product.product_name}</strong>?
       </p>
     </Modal>

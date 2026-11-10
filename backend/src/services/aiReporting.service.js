@@ -1,4 +1,5 @@
 const { query } = require('../config/db');
+const { formatCurrency } = require('../utils/format');
 
 /**
  * Controlled Reporting Service for AI Assistant
@@ -60,21 +61,42 @@ class AiReportingService {
   }
 
   /**
+   * Check whether a question contains filters or analytical dimensions
+   * beyond what the fixed keyword intents can handle accurately.
+   */
+  hasExtraDimensionsOrFilters(q) {
+    const extraPatterns = [
+      /\b(tata|infosys|reliance|mahindra|bharat|brand|brands)\b/i,
+      /\b(cloud infrastructure|enterprise software|cybersecurity|analytics|professional services|category|categories)\b/i,
+      /\b(pending|cancelled|canceled|inactive)\b/i,
+      /\b(by brand|by category|by month|by status|by week|by day|per brand|per category|per product|per month)\b/i,
+      /\b(never sold|no orders|without orders|out of stock|low stock|stock|reorder|warranty|gst|sku|margin|median|stddev)\b/i,
+      /\b(q1|q2|q3|q4|2024|2025|2026|2027|january|february|march|april|may|june|july|august|september|october|november|december)\b/i,
+      /\b(today|yesterday|this week|last week|last 7 days|last 30 days|last 60 days|last 90 days|last year|this year)\b/i,
+    ];
+    return extraPatterns.some((re) => re.test(q));
+  }
+
+  /**
    * Determine approved reporting operation from user natural language query
    */
   async classifyIntent(question) {
     const q = question.toLowerCase().trim();
+    const cleaned = q.replace(/[?.!]+$/, '').trim();
 
     // 1. Security Check: Block arbitrary SQL keywords or injection payloads
     const injectionPatterns = [
       /\b(drop|delete|insert|update|alter|truncate|grant|revoke|create|replace)\b/i,
       /\b(union\s+select|information_schema|pg_catalog|pg_tables|pg_user)\b/i,
+      /\bignore\s+(?:all\s+|any\s+)?(?:previous|prior|above|system)\s+instructions\b/i,
+      /\b(?:show|list|reveal|dump)\s+(?:all\s+)?(?:database\s+)?tables\b/i,
       /(--|\/\*|\*\/|;)/,
     ];
     for (const pattern of injectionPatterns) {
       if (pattern.test(q)) {
         return {
           intent: 'SECURITY_BLOCKED',
+          exactMatch: true,
           error: 'Arbitrary command execution or database modification commands are strictly blocked for security.',
         };
       }
@@ -82,16 +104,17 @@ class AiReportingService {
 
     // 2. Greetings & Assistance
     if (
-      q === 'hi' ||
-      q === 'hello' ||
-      q === 'hey' ||
-      q === 'help' ||
-      q.startsWith('hi ') ||
-      q.startsWith('hello ') ||
-      q.startsWith('hey ')
+      cleaned === 'hi' ||
+      cleaned === 'hello' ||
+      cleaned === 'hey' ||
+      cleaned === 'help' ||
+      cleaned.startsWith('hi ') ||
+      cleaned.startsWith('hello ') ||
+      cleaned.startsWith('hey ')
     ) {
       return {
         intent: 'GREETING',
+        exactMatch: true,
         suggestions: [
           'What were total sales last month?',
           'Show customer list',
@@ -104,56 +127,76 @@ class AiReportingService {
       };
     }
 
+    const hasExtras = this.hasExtraDimensionsOrFilters(q);
+    const hasCityFilter = /\b(in|from|for)\s+(pune|mumbai|nagpur|nashik|aurangabad|hyderabad|delhi)\b/i.test(q) ||
+      /\b(pune|mumbai|nagpur|nashik|aurangabad|hyderabad|delhi)\b/i.test(q);
+
     // Check for explicit custom date range in question (e.g. 01-09-2026 to 15-09-2026)
     const customRange = this.parseCustomDateRange(question);
-    if (customRange) {
+    if (customRange && !hasCityFilter && !hasExtras && /\b(total|revenue|sales|orders)\b/i.test(q)) {
       return {
         intent: 'TOTAL_SALES',
         timeframe: 'CUSTOM_RANGE',
         customRange,
+        exactMatch: true,
       };
     }
 
-    // 3. Identify Approved Business Reporting Operations
+    // 3. Declining customers
     if (
-      q.includes('declining') ||
-      q.includes('reduced') ||
-      q.includes('decrease') ||
-      q.includes('churn') ||
-      q.includes('at-risk') ||
-      (q.includes('customer') && q.includes('drop'))
+      !hasExtras &&
+      !hasCityFilter &&
+      (
+        q.includes('declining customer') ||
+        q.includes('reduced their purchases') ||
+        q.includes('churn') ||
+        q.includes('at-risk customer') ||
+        (q.includes('customer') && (q.includes('reduced') || q.includes('decrease') || q.includes('declining') || q.includes('drop')))
+      )
     ) {
-      return { intent: 'DECLINING_CUSTOMERS' };
+      return { intent: 'DECLINING_CUSTOMERS', exactMatch: true };
     }
 
-    // "which customer spent the most", "highest spending customer", "who spent the most" -> TOP_CUSTOMERS with limit 1
+    // 4. Single highest-spending customer
     if (
-      q.includes('which customer spent the most') ||
-      q.includes('highest spending customer') ||
-      q.includes('who spent the most') ||
-      q === 'customer spent the most'
+      !hasExtras &&
+      !hasCityFilter &&
+      (
+        cleaned === 'which customer spent the most' ||
+        cleaned === 'highest spending customer' ||
+        cleaned === 'who spent the most' ||
+        cleaned === 'customer spent the most' ||
+        cleaned === 'top customer'
+      )
     ) {
-      return { intent: 'TOP_CUSTOMERS', limit: 1 };
+      return { intent: 'TOP_CUSTOMERS', limit: 1, exactMatch: true };
     }
 
-    // Top customers
+    // 5. Top N customers by sales/revenue
     if (
-      q.includes('top customer') ||
-      q.includes('best customer') ||
-      q.includes('highest revenue customer') ||
-      (q.includes('top') && q.includes('customer'))
+      !hasExtras &&
+      !hasCityFilter &&
+      !q.includes('by order') &&
+      !q.includes('orders count') &&
+      !q.includes('order count') &&
+      !q.includes('lowest') &&
+      !q.includes('least') &&
+      (
+        /\btop\s+(\d+\s+)?customers?\b/.test(q) ||
+        q.includes('best customer') ||
+        q.includes('highest revenue customer')
+      )
     ) {
       const match = q.match(/top\s+(\d+)/);
       const limit = match ? Math.min(parseInt(match[1], 10), 25) : 10;
-      return { intent: 'TOP_CUSTOMERS', limit };
+      return { intent: 'TOP_CUSTOMERS', limit, exactMatch: true };
     }
 
-    // Customer list intent: "customer list", "list customers", "all customers", "show customers", "customers in <city>"
-    const cityMatch = q.match(/customers?\s+in\s+([a-zA-Z\s'-]+)/i);
-    let matchedCity = null;
-
-    if (cityMatch) {
-      const candidateCity = cityMatch[1].replace(/[?.!]+$/, '').trim();
+    // 6. Customer list intent: "customer list", "list customers", "all customers", "show customers", "customers in <city>"
+    const cityMatch = cleaned.match(/^(?:show|list|get|display)?\s*customers?\s+in\s+([a-zA-Z\s'-]+)$/i);
+    if (cityMatch && !hasExtras) {
+      const candidateCity = cityMatch[1].trim();
+      let matchedCity = null;
       try {
         const cityRes = await query(
           'SELECT DISTINCT city FROM customers WHERE LOWER(city) = LOWER($1)',
@@ -170,110 +213,142 @@ class AiReportingService {
         return {
           intent: 'CUSTOMER_LIST',
           city: matchedCity,
+          exactMatch: true,
         };
       }
     } else if (
-      q.includes('customer list') ||
-      q.includes('list customers') ||
-      q.includes('all customers') ||
-      q.includes('show customers')
+      !hasExtras &&
+      !hasCityFilter &&
+      (
+        cleaned === 'customer list' ||
+        cleaned === 'show customer list' ||
+        cleaned === 'list customers' ||
+        cleaned === 'all customers' ||
+        cleaned === 'show customers' ||
+        cleaned === 'show all customers'
+      )
     ) {
       return {
         intent: 'CUSTOMER_LIST',
         city: null,
+        exactMatch: true,
       };
     }
 
-    // Product list intent: "product list", "all products", "show products"
+    // 7. Product list intent
     if (
-      q.includes('product list') ||
-      q.includes('all products') ||
-      q.includes('show products') ||
-      q.includes('list products')
+      !hasExtras &&
+      !hasCityFilter &&
+      (
+        cleaned === 'product list' ||
+        cleaned === 'show product list' ||
+        cleaned === 'all products' ||
+        cleaned === 'show products' ||
+        cleaned === 'show all products' ||
+        cleaned === 'list products'
+      )
     ) {
-      return { intent: 'PRODUCT_LIST' };
+      return { intent: 'PRODUCT_LIST', exactMatch: true };
     }
 
+    // 8. Top products by revenue
     if (
-      q.includes('top product') ||
-      q.includes('highest revenue product') ||
-      q.includes('best selling product') ||
-      q.includes('best product') ||
-      (q.includes('product') && q.includes('revenue')) ||
-      (q.includes('which product') && q.includes('highest'))
+      !hasExtras &&
+      !hasCityFilter &&
+      !q.includes('by unit') &&
+      !q.includes('units sold') &&
+      !q.includes('by price') &&
+      !q.includes('lowest') &&
+      !q.includes('cheapest') &&
+      !q.includes('expensive') &&
+      (
+        q.includes('highest revenue product') ||
+        q.includes('which product generated the highest revenue') ||
+        q.includes('best selling product') ||
+        q.includes('best product') ||
+        /\btop\s+(\d+\s+)?products?\b/.test(q)
+      )
     ) {
       const match = q.match(/top\s+(\d+)/);
       const limit = match ? Math.min(parseInt(match[1], 10), 20) : 5;
-      return { intent: 'TOP_PRODUCTS', limit };
+      return { intent: 'TOP_PRODUCTS', limit, exactMatch: true };
     }
 
+    // 9. Month-over-Month comparison (only when explicitly comparing months)
     if (
-      q.includes('compare') ||
-      q.includes('month over month') ||
-      q.includes('mom') ||
-      (q.includes('previous month') && q.includes('this month')) ||
-      (q.includes('last month') && q.includes('this month'))
+      !hasExtras &&
+      !hasCityFilter &&
+      (
+        q.includes('month over month') ||
+        q.includes('month-over-month') ||
+        /\bmom\b/.test(q) ||
+        (q.includes('compare') && (q.includes('previous month') || q.includes('last month')) && q.includes('this month'))
+      )
     ) {
-      return { intent: 'MOM_COMPARISON' };
+      return { intent: 'MOM_COMPARISON', exactMatch: true };
     }
 
+    // 10. City-wise sales breakdown (not single-city filtered)
     if (
-      q.includes('city') ||
-      q.includes('city-wise') ||
-      q.includes('by city') ||
-      q.includes('regional') ||
-      q.includes('geographic')
+      !hasExtras &&
+      !hasCityFilter &&
+      (
+        q.includes('city-wise sales') ||
+        q.includes('city wise sales') ||
+        q.includes('sales by city') ||
+        q.includes('revenue by city') ||
+        q.includes('geographic performance')
+      )
     ) {
-      return { intent: 'CITY_SALES' };
+      const hasThreeMonths = q.includes('last three months') || q.includes('last 3 months');
+      return { intent: 'CITY_SALES', exactMatch: !hasThreeMonths };
     }
 
+    // 11. Quarterly summary (only exact summary phrasing)
     if (
-      q.includes('quarter') ||
-      q.includes('quarterly') ||
-      q.includes('performance summary') ||
-      q.includes('business summary') ||
-      q.includes('overview')
+      !hasExtras &&
+      !hasCityFilter &&
+      (
+        q.includes('summarize business performance for the current quarter') ||
+        q.includes('quarterly summary') ||
+        q.includes('business performance summary')
+      )
     ) {
-      return { intent: 'QUARTERLY_SUMMARY' };
+      return { intent: 'QUARTERLY_SUMMARY', exactMatch: true };
     }
 
+    // 12. Customer insight for a specific customer trend/history/profile
     if (
-      q.includes('purchasing trend') ||
-      q.includes('revenue history for') ||
-      (q.includes('customer') && (q.includes('trend') || q.includes('history') || q.includes('profile') || q.includes('account')))
+      !hasExtras &&
+      (
+        q.includes('purchasing trend for') ||
+        q.includes('revenue history for') ||
+        q.includes('customer profile for')
+      )
     ) {
-      return { intent: 'CUSTOMER_INSIGHT', rawQuery: question };
+      return { intent: 'CUSTOMER_INSIGHT', rawQuery: question, exactMatch: true };
     }
 
+    // 13. Overall Total Sales (only when clearly asking for total/overall sales without breakdowns)
     if (
-      q.includes('total sales') ||
-      q.includes('total revenue') ||
-      q.includes('last month') ||
-      q.includes('previous month') ||
-      q.includes('this month') ||
-      q.includes('current month') ||
-      q.includes('sales last month') ||
-      q.includes('sales this month') ||
-      q.includes('how much sales') ||
-      q.includes('sales in') ||
-      q.includes('how much did we sell') ||
-      q.includes('overall sales') ||
-      q.includes('all sales') ||
-      q.includes('revenue') ||
-      q.includes('sales')
+      !hasExtras &&
+      !hasCityFilter &&
+      !customRange &&
+      /\b(total sales|total revenue|overall sales|how much sales|how much did we sell|sales last month|sales this month|revenue last month|revenue this month)\b/i.test(q)
     ) {
       let timeframe = 'ALL_TIME';
-      if (q.includes('last month') || q.includes('previous month') || q.includes('september')) {
+      if (q.includes('last month') || q.includes('previous month')) {
         timeframe = 'LAST_MONTH';
-      } else if (q.includes('this month') || q.includes('current month') || q.includes('october')) {
+      } else if (q.includes('this month') || q.includes('current month')) {
         timeframe = 'THIS_MONTH';
       }
-      return { intent: 'TOTAL_SALES', timeframe };
+      return { intent: 'TOTAL_SALES', timeframe, exactMatch: true };
     }
 
     // Default to unsupported
     return {
       intent: 'UNSUPPORTED',
+      exactMatch: false,
       suggestions: [
         'What were total sales last month?',
         'Show customer list',
@@ -349,37 +424,35 @@ class AiReportingService {
     } else if (timeframe === 'LAST_MONTH') {
       const monthSql = `
         SELECT 
-          TO_CHAR(CURRENT_DATE - INTERVAL '1 month', 'YYYY-MM') AS last_month_key,
-          TO_CHAR(CURRENT_DATE - INTERVAL '1 month', 'FMMonth YYYY') AS last_month_name,
-          TO_CHAR(DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month'), 'YYYY-MM-DD') AS start_date,
+          TO_CHAR(DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 month', 'YYYY-MM') AS last_month_key,
+          TO_CHAR(DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 month', 'FMMonth YYYY') AS last_month_name,
+          TO_CHAR(DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 month', 'YYYY-MM-DD') AS start_date,
           TO_CHAR((DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 day'), 'YYYY-MM-DD') AS end_date
       `;
       const mRes = await query(monthSql);
       const mRow = mRes.rows[0] || {};
-      const lastMonthKey = mRow.last_month_key || '2026-09';
-      const monthName = mRow.last_month_name || 'September 2026';
+      const monthName = mRow.last_month_name || 'Last Month';
 
-      whereClause += ` AND TO_CHAR(sale_date, 'YYYY-MM') = '${lastMonthKey}'`;
+      whereClause += " AND sale_date >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 month' AND sale_date < DATE_TRUNC('month', CURRENT_DATE)";
       reportTitle = `Total Sales & Revenue Report (Last Month - ${monthName})`;
       periodLabel = `Last Month (${monthName})`;
-      dateFilterText = `${mRow.start_date || '2026-09-01'} to ${mRow.end_date || '2026-09-30'}`;
+      dateFilterText = mRow.start_date && mRow.end_date ? `${mRow.start_date} to ${mRow.end_date}` : 'Previous Month';
     } else if (timeframe === 'THIS_MONTH') {
       const monthSql = `
         SELECT 
-          TO_CHAR(CURRENT_DATE, 'YYYY-MM') AS this_month_key,
-          TO_CHAR(CURRENT_DATE, 'FMMonth YYYY') AS this_month_name,
+          TO_CHAR(DATE_TRUNC('month', CURRENT_DATE), 'YYYY-MM') AS this_month_key,
+          TO_CHAR(DATE_TRUNC('month', CURRENT_DATE), 'FMMonth YYYY') AS this_month_name,
           TO_CHAR(DATE_TRUNC('month', CURRENT_DATE), 'YYYY-MM-DD') AS start_date,
           TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') AS end_date
       `;
       const mRes = await query(monthSql);
       const mRow = mRes.rows[0] || {};
-      const thisMonthKey = mRow.this_month_key || '2026-10';
-      const monthName = mRow.this_month_name || 'October 2026';
+      const monthName = mRow.this_month_name || 'Current Month';
 
-      whereClause += ` AND TO_CHAR(sale_date, 'YYYY-MM') = '${thisMonthKey}'`;
+      whereClause += " AND sale_date >= DATE_TRUNC('month', CURRENT_DATE) AND sale_date < DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month'";
       reportTitle = `Total Sales & Revenue Report (Current Month - ${monthName})`;
       periodLabel = `Current Month (${monthName})`;
-      dateFilterText = `${mRow.start_date || '2026-10-01'} to ${mRow.end_date || '2026-10-15'}`;
+      dateFilterText = mRow.start_date && mRow.end_date ? `${mRow.start_date} to ${mRow.end_date}` : 'Current Month';
     }
 
     const sql = `
@@ -407,9 +480,9 @@ class AiReportingService {
 
     const rows = [
       { metric: 'Reporting Window', value: windowDisplay },
-      { metric: 'Total Revenue', value: `$${totalRev.toLocaleString('en-US', { minimumFractionDigits: 2 })}` },
+      { metric: 'Total Revenue', value: formatCurrency(totalRev, { decimals: 2 }) },
       { metric: 'Total Completed Orders', value: orderCount.toString() },
-      { metric: 'Average Order Value', value: `$${avgOrder.toLocaleString('en-US', { minimumFractionDigits: 2 })}` },
+      { metric: 'Average Order Value', value: formatCurrency(avgOrder, { decimals: 2 }) },
     ];
 
     return {
@@ -472,7 +545,7 @@ class AiReportingService {
     const rows = orders.map((o, idx) => ({
       order_num: `#${orders.length - idx}`,
       date: o.sale_date,
-      formatted_amount: `$${parseFloat(o.total_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+      formatted_amount: formatCurrency(parseFloat(o.total_amount), { decimals: 2 }),
       status: o.status,
     }));
 
@@ -525,7 +598,7 @@ class AiReportingService {
       location: row.city,
       orders_count: parseInt(row.orders_count, 10),
       total_revenue: parseFloat(row.total_revenue),
-      formatted_revenue: `$${parseFloat(row.total_revenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+      formatted_revenue: formatCurrency(parseFloat(row.total_revenue), { decimals: 2 }),
     }));
 
     const totalRevenueTop = rows.reduce((acc, r) => acc + r.total_revenue, 0);
@@ -579,7 +652,7 @@ class AiReportingService {
       category: row.category,
       units_sold: parseInt(row.units_sold, 10),
       total_revenue: parseFloat(row.total_revenue),
-      formatted_revenue: `$${parseFloat(row.total_revenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+      formatted_revenue: formatCurrency(parseFloat(row.total_revenue), { decimals: 2 }),
     }));
 
     return {
@@ -606,22 +679,33 @@ class AiReportingService {
    */
   async getMonthOverMonthComparison() {
     const sql = `
-      SELECT 
-        TO_CHAR(sale_date, 'YYYY-MM') AS month_key,
-        COUNT(id) AS sales_count,
-        ROUND(COALESCE(SUM(total_amount), 0), 2) AS total_revenue,
-        ROUND(COALESCE(AVG(total_amount), 0), 2) AS avg_order_value
-      FROM sales
-      WHERE status = 'completed'
-      GROUP BY TO_CHAR(sale_date, 'YYYY-MM')
-      ORDER BY month_key DESC
-      LIMIT 2
+      WITH target_months AS (
+        SELECT
+          (DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 month')::date AS month_start,
+          TO_CHAR(DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 month', 'YYYY-MM') AS month_key
+        UNION ALL
+        SELECT
+          DATE_TRUNC('month', CURRENT_DATE)::date AS month_start,
+          TO_CHAR(DATE_TRUNC('month', CURRENT_DATE), 'YYYY-MM') AS month_key
+      )
+      SELECT
+        tm.month_key,
+        COUNT(s.id)::int AS sales_count,
+        ROUND(COALESCE(SUM(s.total_amount), 0), 2) AS total_revenue,
+        ROUND(COALESCE(AVG(s.total_amount), 0), 2) AS avg_order_value
+      FROM target_months tm
+      LEFT JOIN sales s
+        ON s.status = 'completed'
+        AND s.sale_date >= tm.month_start
+        AND s.sale_date < tm.month_start + INTERVAL '1 month'
+      GROUP BY tm.month_start, tm.month_key
+      ORDER BY tm.month_start ASC
     `;
     const res = await query(sql);
-    const sorted = [...res.rows].reverse(); // Older month first, newer second
+    const sorted = res.rows;
 
     const prevMonth = sorted[0] || { month_key: 'Previous', sales_count: 0, total_revenue: 0, avg_order_value: 0 };
-    const currMonth = sorted[1] || sorted[0] || { month_key: 'Current', sales_count: 0, total_revenue: 0, avg_order_value: 0 };
+    const currMonth = sorted[1] || { month_key: 'Current', sales_count: 0, total_revenue: 0, avg_order_value: 0 };
 
     const prevRev = parseFloat(prevMonth.total_revenue || 0);
     const currRev = parseFloat(currMonth.total_revenue || 0);
@@ -631,8 +715,8 @@ class AiReportingService {
     const rows = sorted.map((m) => ({
       period: m.month_key,
       orders: parseInt(m.sales_count, 10),
-      revenue: `$${parseFloat(m.total_revenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
-      avg_order: `$${parseFloat(m.avg_order_value).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+      revenue: formatCurrency(parseFloat(m.total_revenue), { decimals: 2 }),
+      avg_order: formatCurrency(parseFloat(m.avg_order_value), { decimals: 2 }),
     }));
 
     return {
@@ -679,8 +763,8 @@ class AiReportingService {
       city: r.city,
       orders_count: parseInt(r.orders_count, 10),
       total_revenue: parseFloat(r.total_revenue),
-      formatted_revenue: `$${parseFloat(r.total_revenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
-      formatted_avg: `$${parseFloat(r.avg_order_value).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+      formatted_revenue: formatCurrency(parseFloat(r.total_revenue), { decimals: 2 }),
+      formatted_avg: formatCurrency(parseFloat(r.avg_order_value), { decimals: 2 }),
     }));
 
     return {
@@ -717,7 +801,9 @@ class AiReportingService {
           FROM sale_items si 
           JOIN products p ON si.product_id = p.id 
           JOIN sales s2 ON si.sale_id = s2.id 
-          WHERE s2.status = 'completed' 
+          WHERE s2.status = 'completed'
+            AND s2.sale_date >= DATE_TRUNC('quarter', CURRENT_DATE)
+            AND s2.sale_date < DATE_TRUNC('quarter', CURRENT_DATE) + INTERVAL '3 months'
           GROUP BY p.product_name 
           ORDER BY SUM(si.line_total) DESC 
           LIMIT 1
@@ -726,22 +812,26 @@ class AiReportingService {
           SELECT c.city 
           FROM sales s3 
           JOIN customers c ON s3.customer_id = c.id 
-          WHERE s3.status = 'completed' 
+          WHERE s3.status = 'completed'
+            AND s3.sale_date >= DATE_TRUNC('quarter', CURRENT_DATE)
+            AND s3.sale_date < DATE_TRUNC('quarter', CURRENT_DATE) + INTERVAL '3 months'
           GROUP BY c.city 
           ORDER BY SUM(s3.total_amount) DESC 
           LIMIT 1
         ) AS top_city
       FROM sales s
       WHERE s.status = 'completed'
+        AND s.sale_date >= DATE_TRUNC('quarter', CURRENT_DATE)
+        AND s.sale_date < DATE_TRUNC('quarter', CURRENT_DATE) + INTERVAL '3 months'
     `;
     const res = await query(sql);
     const r = res.rows[0];
 
     const rows = [
-      { metric: 'Total Revenue', value: `$${parseFloat(r.total_revenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}` },
+      { metric: 'Total Revenue', value: formatCurrency(parseFloat(r.total_revenue || 0), { decimals: 2 }) },
       { metric: 'Total Order Volume', value: parseInt(r.total_orders || 0, 10).toString() },
       { metric: 'Active Customer Accounts', value: parseInt(r.active_customers || 0, 10).toString() },
-      { metric: 'Average Order Size', value: `$${parseFloat(r.avg_order_value || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}` },
+      { metric: 'Average Order Size', value: formatCurrency(parseFloat(r.avg_order_value || 0), { decimals: 2 }) },
       { metric: 'Flagship Product', value: r.top_product || 'N/A' },
       { metric: 'Highest Grossing City', value: r.top_city || 'N/A' },
     ];
@@ -811,9 +901,9 @@ class AiReportingService {
       customer_name: c.customer_name,
       customer_code: c.customer_code,
       city: c.city,
-      prior_30d: `$${parseFloat(c.prior_spend).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
-      recent_30d: `$${parseFloat(c.recent_spend).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
-      spend_drop: `-$${Math.abs(parseFloat(c.spend_drop)).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+      prior_30d: formatCurrency(parseFloat(c.prior_spend), { decimals: 2 }),
+      recent_30d: formatCurrency(parseFloat(c.recent_spend), { decimals: 2 }),
+      spend_drop: `-${formatCurrency(Math.abs(parseFloat(c.spend_drop)), { decimals: 2 })}`,
       status: 'At Risk',
     }));
 

@@ -1,8 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 export const Modal = ({ isOpen, onClose, title, children, footer = null, maxWidth = '600px' }) => {
+  const titleId = useId();
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && isOpen) {
@@ -24,15 +26,26 @@ export const Modal = ({ isOpen, onClose, title, children, footer = null, maxWidt
   if (!isOpen) return null;
 
   const modalElement = (
-    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true">
+    <div
+      className="modal-overlay"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+    >
       <div
         className="modal-dialog"
         style={{ maxWidth }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">
-          <h3 className="modal-title">{title}</h3>
-          <button className="modal-close-btn" onClick={onClose} aria-label="Close dialog">
+          <h3 id={titleId} className="modal-title">{title}</h3>
+          <button
+            type="button"
+            className="modal-close-btn"
+            onClick={onClose}
+            aria-label="Close dialog"
+          >
             <X size={18} />
           </button>
         </div>

@@ -24,12 +24,12 @@ export const ProductsTable = ({
             <TableHeader label="Product Name" field="product_name" sortField={sortField} sortAsc={sortAsc} onSort={onSort} />
             <TableHeader label="Brand" field="brand" sortField={sortField} sortAsc={sortAsc} onSort={onSort} />
             <TableHeader label="Category" field="category" sortField={sortField} sortAsc={sortAsc} onSort={onSort} />
-            <TableHeader label="Unit Price" field="unit_price" sortField={sortField} sortAsc={sortAsc} onSort={onSort} />
-            <TableHeader label="Stock" field="stock_quantity" sortField={sortField} sortAsc={sortAsc} onSort={onSort} />
-            <TableHeader label="Units Sold" field="units_sold" sortField={sortField} sortAsc={sortAsc} onSort={onSort} />
-            <TableHeader label="Revenue" field="total_revenue" sortField={sortField} sortAsc={sortAsc} onSort={onSort} />
+            <TableHeader label="Unit Price" field="unit_price" sortField={sortField} sortAsc={sortAsc} onSort={onSort} align="right" />
+            <TableHeader label="Stock" field="stock_quantity" sortField={sortField} sortAsc={sortAsc} onSort={onSort} align="right" />
+            <TableHeader label="Units Sold" field="units_sold" sortField={sortField} sortAsc={sortAsc} onSort={onSort} align="right" />
+            <TableHeader label="Revenue" field="total_revenue" sortField={sortField} sortAsc={sortAsc} onSort={onSort} align="right" />
             <TableHeader label="Status" />
-            {canManage && <TableHeader label="Actions" />}
+            {canManage && <TableHeader label="Actions" align="right" />}
           </tr>
         </thead>
         <tbody>
@@ -43,88 +43,51 @@ export const ProductsTable = ({
               <tr key={p.id}>
                 <td className="tabular-nums" style={{ color: 'var(--text-muted)' }}>#{p.id}</td>
                 <td className="tabular-nums" style={{ fontSize: '0.8125rem' }}>{p.sku || '—'}</td>
-                <td style={{ fontWeight: 500 }}>
+                <td>
                   <button
                     type="button"
                     onClick={() => onViewDetails && onViewDetails(p)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      padding: 0,
-                      color: 'var(--primary, #0d9488)',
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      font: 'inherit',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
-                    onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
+                    className="table-link"
                     title="View product details"
                   >
                     {p.product_name}
                   </button>
                 </td>
                 <td>{p.brand || '—'}</td>
-                <td>{p.category}</td>
-                <td className="tabular-nums" style={{ fontWeight: 600 }}>{formatCurrency(p.unit_price)}</td>
-                <td className="tabular-nums">
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <td style={{ color: 'var(--text-secondary)' }}>{p.category}</td>
+                <td className="num cell-primary">{formatCurrency(p.unit_price)}</td>
+                <td className="num">
+                  <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: 'var(--space-2)' }}>
+                    {isOutOfStock && <span className="stock-tag stock-tag-danger">Out of stock</span>}
+                    {isLowStock && <span className="stock-tag stock-tag-warning">Low stock</span>}
                     <span>{stock}</span>
-                    {isOutOfStock && (
-                      <span
-                        style={{
-                          fontSize: '0.6875rem',
-                          fontWeight: 600,
-                          padding: '1px 5px',
-                          borderRadius: '4px',
-                          background: 'rgba(239, 68, 68, 0.1)',
-                          color: 'var(--danger, #dc2626)',
-                        }}
-                      >
-                        Out of stock
-                      </span>
-                    )}
-                    {isLowStock && (
-                      <span
-                        style={{
-                          fontSize: '0.6875rem',
-                          fontWeight: 600,
-                          padding: '1px 5px',
-                          borderRadius: '4px',
-                          background: 'rgba(245, 158, 11, 0.1)',
-                          color: 'var(--warning, #d97706)',
-                        }}
-                      >
-                        Low stock
-                      </span>
-                    )}
                   </div>
                 </td>
-                <td className="tabular-nums">{p.units_sold ?? 0}</td>
-                <td className="tabular-nums" style={{ fontWeight: 600 }}>{formatCurrency(p.total_revenue ?? 0)}</td>
+                <td className="num">{p.units_sold ?? 0}</td>
+                <td className="num cell-primary">{formatCurrency(p.total_revenue ?? 0)}</td>
                 <td>
                   <Badge status={p.is_active ? 'active' : 'inactive'} />
                 </td>
                 {canManage && (
                   <td>
-                    <div style={{ display: 'flex', gap: '6px' }}>
+                    <div className="table-actions">
                       <button
                         type="button"
-                        className="btn btn-secondary btn-sm"
+                        className="btn btn-secondary btn-icon"
                         onClick={() => onEdit(p)}
                         title="Edit product"
-                        style={{ padding: '4px 8px' }}
+                        aria-label={`Edit ${p.product_name}`}
                       >
-                        <Edit2 size={13} />
+                        <Edit2 size={14} aria-hidden="true" />
                       </button>
                       <button
                         type="button"
-                        className="btn btn-danger btn-sm"
+                        className="btn btn-danger btn-icon"
                         onClick={() => onToggleStatus(p)}
                         title="Toggle status"
-                        style={{ padding: '4px 8px' }}
+                        aria-label={`Toggle status for ${p.product_name}`}
                       >
-                        <Trash2 size={13} />
+                        <Trash2 size={14} aria-hidden="true" />
                       </button>
                     </div>
                   </td>

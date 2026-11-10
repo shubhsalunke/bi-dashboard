@@ -28,10 +28,10 @@ export const ToastProvider = ({ children }) => {
 
   const getIcon = (type) => {
     switch (type) {
-      case 'success': return <CheckCircle2 size={18} color="#10b981" />;
-      case 'error': return <AlertCircle size={18} color="#ef4444" />;
-      case 'warning': return <AlertTriangle size={18} color="#f59e0b" />;
-      default: return <Info size={18} color="#3b82f6" />;
+      case 'success': return <CheckCircle2 size={18} className="toast-icon-success" aria-hidden="true" />;
+      case 'error': return <AlertCircle size={18} className="toast-icon-error" aria-hidden="true" />;
+      case 'warning': return <AlertTriangle size={18} className="toast-icon-warning" aria-hidden="true" />;
+      default: return <Info size={18} className="toast-icon-info" aria-hidden="true" />;
     }
   };
 
@@ -46,14 +46,15 @@ export const ToastProvider = ({ children }) => {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="toast-container">
+      <div className="toast-container" role="status" aria-live="polite">
         {toasts.map((toast) => (
           <div key={toast.id} className={`toast toast-${toast.type}`}>
             {getIcon(toast.type)}
-            <span style={{ flex: 1 }}>{toast.message}</span>
+            <span className="toast-message">{toast.message}</span>
             <button
+              type="button"
               onClick={() => removeToast(toast.id)}
-              style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+              className="toast-close-btn"
               aria-label="Close notification"
             >
               <X size={14} />

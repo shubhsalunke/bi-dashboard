@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Download } from 'lucide-react';
+import { Plus, Download, AlertCircle } from 'lucide-react';
 import { productsApi } from '../api/products.api';
 import { TableSkeleton } from '../components/common/LoadingSkeleton';
 import { EmptyState } from '../components/common/EmptyState';
@@ -29,6 +29,7 @@ export const Products = () => {
   const [products, setProducts] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -65,6 +66,7 @@ export const Products = () => {
 
   const fetchProducts = useCallback(async (page = 1) => {
     setLoading(true);
+    setError(null);
     try {
       const res = await productsApi.getProducts({
         page,
@@ -80,7 +82,9 @@ export const Products = () => {
       setProducts(res.data || []);
       setPagination(res.pagination || { page: 1, limit: 10, total: 0, totalPages: 1 });
     } catch (err) {
-      showToast(err.message || 'Failed to load products', 'error');
+      const msg = err.message || 'Failed to load products';
+      setError(msg);
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -204,17 +208,18 @@ export const Products = () => {
           <p className="page-subtitle">Product catalog, inventory and pricing</p>
         </div>
 
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div className="header-actions">
           <button type="button" className="btn btn-secondary btn-sm" onClick={exportCSV}>
-            <Download size={14} />
+            <Download size={14} aria-hidden="true" />
             <span>Export CSV</span>
           </button>
           {canManage && (
             <button
+              type="button"
               className="btn btn-primary btn-sm"
               onClick={() => { setEditingProduct(null); setIsModalOpen(true); }}
             >
-              <Plus size={14} />
+              <Plus size={14} aria-hidden="true" />
               <span>Add Product</span>
             </button>
           )}
@@ -242,9 +247,20 @@ export const Products = () => {
         onReset={resetFilters}
       />
 
-      <div className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
+      <div className="card card-flush">
         {loading ? (
-          <TableSkeleton rows={8} cols={9} />
+          <TableSkeleton rows={8} columns={9} />
+        ) : error && products.length === 0 ? (
+          <EmptyState
+            icon={AlertCircle}
+            title="Unable to load products"
+            description={error}
+            action={
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => fetchProducts(1)}>
+                Retry
+              </button>
+            }
+          />
         ) : sortedProducts.length === 0 ? (
           <EmptyState
             title="No products found"
@@ -255,15 +271,16 @@ export const Products = () => {
             }
             action={
               (searchTerm || categoryFilter || brandFilter || stockFilter || minPrice || maxPrice || activeFilter) ? (
-                <button className="btn btn-secondary btn-sm" onClick={resetFilters}>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={resetFilters}>
                   Clear Filters
                 </button>
               ) : canManage ? (
                 <button
+                  type="button"
                   className="btn btn-primary btn-sm"
                   onClick={() => { setEditingProduct(null); setIsModalOpen(true); }}
                 >
-                  <Plus size={14} />
+                  <Plus size={14} aria-hidden="true" />
                   <span>Add First Product</span>
                 </button>
               ) : null

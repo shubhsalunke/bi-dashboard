@@ -11,37 +11,13 @@ export const EmptyState = ({
   const descText = message || description || 'There are no items matching your current filters.';
 
   return (
-    <div
-      style={{
-        padding: '48px 24px',
-        textAlign: 'center',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '12px',
-        color: 'var(--text-muted)',
-      }}
-    >
-      <div
-        style={{
-          width: '56px',
-          height: '56px',
-          borderRadius: '50%',
-          background: 'rgba(255, 255, 255, 0.04)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'var(--text-dim)',
-        }}
-      >
-        <Icon size={28} />
+    <div className="empty-state">
+      <div className="empty-state-icon" aria-hidden="true">
+        <Icon size={22} />
       </div>
-      <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)', margin: 0 }}>
-        {title}
-      </h3>
-      <p style={{ fontSize: '0.875rem', maxWidth: '360px', margin: 0 }}>{descText}</p>
-      {action && <div style={{ marginTop: '8px' }}>{action}</div>}
+      <h3 className="empty-state-title">{title}</h3>
+      <p className="empty-state-desc">{descText}</p>
+      {action && <div>{action}</div>}
     </div>
   );
 };

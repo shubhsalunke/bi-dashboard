@@ -26,6 +26,8 @@ export const ProductFormModal = ({
     is_active: true,
   });
   const [formError, setFormError] = useState('');
+  const [touched, setTouched] = useState({});
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     if (product) {
@@ -64,7 +66,13 @@ export const ProductFormModal = ({
       });
     }
     setFormError('');
+    setTouched({});
+    setSubmitted(false);
   }, [product, categories, isOpen]);
+
+  const markTouched = (field) => {
+    setTouched((prev) => (prev[field] ? prev : { ...prev, [field]: true }));
+  };
 
   // Handle number key down: block 'e', 'E', '+', '-' and '.' on integer inputs
   const handleNumberKeyDown = (e, isInteger = false) => {
@@ -205,6 +213,7 @@ export const ProductFormModal = ({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setSubmitted(true);
 
     if (!isFormValid) {
       return;
@@ -247,6 +256,8 @@ export const ProductFormModal = ({
     onSubmit(payload, setFormError);
   };
 
+  const getFieldError = (field) => ((touched[field] || submitted) ? fieldErrors[field] : '');
+
   return (
     <Modal
       isOpen={isOpen}
@@ -273,15 +284,13 @@ export const ProductFormModal = ({
         </>
       }
     >
-      <form id="product-form" onSubmit={handleSubmit} noValidate>
+      <form id="product-form" onSubmit={handleSubmit} noValidate className="stack-md">
         {formError && (
-          <div style={{ color: 'var(--danger)', fontSize: '0.8125rem', marginBottom: '12px' }}>
-            {formError}
-          </div>
+          <div className="alert alert-danger">{formError}</div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-          <div className="form-group">
+        <div className="form-grid-2">
+          <div className="form-group form-group-flush">
             <label htmlFor="product-sku" className="form-label">Product Code</label>
             <input
               id="product-sku"
@@ -293,16 +302,14 @@ export const ProductFormModal = ({
               onChange={(e) => {
                 const upper = e.target.value.toUpperCase();
                 setFormData((prev) => ({ ...prev, sku: upper }));
+                if (upper) markTouched('sku');
               }}
+              onBlur={() => markTouched('sku')}
             />
-            {fieldErrors.sku && (
-              <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '2px' }}>
-                {fieldErrors.sku}
-              </div>
-            )}
+            {getFieldError('sku') && <div className="form-error">{getFieldError('sku')}</div>}
           </div>
 
-          <div className="form-group">
+          <div className="form-group form-group-flush">
             <label htmlFor="product-category" className="form-label">Category *</label>
             <select
               id="product-category"
@@ -317,7 +324,7 @@ export const ProductFormModal = ({
           </div>
         </div>
 
-        <div className="form-group">
+        <div className="form-group form-group-flush">
           <label htmlFor="product-name" className="form-label">Product Name *</label>
           <input
             id="product-name"
@@ -327,17 +334,14 @@ export const ProductFormModal = ({
             maxLength={150}
             value={formData.product_name}
             onChange={(e) => setFormData({ ...formData, product_name: e.target.value })}
+            onBlur={() => markTouched('product_name')}
             required
           />
-          {fieldErrors.product_name && (
-            <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '2px' }}>
-              {fieldErrors.product_name}
-            </div>
-          )}
+          {getFieldError('product_name') && <div className="form-error">{getFieldError('product_name')}</div>}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-          <div className="form-group">
+        <div className="form-grid-2">
+          <div className="form-group form-group-flush">
             <label htmlFor="product-brand" className="form-label">Brand</label>
             <input
               id="product-brand"
@@ -347,15 +351,12 @@ export const ProductFormModal = ({
               maxLength={60}
               value={formData.brand}
               onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+              onBlur={() => markTouched('brand')}
             />
-            {fieldErrors.brand && (
-              <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '2px' }}>
-                {fieldErrors.brand}
-              </div>
-            )}
+            {getFieldError('brand') && <div className="form-error">{getFieldError('brand')}</div>}
           </div>
 
-          <div className="form-group">
+          <div className="form-group form-group-flush">
             <label htmlFor="product-supplier" className="form-label">Supplier</label>
             <input
               id="product-supplier"
@@ -365,17 +366,14 @@ export const ProductFormModal = ({
               maxLength={100}
               value={formData.supplier}
               onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
+              onBlur={() => markTouched('supplier')}
             />
-            {fieldErrors.supplier && (
-              <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '2px' }}>
-                {fieldErrors.supplier}
-              </div>
-            )}
+            {getFieldError('supplier') && <div className="form-error">{getFieldError('supplier')}</div>}
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-          <div className="form-group">
+        <div className="form-grid-2">
+          <div className="form-group form-group-flush">
             <label htmlFor="product-unit-price" className="form-label">Unit Price (₹) *</label>
             <input
               id="product-unit-price"
@@ -383,21 +381,18 @@ export const ProductFormModal = ({
               step="0.01"
               min="0.01"
               max="10000000"
-              className="form-control"
+              className="form-control tabular-nums"
               placeholder="0.00"
               value={formData.unit_price}
               onKeyDown={(e) => handleNumberKeyDown(e, false)}
               onChange={(e) => handleNumberChange('unit_price', e.target.value, false)}
+              onBlur={() => markTouched('unit_price')}
               required
             />
-            {fieldErrors.unit_price && (
-              <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '2px' }}>
-                {fieldErrors.unit_price}
-              </div>
-            )}
+            {getFieldError('unit_price') && <div className="form-error">{getFieldError('unit_price')}</div>}
           </div>
 
-          <div className="form-group">
+          <div className="form-group form-group-flush">
             <label htmlFor="product-cost-price" className="form-label">Cost Price (₹)</label>
             <input
               id="product-cost-price"
@@ -405,22 +400,22 @@ export const ProductFormModal = ({
               step="0.01"
               min="0"
               max="10000000"
-              className="form-control"
+              className="form-control tabular-nums"
               placeholder="0.00"
               value={formData.cost_price}
               onKeyDown={(e) => handleNumberKeyDown(e, false)}
-              onChange={(e) => handleNumberChange('cost_price', e.target.value, false)}
+              onChange={(e) => {
+                handleNumberChange('cost_price', e.target.value, false);
+                markTouched('cost_price');
+              }}
+              onBlur={() => markTouched('cost_price')}
             />
-            {fieldErrors.cost_price && (
-              <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '2px' }}>
-                {fieldErrors.cost_price}
-              </div>
-            )}
+            {getFieldError('cost_price') && <div className="form-error">{getFieldError('cost_price')}</div>}
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-          <div className="form-group">
+        <div className="form-grid-2">
+          <div className="form-group form-group-flush">
             <label htmlFor="product-unit" className="form-label">Unit</label>
             <input
               id="product-unit"
@@ -430,15 +425,12 @@ export const ProductFormModal = ({
               maxLength={30}
               value={formData.unit}
               onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+              onBlur={() => markTouched('unit')}
             />
-            {fieldErrors.unit && (
-              <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '2px' }}>
-                {fieldErrors.unit}
-              </div>
-            )}
+            {getFieldError('unit') && <div className="form-error">{getFieldError('unit')}</div>}
           </div>
 
-          <div className="form-group">
+          <div className="form-group form-group-flush">
             <label htmlFor="product-gst" className="form-label">GST %</label>
             <input
               id="product-gst"
@@ -446,22 +438,22 @@ export const ProductFormModal = ({
               step="0.01"
               min="0"
               max="28"
-              className="form-control"
+              className="form-control tabular-nums"
               placeholder="18"
               value={formData.gst_percent}
               onKeyDown={(e) => handleNumberKeyDown(e, false)}
-              onChange={(e) => handleNumberChange('gst_percent', e.target.value, false)}
+              onChange={(e) => {
+                handleNumberChange('gst_percent', e.target.value, false);
+                markTouched('gst_percent');
+              }}
+              onBlur={() => markTouched('gst_percent')}
             />
-            {fieldErrors.gst_percent && (
-              <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '2px' }}>
-                {fieldErrors.gst_percent}
-              </div>
-            )}
+            {getFieldError('gst_percent') && <div className="form-error">{getFieldError('gst_percent')}</div>}
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-          <div className="form-group">
+        <div className="form-grid-2">
+          <div className="form-group form-group-flush">
             <label htmlFor="product-stock" className="form-label">Stock Quantity *</label>
             <input
               id="product-stock"
@@ -469,21 +461,21 @@ export const ProductFormModal = ({
               step="1"
               min="0"
               max="1000000"
-              className="form-control"
+              className="form-control tabular-nums"
               placeholder="0"
               value={formData.stock_quantity}
               onKeyDown={(e) => handleNumberKeyDown(e, true)}
-              onChange={(e) => handleNumberChange('stock_quantity', e.target.value, true)}
+              onChange={(e) => {
+                handleNumberChange('stock_quantity', e.target.value, true);
+                markTouched('stock_quantity');
+              }}
+              onBlur={() => markTouched('stock_quantity')}
               required
             />
-            {fieldErrors.stock_quantity && (
-              <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '2px' }}>
-                {fieldErrors.stock_quantity}
-              </div>
-            )}
+            {getFieldError('stock_quantity') && <div className="form-error">{getFieldError('stock_quantity')}</div>}
           </div>
 
-          <div className="form-group">
+          <div className="form-group form-group-flush">
             <label htmlFor="product-reorder-level" className="form-label">Reorder Level *</label>
             <input
               id="product-reorder-level"
@@ -491,23 +483,23 @@ export const ProductFormModal = ({
               step="1"
               min="0"
               max="1000000"
-              className="form-control"
+              className="form-control tabular-nums"
               placeholder="10"
               value={formData.reorder_level}
               onKeyDown={(e) => handleNumberKeyDown(e, true)}
-              onChange={(e) => handleNumberChange('reorder_level', e.target.value, true)}
+              onChange={(e) => {
+                handleNumberChange('reorder_level', e.target.value, true);
+                markTouched('reorder_level');
+              }}
+              onBlur={() => markTouched('reorder_level')}
               required
             />
-            {fieldErrors.reorder_level && (
-              <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '2px' }}>
-                {fieldErrors.reorder_level}
-              </div>
-            )}
+            {getFieldError('reorder_level') && <div className="form-error">{getFieldError('reorder_level')}</div>}
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-          <div className="form-group">
+        <div className="form-grid-2">
+          <div className="form-group form-group-flush">
             <label htmlFor="product-warranty" className="form-label">Warranty (months)</label>
             <input
               id="product-warranty"
@@ -515,20 +507,20 @@ export const ProductFormModal = ({
               step="1"
               min="0"
               max="120"
-              className="form-control"
+              className="form-control tabular-nums"
               placeholder="e.g. 12"
               value={formData.warranty_months}
               onKeyDown={(e) => handleNumberKeyDown(e, true)}
-              onChange={(e) => handleNumberChange('warranty_months', e.target.value, true)}
+              onChange={(e) => {
+                handleNumberChange('warranty_months', e.target.value, true);
+                markTouched('warranty_months');
+              }}
+              onBlur={() => markTouched('warranty_months')}
             />
-            {fieldErrors.warranty_months && (
-              <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '2px' }}>
-                {fieldErrors.warranty_months}
-              </div>
-            )}
+            {getFieldError('warranty_months') && <div className="form-error">{getFieldError('warranty_months')}</div>}
           </div>
 
-          <div className="form-group">
+          <div className="form-group form-group-flush">
             <label htmlFor="product-status" className="form-label">Status</label>
             <select
               id="product-status"
@@ -542,10 +534,14 @@ export const ProductFormModal = ({
           </div>
         </div>
 
-        <div className="form-group">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="form-group form-group-flush">
+          <div className="form-label-row">
             <label htmlFor="product-description" className="form-label">Description</label>
-            <span style={{ fontSize: '0.75rem', color: (formData.description || '').length >= 1000 ? 'var(--danger)' : 'var(--text-muted)' }}>
+            <span
+              className={`form-counter tabular-nums ${
+                (formData.description || '').length >= 1000 ? 'form-counter-limit' : ''
+              }`}
+            >
               {(formData.description || '').length}/1000
             </span>
           </div>
@@ -557,12 +553,9 @@ export const ProductFormModal = ({
             maxLength={1000}
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            onBlur={() => markTouched('description')}
           />
-          {fieldErrors.description && (
-            <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '2px' }}>
-              {fieldErrors.description}
-            </div>
-          )}
+          {getFieldError('description') && <div className="form-error">{getFieldError('description')}</div>}
         </div>
       </form>
     </Modal>

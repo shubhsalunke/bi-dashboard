@@ -1,102 +1,118 @@
 import React from 'react';
 import { Copy, Check } from 'lucide-react';
+import { Badge } from '../common/Badge';
 import { formatCurrency } from '../../utils/format';
+
+const isNumericValue = (val) => {
+  if (typeof val === 'number') return true;
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (!trimmed) return false;
+    if (/^[-+]?₹[\d,]+(\.\d+)?$/.test(trimmed)) return true;
+    if (!isNaN(Number(trimmed))) return true;
+  }
+  return false;
+};
+
+const isMoneyMetricKey = (key) => {
+  const lower = String(key || '').toLowerCase();
+  if (lower.includes('count') || lower.includes('percent') || lower.includes('pct') || lower.includes('orders')) {
+    return false;
+  }
+  return (
+    lower.includes('revenue') ||
+    lower.includes('spend') ||
+    lower.includes('spent') ||
+    lower.includes('amount') ||
+    lower.includes('price') ||
+    lower.includes('ordervalue') ||
+    lower.includes('order_value') ||
+    lower.includes('stock_value') ||
+    lower.includes('avg_order') ||
+    lower.includes('difference') ||
+    lower.includes('drop')
+  );
+};
+
+const renderMessageText = (text) => {
+  if (!text || !text.includes('```')) {
+    return <div style={{ whiteSpace: 'pre-wrap' }}>{text}</div>;
+  }
+
+  const segments = text.split(/(```[\s\S]*?```)/g);
+  return (
+    <div style={{ whiteSpace: 'pre-wrap' }}>
+      {segments.map((seg, idx) => {
+        if (seg.startsWith('```') && seg.endsWith('```')) {
+          const code = seg.replace(/^```[^\n]*\n?/, '').replace(/\n?```$/, '');
+          return (
+            <pre key={idx} className="chat-code-block">
+              <code>{code}</code>
+            </pre>
+          );
+        }
+        return <React.Fragment key={idx}>{seg}</React.Fragment>;
+      })}
+    </div>
+  );
+};
 
 export const ChatMessageItem = ({
   msg,
   copiedId,
   onCopy,
 }) => {
+  const isUser = msg.role === 'user';
+
+  const bubbleClass = isUser
+    ? 'chat-bubble chat-bubble-user'
+    : msg.isError
+    ? 'chat-bubble chat-bubble-error'
+    : 'chat-bubble chat-bubble-assistant';
+
+  const columnNumericMap = {};
+  if (msg.report?.columns && msg.report?.rows?.length > 0) {
+    msg.report.columns.forEach((col) => {
+      columnNumericMap[col.key] = msg.report.rows.some((row) => isNumericValue(row[col.key]));
+    });
+  }
+
+  const sqlText = msg.sql || msg.report?.sql || null;
+  const assumptionsText = msg.assumptions || msg.report?.assumptions || null;
+
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '4px',
-        alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
-        maxWidth: msg.role === 'user' ? '75%' : '88%',
-      }}
-    >
-      <div
-        style={{
-          padding: '12px 16px',
-          borderRadius: '6px',
-          fontSize: '0.875rem',
-          lineHeight: 1.5,
-          backgroundColor: msg.role === 'user' ? 'var(--primary)' : 'var(--bg-card)',
-          color: msg.role === 'user' ? '#ffffff' : msg.isError ? 'var(--danger)' : 'var(--text-main)',
-          border: msg.role === 'user' ? 'none' : '1px solid var(--border-subtle)',
-        }}
-      >
-        {msg.role === 'assistant' && !msg.isError && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '8px',
-              paddingBottom: '6px',
-              borderBottom: '1px solid var(--border-subtle)',
-              fontSize: '0.75rem',
-              color: 'var(--text-muted)',
-            }}
-          >
+    <div className={`chat-msg-row ${isUser ? 'chat-msg-row-user' : 'chat-msg-row-assistant'}`}>
+      <div className={bubbleClass}>
+        {!isUser && !msg.isError && (
+          <div className="chat-assistant-header">
             <span>Assistant</span>
             <button
               type="button"
               onClick={() => onCopy(msg.text, msg.id)}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--text-muted)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                fontSize: '0.75rem',
-              }}
+              className="chat-copy-btn"
+              aria-label="Copy response"
             >
-              {copiedId === msg.id ? <Check size={12} color="var(--success)" /> : <Copy size={12} />}
+              {copiedId === msg.id ? (
+                <Check size={12} style={{ color: 'var(--success)' }} aria-hidden="true" />
+              ) : (
+                <Copy size={12} aria-hidden="true" />
+              )}
               <span>{copiedId === msg.id ? 'Copied' : 'Copy'}</span>
             </button>
           </div>
         )}
 
-        <div style={{ whiteSpace: 'pre-wrap' }}>{msg.text}</div>
+        {renderMessageText(msg.text)}
 
         {msg.report?.summaryMetrics && Object.keys(msg.report.summaryMetrics).length > 0 && (
-          <div
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '8px',
-              marginTop: '12px',
-              paddingTop: '10px',
-              borderTop: '1px solid var(--border-subtle)',
-            }}
-          >
+          <div className="chat-metrics-row">
             {Object.entries(msg.report.summaryMetrics).map(([key, val]) => (
-              <div
-                key={key}
-                style={{
-                  background: 'var(--bg-dark)',
-                  border: '1px solid var(--border-subtle)',
-                  padding: '4px 8px',
-                  borderRadius: '4px',
-                  fontSize: '0.75rem',
-                  display: 'flex',
-                  gap: '4px',
-                }}
-              >
+              <div key={key} className="chat-metric-item">
                 <span style={{ color: 'var(--text-muted)', textTransform: 'capitalize' }}>
                   {key.replace(/([A-Z])/g, ' $1')}:
                 </span>
                 <span className="tabular-nums" style={{ fontWeight: 600 }}>
-                  {typeof val === 'number' &&
-                  (key.toLowerCase().includes('revenue') ||
-                    key.toLowerCase().includes('spend') ||
-                    key.toLowerCase().includes('amount') ||
-                    key.toLowerCase().includes('price'))
+                  {typeof val === 'number' && isMoneyMetricKey(key)
                     ? formatCurrency(val, { decimals: 2 })
                     : String(val)}
                 </span>
@@ -106,33 +122,18 @@ export const ChatMessageItem = ({
         )}
 
         {msg.report?.rows && msg.report.rows.length > 0 && msg.report?.columns && (
-          <div
-            style={{
-              marginTop: '12px',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: '4px',
-              overflow: 'hidden',
-            }}
-          >
+          <div className="chat-table-card">
             {msg.report.reportTitle && (
-              <div
-                style={{
-                  padding: '8px 12px',
-                  background: 'var(--bg-dark)',
-                  borderBottom: '1px solid var(--border-subtle)',
-                  fontSize: '0.8125rem',
-                  fontWeight: 600,
-                }}
-              >
-                {msg.report.reportTitle}
-              </div>
+              <div className="chat-table-title">{msg.report.reportTitle}</div>
             )}
             <div className="table-responsive" style={{ maxHeight: '280px', overflowY: 'auto' }}>
               <table className="data-table" style={{ fontSize: '0.8125rem' }}>
                 <thead>
                   <tr>
                     {msg.report.columns.map((col) => (
-                      <th key={col.key}>{col.label}</th>
+                      <th key={col.key} className={columnNumericMap[col.key] ? 'num' : ''}>
+                        {col.label}
+                      </th>
                     ))}
                   </tr>
                 </thead>
@@ -141,21 +142,19 @@ export const ChatMessageItem = ({
                     <tr key={rIdx}>
                       {msg.report.columns.map((col) => {
                         const cellVal = row[col.key];
-                        const isMoney =
-                          (col.key === 'total_spent' ||
-                            col.key === 'unit_price' ||
-                            col.key === 'total_revenue' ||
-                            col.key === 'total_amount' ||
-                            col.key === 'line_total' ||
-                            col.key.toLowerCase().includes('spent') ||
-                            col.key.toLowerCase().includes('price') ||
-                            (col.key.toLowerCase().includes('amount') && !col.key.toLowerCase().includes('count'))) &&
-                          typeof cellVal === 'number';
+                        const isNumericInput =
+                          typeof cellVal === 'number' ||
+                          (typeof cellVal === 'string' && /^-?\d+(\.\d+)?$/.test(cellVal.trim()));
+                        const isMoney = isMoneyMetricKey(col.key) && isNumericInput;
                         const displayVal = isMoney ? formatCurrency(cellVal) : cellVal;
-                        const isNumeric = typeof cellVal === 'number' || (!isNaN(Number(cellVal)) && cellVal !== '');
+                        const isNum = columnNumericMap[col.key];
                         return (
-                          <td key={col.key} className={isNumeric ? 'tabular-nums' : ''}>
-                            {displayVal}
+                          <td key={col.key} className={isNum ? 'num' : ''}>
+                            {col.key === 'status' && typeof cellVal === 'string' ? (
+                              <Badge status={cellVal} />
+                            ) : (
+                              displayVal
+                            )}
                           </td>
                         );
                       })}
@@ -166,15 +165,27 @@ export const ChatMessageItem = ({
             </div>
           </div>
         )}
+
+        {!isUser && !msg.isError && (sqlText || assumptionsText) && (
+          <details className="chat-calc-details">
+            <summary className="chat-calc-summary">How this was calculated</summary>
+            <div className="chat-calc-body">
+              {assumptionsText && (
+                <div className="chat-calc-assumptions">
+                  <strong>Assumptions:</strong> {assumptionsText}
+                </div>
+              )}
+              {sqlText && (
+                <pre className="chat-code-block">
+                  <code>{sqlText}</code>
+                </pre>
+              )}
+            </div>
+          </details>
+        )}
       </div>
 
-      <span
-        style={{
-          fontSize: '0.6875rem',
-          color: 'var(--text-dim)',
-          alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
-        }}
-      >
+      <span className={`chat-timestamp tabular-nums ${isUser ? 'chat-timestamp-user' : ''}`}>
         {msg.timestamp}
       </span>
     </div>

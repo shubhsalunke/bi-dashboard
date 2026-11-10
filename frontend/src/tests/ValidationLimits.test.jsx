@@ -62,6 +62,8 @@ describe('Frontend Input Validation & Boundaries', () => {
       // Name max 150
       const nameInput = screen.getByLabelText(/Product Name \*/i);
       expect(nameInput).toHaveAttribute('maxLength', '150');
+      expect(screen.queryByText(/Product name is required/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Unit price must be a valid number greater than zero/i)).not.toBeInTheDocument();
 
       // Product Code auto uppercase and max 30
       const skuInput = screen.getByLabelText(/Product Code/i);
@@ -123,6 +125,32 @@ describe('Frontend Input Validation & Boundaries', () => {
   });
 
   describe('3. Customer Form Validation', () => {
+    it('does not show required errors on initial open and displays error when left empty on blur', () => {
+      render(
+        <ToastProvider>
+          <CustomerFormModal
+            isOpen={true}
+            onClose={vi.fn()}
+            onSaved={vi.fn()}
+          />
+        </ToastProvider>
+      );
+
+      expect(screen.queryByText(/Customer code is required/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Customer name is required/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Email address is required/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/City is required/i)).not.toBeInTheDocument();
+
+      const nameInput = screen.getByLabelText(/Company \/ Client Name \*/i);
+      fireEvent.blur(nameInput);
+      expect(screen.getByText(/Customer name is required/i)).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: /Create Customer/i }));
+      expect(screen.getByText(/Customer code is required/i)).toBeInTheDocument();
+      expect(screen.getByText(/Email address is required/i)).toBeInTheDocument();
+      expect(screen.getByText(/City is required/i)).toBeInTheDocument();
+    });
+
     it('restricts phone to 10 digits and validates length', () => {
       render(
         <ToastProvider>

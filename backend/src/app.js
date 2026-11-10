@@ -10,21 +10,32 @@ const { setupSwagger } = require('./config/swagger');
 
 const app = express();
 
-// Security headers
-app.use(helmet());
+// Security headers (keep CSP and COOP permissive for plain-HTTP server IPs & Swagger UI)
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginOpenerPolicy: false,
+  })
+);
 
-// CORS configuration - allow all origins in development (including EC2 public IP)
+// Parse comma-separated CORS origins from env
+const allowedOrigins = String(config.corsOrigin || '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+// CORS configuration
 app.use(
   cors({
     origin: (origin, callback) => {
-      // In development or if no origin (e.g. mobile apps, curl), permit request
-      if (config.env === 'development' || !origin) {
+      // Allow server-to-server, curl, and local dev/test traffic
+      if (!origin || config.env === 'development' || config.env === 'test') {
         return callback(null, true);
       }
-      if (origin === config.corsOrigin || origin.includes('localhost') || origin.includes('16.171.63.136')) {
+      if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
-      return callback(null, true);
+      return callback(null, false);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],

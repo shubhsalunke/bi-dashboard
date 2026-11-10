@@ -18,36 +18,9 @@ import { UserManagement } from './pages/UserManagement';
 
 // Full screen auth loader
 const AuthLoadingScreen = () => (
-  <div
-    style={{
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'var(--bg-dark, #090d16)',
-      color: 'var(--text-main, #f8fafc)',
-      gap: '16px',
-    }}
-  >
-    <div
-      style={{
-        width: '40px',
-        height: '40px',
-        border: '3px solid rgba(99, 102, 241, 0.2)',
-        borderTopColor: '#6366f1',
-        borderRadius: '50%',
-        animation: 'spin 0.8s linear infinite',
-      }}
-    />
-    <div style={{ fontSize: '0.875rem', color: '#94a3b8' }}>
-      Authenticating session...
-    </div>
-    <style>{`
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-    `}</style>
+  <div className="auth-loading-screen" role="status" aria-live="polite">
+    <div className="auth-spinner" aria-hidden="true" />
+    <div className="auth-loading-text">Authenticating session...</div>
   </div>
 );
 

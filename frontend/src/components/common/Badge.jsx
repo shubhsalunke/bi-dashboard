@@ -7,7 +7,7 @@ export const Badge = ({ status, variant = null, label = null, children = null })
 
   return (
     <span className={`badge ${badgeClass}`}>
-      {isStatus && <span className="badge-dot" />}
+      {isStatus && <span className="badge-dot" aria-hidden="true" />}
       <span>{displayText}</span>
     </span>
   );

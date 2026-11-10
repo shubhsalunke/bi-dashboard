@@ -16,6 +16,8 @@ export const CustomerFormModal = ({ isOpen, onClose, customer = null, onSaved })
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
+  const [submitted, setSubmitted] = useState(false);
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -39,7 +41,19 @@ export const CustomerFormModal = ({ isOpen, onClose, customer = null, onSaved })
       });
     }
     setErrors({});
+    setTouched({});
+    setSubmitted(false);
   }, [customer, isOpen]);
+
+  const markTouched = (field) => {
+    setTouched((prev) => (prev[field] ? prev : { ...prev, [field]: true }));
+  };
+
+  const getFieldError = (field) => {
+    if (errors[field]) return errors[field];
+    if (touched[field] || submitted) return validationErrors[field] || '';
+    return '';
+  };
 
   const validationErrors = useMemo(() => {
     const errs = {};
@@ -80,6 +94,7 @@ export const CustomerFormModal = ({ isOpen, onClose, customer = null, onSaved })
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitted(true);
     if (!isValid) {
       setErrors(validationErrors);
       return;
@@ -112,6 +127,12 @@ export const CustomerFormModal = ({ isOpen, onClose, customer = null, onSaved })
     }
   };
 
+  const codeError = getFieldError('customer_code');
+  const nameError = getFieldError('customer_name');
+  const emailError = getFieldError('email');
+  const phoneError = getFieldError('phone');
+  const cityError = getFieldError('city');
+
   return (
     <Modal
       isOpen={isOpen}
@@ -122,113 +143,133 @@ export const CustomerFormModal = ({ isOpen, onClose, customer = null, onSaved })
           <button type="button" className="btn btn-secondary" onClick={onClose} disabled={loading}>
             Cancel
           </button>
-          <button type="submit" form="customer-form" className="btn btn-primary" disabled={loading || !isValid}>
+          <button type="submit" form="customer-form" className="btn btn-primary" disabled={loading}>
             {loading ? 'Saving...' : customer ? 'Update Customer' : 'Create Customer'}
           </button>
         </>
       }
     >
-      <form id="customer-form" onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Customer Code *</label>
+      <form id="customer-form" onSubmit={handleSubmit} noValidate className="stack-md">
+        <div className="form-grid-2">
+          <div className="form-group form-group-flush">
+            <label htmlFor="customer-code" className="form-label">Customer Code *</label>
             <input
+              id="customer-code"
               type="text"
               className="form-control"
               placeholder="e.g. CUST-045"
               maxLength={50}
               value={formData.customer_code}
-              onChange={(e) => setFormData({ ...formData, customer_code: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, customer_code: e.target.value });
+                if (errors.customer_code) setErrors((prev) => ({ ...prev, customer_code: undefined }));
+              }}
+              onBlur={() => markTouched('customer_code')}
+              aria-invalid={Boolean(codeError)}
               required
             />
-            {(errors.customer_code || validationErrors.customer_code) && (
-              <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.8125rem', marginTop: '4px' }}>
-                {errors.customer_code || validationErrors.customer_code}
-              </div>
+            {codeError && (
+              <div className="form-error">{codeError}</div>
             )}
           </div>
 
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Company / Client Name *</label>
+          <div className="form-group form-group-flush">
+            <label htmlFor="customer-name" className="form-label">Company / Client Name *</label>
             <input
+              id="customer-name"
               type="text"
               className="form-control"
               placeholder="e.g. Nova Innovations Corp"
               maxLength={100}
               value={formData.customer_name}
-              onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, customer_name: e.target.value });
+                if (errors.customer_name) setErrors((prev) => ({ ...prev, customer_name: undefined }));
+              }}
+              onBlur={() => markTouched('customer_name')}
+              aria-invalid={Boolean(nameError)}
               required
             />
-            {(errors.customer_name || validationErrors.customer_name) && (
-              <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.8125rem', marginTop: '4px' }}>
-                {errors.customer_name || validationErrors.customer_name}
-              </div>
+            {nameError && (
+              <div className="form-error">{nameError}</div>
             )}
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Primary Email *</label>
+        <div className="form-grid-2">
+          <div className="form-group form-group-flush">
+            <label htmlFor="customer-email" className="form-label">Primary Email *</label>
             <input
+              id="customer-email"
               type="email"
               className="form-control"
               placeholder="billing@company.com"
               maxLength={254}
               value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, email: e.target.value });
+                if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
+              }}
+              onBlur={() => markTouched('email')}
+              aria-invalid={Boolean(emailError)}
               required
             />
-            {(errors.email || validationErrors.email) && (
-              <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.8125rem', marginTop: '4px' }}>
-                {errors.email || validationErrors.email}
-              </div>
+            {emailError && (
+              <div className="form-error">{emailError}</div>
             )}
           </div>
 
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Phone Number (10 Digits)</label>
+          <div className="form-group form-group-flush">
+            <label htmlFor="customer-phone" className="form-label">Phone Number (10 Digits)</label>
             <input
+              id="customer-phone"
               type="tel"
-              className="form-control"
+              className="form-control tabular-nums"
               placeholder="9820111001"
               maxLength={10}
               value={formData.phone}
               onChange={(e) => {
                 const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
                 setFormData({ ...formData, phone: digits });
+                markTouched('phone');
+                if (errors.phone) setErrors((prev) => ({ ...prev, phone: undefined }));
               }}
+              onBlur={() => markTouched('phone')}
+              aria-invalid={Boolean(phoneError)}
             />
-            {(errors.phone || validationErrors.phone) && (
-              <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.8125rem', marginTop: '4px' }}>
-                {errors.phone || validationErrors.phone}
-              </div>
+            {phoneError && (
+              <div className="form-error">{phoneError}</div>
             )}
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">City *</label>
+        <div className="form-grid-2">
+          <div className="form-group form-group-flush">
+            <label htmlFor="customer-city" className="form-label">City *</label>
             <input
+              id="customer-city"
               type="text"
               className="form-control"
               placeholder="e.g. Pune"
               maxLength={100}
               value={formData.city}
-              onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, city: e.target.value });
+                if (errors.city) setErrors((prev) => ({ ...prev, city: undefined }));
+              }}
+              onBlur={() => markTouched('city')}
+              aria-invalid={Boolean(cityError)}
               required
             />
-            {(errors.city || validationErrors.city) && (
-              <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.8125rem', marginTop: '4px' }}>
-                {errors.city || validationErrors.city}
-              </div>
+            {cityError && (
+              <div className="form-error">{cityError}</div>
             )}
           </div>
 
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Status</label>
+          <div className="form-group form-group-flush">
+            <label htmlFor="customer-status" className="form-label">Status</label>
             <select
+              id="customer-status"
               className="form-control"
               value={formData.status}
               onChange={(e) => setFormData({ ...formData, status: e.target.value })}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, AlertCircle } from 'lucide-react';
 import { salesApi } from '../api/sales.api';
 import { customersApi } from '../api/customers.api';
 import { productsApi } from '../api/products.api';
@@ -16,6 +16,7 @@ export const Sales = () => {
   const [sales, setSales] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [statusFilter, setStatusFilter] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -37,6 +38,7 @@ export const Sales = () => {
 
   const fetchSales = useCallback(async (page = 1) => {
     setLoading(true);
+    setError(null);
     try {
       const res = await salesApi.getSales({
         page,
@@ -48,7 +50,9 @@ export const Sales = () => {
       setSales(res.data);
       setPagination(res.pagination);
     } catch (err) {
-      showToast(err.message || 'Failed to load sales', 'error');
+      const msg = err.message || 'Failed to load sales';
+      setError(msg);
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -133,8 +137,8 @@ export const Sales = () => {
         </div>
 
         {canManage && (
-          <button className="btn btn-primary btn-sm" onClick={handleOpenCreateModal}>
-            <Plus size={14} />
+          <button type="button" className="btn btn-primary btn-sm" onClick={handleOpenCreateModal}>
+            <Plus size={14} aria-hidden="true" />
             <span>New Sale</span>
           </button>
         )}
@@ -142,8 +146,8 @@ export const Sales = () => {
 
       <div className="filter-bar">
         <select
-          className="form-control"
-          style={{ width: '150px' }}
+          className="form-control filter-select"
+          aria-label="Filter by status"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
         >
@@ -153,19 +157,21 @@ export const Sales = () => {
           <option value="cancelled">Cancelled</option>
         </select>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div className="date-range-group">
           <input
             type="date"
+            aria-label="Start date"
             className="form-control"
-            style={{ width: '135px' }}
+            style={{ width: '144px' }}
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
           />
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>to</span>
+          <span className="date-range-sep">to</span>
           <input
             type="date"
+            aria-label="End date"
             className="form-control"
-            style={{ width: '135px' }}
+            style={{ width: '144px' }}
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
           />
@@ -173,6 +179,7 @@ export const Sales = () => {
 
         {(statusFilter || startDate || endDate) && (
           <button
+            type="button"
             className="btn btn-secondary btn-sm"
             onClick={() => { setStatusFilter(''); setStartDate(''); setEndDate(''); }}
           >
@@ -181,9 +188,20 @@ export const Sales = () => {
         )}
       </div>
 
-      <div className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
+      <div className="card card-flush">
         {loading ? (
-          <TableSkeleton rows={5} cols={6} />
+          <TableSkeleton rows={5} columns={6} />
+        ) : error && sales.length === 0 ? (
+          <EmptyState
+            icon={AlertCircle}
+            title="Unable to load sales"
+            description={error}
+            action={
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => fetchSales(1)}>
+                Retry
+              </button>
+            }
+          />
         ) : sales.length === 0 ? (
           <EmptyState
             title="No sales found"
@@ -195,14 +213,15 @@ export const Sales = () => {
             action={
               (statusFilter || startDate || endDate) ? (
                 <button
+                  type="button"
                   className="btn btn-secondary btn-sm"
                   onClick={() => { setStatusFilter(''); setStartDate(''); setEndDate(''); }}
                 >
                   Clear Filters
                 </button>
               ) : canManage ? (
-                <button className="btn btn-primary btn-sm" onClick={handleOpenCreateModal}>
-                  <Plus size={14} />
+                <button type="button" className="btn btn-primary btn-sm" onClick={handleOpenCreateModal}>
+                  <Plus size={14} aria-hidden="true" />
                   <span>Record First Sale</span>
                 </button>
               ) : null

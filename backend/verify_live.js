@@ -102,13 +102,13 @@ async function runLiveVerification() {
       {
         customer_id: 2,
         items: [
-          { product_id: 2, quantity: 2 }, // $650 * 2 = 1300
-          { product_id: 3, quantity: 1 }, // $220 * 1 = 220
+          { product_id: 2, quantity: 2 }, // ₹650 * 2 = 1300
+          { product_id: 3, quantity: 1 }, // ₹220 * 1 = 220
         ],
       },
       managerToken
     );
-    console.log(`[PASS] POST /api/sales (Transactional) -> HTTP ${newSale.statusCode} | Sale ID: ${newSale.data.data.id} | Total Amount: $${newSale.data.data.total_amount}`);
+    console.log(`[PASS] POST /api/sales (Transactional) -> HTTP ${newSale.statusCode} | Sale ID: ${newSale.data.data.id} | Total Amount: ₹${newSale.data.data.total_amount}`);
     if (newSale.statusCode !== 201) throw new Error('Sale creation failed');
 
     // 10. Sales: Transaction Rollback test on invalid product
@@ -142,7 +142,7 @@ async function runLiveVerification() {
 
     // 12. Dashboard: Summary with real KPI calculations
     const dash = await makeRequest('/api/dashboard/summary', 'GET', null, analystToken);
-    console.log(`[PASS] GET /api/dashboard/summary -> HTTP ${dash.statusCode} | Total Revenue: $${dash.data.data.kpi.total_revenue} | Total Sales: ${dash.data.data.kpi.total_sales_count} | Top Customers: ${dash.data.data.topCustomers.length}`);
+    console.log(`[PASS] GET /api/dashboard/summary -> HTTP ${dash.statusCode} | Total Revenue: ₹${dash.data.data.kpi.total_revenue} | Total Sales: ${dash.data.data.kpi.total_sales_count} | Top Customers: ${dash.data.data.topCustomers.length}`);
     if (dash.statusCode !== 200) throw new Error('Dashboard summary failed');
 
     // 13. Reports: Comprehensive Sales breakdown

@@ -1,5 +1,6 @@
 const config = require('../config/env');
 const { ApiError } = require('../middleware/errorHandler');
+const { formatCurrency } = require('../utils/format');
 
 class AiProviderService {
   /**
@@ -76,7 +77,7 @@ class AiProviderService {
 Answer the user's question concisely using ONLY the provided verified business records below.
 Rules:
 1. Ground every claim directly in the provided dataset. Never fabricate or hallucinate numbers, dates, customers, or products not in the dataset.
-2. Present exact figures with currency symbols where appropriate.
+2. Present exact figures with Indian Rupee currency formatting (₹, en-IN grouping, e.g. ₹1,24,500.00).
 3. Be professional, direct, executive-ready, and concise (under 4 sentences).
 4. Do not include markdown code fences in your response.`;
 
@@ -95,9 +96,7 @@ Provide a concise, executive-level explanation grounded entirely in this data:`;
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const isBearerToken = apiKey.startsWith('AQ.') || apiKey.startsWith('ya29.');
-      const url = isBearerToken
-        ? `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
-        : `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
       const headers = {
         'Content-Type': 'application/json',
@@ -182,7 +181,7 @@ Provide a concise, executive-level explanation grounded entirely in this data:`;
 Answer the user's question concisely using ONLY the provided verified business records below.
 Rules:
 1. Never fabricate or hallucinate numbers, dates, customers, or products not in the dataset.
-2. Present exact figures with currency symbols where appropriate.
+2. Present exact figures with Indian Rupee currency formatting (₹, en-IN grouping, e.g. ₹1,24,500.00).
 3. Be professional, direct, and concise (under 4 sentences).
 4. Do not include markdown code fences in your response.`;
 
@@ -259,17 +258,17 @@ Provide a concise, executive-level explanation grounded entirely in this data:`;
     switch (intent) {
       case 'TOTAL_SALES': {
         const rev = summaryMetrics.totalRevenue !== undefined
-          ? `$${summaryMetrics.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
-          : '$0.00';
+          ? formatCurrency(summaryMetrics.totalRevenue, { decimals: 2 })
+          : formatCurrency(0, { decimals: 2 });
         const orders = summaryMetrics.totalOrders || 0;
         const avg = summaryMetrics.averageOrderValue !== undefined
-          ? `$${summaryMetrics.averageOrderValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
-          : '$0.00';
+          ? formatCurrency(summaryMetrics.averageOrderValue, { decimals: 2 })
+          : formatCurrency(0, { decimals: 2 });
         const period = summaryMetrics.reportingPeriod || reportData.periodLabel;
         const periodText = period ? ` for ${period.toLowerCase()}` : '';
 
         if (orders === 0) {
-          return `Based on verified business records${periodText}, no sales transactions were recorded ($0.00 across 0 orders).`;
+          return `Based on verified business records${periodText}, no sales transactions were recorded (${formatCurrency(0, { decimals: 2 })} across 0 orders).`;
         }
 
         return `Based on verified business records${periodText}, total revenue stands at ${rev} across ${orders} completed sales order${orders === 1 ? '' : 's'}, with an average transaction value of ${avg}.`;
@@ -278,9 +277,9 @@ Provide a concise, executive-level explanation grounded entirely in this data:`;
       case 'CUSTOMER_INSIGHT': {
         const name = summaryMetrics.customerName || 'Customer';
         const code = summaryMetrics.customerCode ? ` (${summaryMetrics.customerCode})` : '';
-        const rev = `$${(summaryMetrics.totalRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+        const rev = formatCurrency(summaryMetrics.totalRevenue || 0, { decimals: 2 });
         const orders = summaryMetrics.ordersCount || 0;
-        const avg = `$${(summaryMetrics.averageOrderValue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+        const avg = formatCurrency(summaryMetrics.averageOrderValue || 0, { decimals: 2 });
         return `Account intelligence dossier for ${name}${code}: Total lifetime spend stands at ${rev} across ${orders} completed order${orders === 1 ? '' : 's'}, with an average transaction value of ${avg}. Account remains in active standing.`;
       }
 
@@ -307,8 +306,8 @@ Provide a concise, executive-level explanation grounded entirely in this data:`;
 
       case 'MOM_COMPARISON': {
         const growth = summaryMetrics.growthPercentage || '0%';
-        const prev = `$${(summaryMetrics.previousRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
-        const curr = `$${(summaryMetrics.currentRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+        const prev = formatCurrency(summaryMetrics.previousRevenue || 0, { decimals: 2 });
+        const curr = formatCurrency(summaryMetrics.currentRevenue || 0, { decimals: 2 });
         return `Month-over-month sales review: Revenue changed by ${growth}, shifting from ${prev} in ${summaryMetrics.previousMonth} to ${curr} in ${summaryMetrics.currentMonth}.`;
       }
 
@@ -321,7 +320,7 @@ Provide a concise, executive-level explanation grounded entirely in this data:`;
       }
 
       case 'QUARTERLY_SUMMARY': {
-        const rev = `$${(summaryMetrics.totalRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+        const rev = formatCurrency(summaryMetrics.totalRevenue || 0, { decimals: 2 });
         return `Executive quarterly summary: The business recorded ${rev} in completed revenue across ${summaryMetrics.totalOrders || 0} transactions. The top product was "${summaryMetrics.topProduct || 'N/A'}" and the highest grossing market was ${summaryMetrics.topCity || 'N/A'}.`;
       }
 
@@ -336,7 +335,7 @@ Provide a concise, executive-level explanation grounded entirely in this data:`;
       case 'CUSTOMER_LIST': {
         const count = rows?.length || 0;
         const total = summaryMetrics?.totalSpent || 0;
-        const formattedTotal = `$${total.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+        const formattedTotal = formatCurrency(total, { decimals: 2 });
         const cityText = reportData.city ? ` in ${reportData.city}` : '';
         return `Showing ${count} customers${cityText} with total spending of ${formattedTotal}.`;
       }

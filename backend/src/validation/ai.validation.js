@@ -1,5 +1,10 @@
 const Joi = require('joi');
 
+const historyItemSchema = Joi.object({
+  question: Joi.string().trim().min(1).max(500).required(),
+  answer: Joi.string().trim().min(1).max(600).required(),
+});
+
 const askAiSchema = {
   body: Joi.object({
     question: Joi.string()
@@ -14,6 +19,11 @@ const askAiSchema = {
         'string.max': 'Question cannot exceed 500 characters',
         'any.required': 'Question field is required',
       }),
+    history: Joi.array()
+      .items(historyItemSchema)
+      .max(3)
+      .optional()
+      .default([]),
   }),
 };
 

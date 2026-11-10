@@ -62,9 +62,28 @@ export const AIAssistant = () => {
     }
   };
 
+  const buildHistory = useCallback((msgList) => {
+    const pairs = [];
+    for (let i = 0; i < msgList.length; i++) {
+      const m = msgList[i];
+      if (m.role === 'user') {
+        const next = msgList[i + 1];
+        if (next && next.role === 'assistant' && !next.isError && next.text) {
+          pairs.push({
+            question: m.text.slice(0, 500),
+            answer: next.text.slice(0, 400),
+          });
+        }
+      }
+    }
+    return pairs.slice(-3);
+  }, []);
+
   const handleSend = useCallback(async (questionToSend) => {
     const q = (questionToSend || inputQuery).trim();
     if (!q || loading) return;
+
+    const history = buildHistory(messages);
 
     setInputQuery('');
     setLastError(null);
@@ -94,17 +113,23 @@ export const AIAssistant = () => {
     setLoading(true);
 
     try {
-      const data = await aiApi.askQuestion(q);
+      const data = history.length > 0
+        ? await aiApi.askQuestion(q, history)
+        : await aiApi.askQuestion(q);
       const assistantMsg = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         text: data.answer,
         report: data,
+        sql: data.sql || null,
+        assumptions: data.assumptions || null,
+        isClarification: Boolean(data.isClarification),
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, assistantMsg]);
     } catch (err) {
       const errorMsg =
+        err.details?.[0]?.message ||
         err.response?.data?.error?.details?.[0]?.message ||
         err.response?.data?.error?.message ||
         err.response?.data?.message ||
@@ -130,7 +155,7 @@ export const AIAssistant = () => {
       setLoading(false);
       setTimeout(() => inputRef.current?.focus(), 100);
     }
-  }, [inputQuery, loading, showToast]);
+  }, [inputQuery, loading, messages, buildHistory, showToast]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -164,53 +189,33 @@ export const AIAssistant = () => {
   const isInitialState = messages.length <= 1;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', height: 'calc(100vh - 120px)', boxSizing: 'border-box' }}>
+    <div className="chat-page">
       <div className="page-header" style={{ marginBottom: 0 }}>
         <div>
-          <h2 className="brand-title-serif">AI Business Assistant</h2>
+          <h2>AI Business Assistant</h2>
           <p className="page-subtitle">Answers come from your sales database.</p>
         </div>
 
         <button type="button" className="btn btn-secondary btn-sm" onClick={handleClearChat}>
-          <RotateCcw size={14} />
+          <RotateCcw size={14} aria-hidden="true" />
           <span>Clear Chat</span>
         </button>
       </div>
 
       {unconfiguredNotice && (
-        <div
-          className="glass-panel"
-          style={{
-            padding: '12px 16px',
-            borderColor: 'var(--warning-border)',
-            background: 'var(--warning-bg)',
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: '10px',
-          }}
-        >
-          <AlertCircle size={18} color="var(--warning)" style={{ flexShrink: 0, marginTop: '2px' }} />
-          <div style={{ fontSize: '0.875rem' }}>
-            <strong style={{ color: 'var(--warning)' }}>AI Provider Configuration Notice</strong>
-            <p style={{ margin: '4px 0 0 0', color: 'var(--text-main)' }}>
-              OpenAI API key is currently not configured in <code>backend/.env</code>. Set <code>OPENAI_API_KEY</code> or keep <code>AI_PROVIDER=mock</code>.
+        <div className="alert alert-warning" role="alert">
+          <AlertCircle size={18} style={{ color: 'var(--warning)', flexShrink: 0, marginTop: '2px' }} aria-hidden="true" />
+          <div>
+            <div className="alert-warning-title">AI Provider Configuration Notice</div>
+            <p style={{ marginTop: 'var(--space-1)', color: 'var(--text-primary)' }}>
+              AI provider API key is not configured in root <code>.env</code>. Set <code>GEMINI_API_KEY</code> or <code>OPENAI_API_KEY</code>, or keep <code>AI_PROVIDER=mock</code>.
             </p>
           </div>
         </div>
       )}
 
-      <div className="copilot-main-panel" style={{ minHeight: 0 }}>
-        <div
-          ref={chatScrollRef}
-          style={{
-            flex: 1,
-            overflowY: 'auto',
-            padding: '20px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '16px',
-          }}
-        >
+      <div className="chat-panel">
+        <div ref={chatScrollRef} className="chat-scroll-area">
           {isInitialState ? (
             <AIInitialState
               welcomeText={WELCOME_TEXT}
@@ -219,43 +224,38 @@ export const AIAssistant = () => {
               onSelectQuestion={handleSend}
             />
           ) : (
-            messages.map((msg) => (
-              <ChatMessageItem
-                key={msg.id}
-                msg={msg}
-                copiedId={copiedId}
-                onCopy={handleCopyMessage}
-              />
-            ))
-          )}
+            <div className="chat-thread">
+              {messages.map((msg) => (
+                <ChatMessageItem
+                  key={msg.id}
+                  msg={msg}
+                  copiedId={copiedId}
+                  onCopy={handleCopyMessage}
+                />
+              ))}
 
-          {loading && (
-            <div style={{ alignSelf: 'flex-start', color: 'var(--text-muted)', fontSize: '0.875rem', padding: '10px' }}>
-              Thinking...
+              {loading && (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  style={{ alignSelf: 'flex-start', color: 'var(--text-muted)', fontSize: '0.875rem', padding: 'var(--space-2)' }}
+                >
+                  Querying your data...
+                </div>
+              )}
             </div>
           )}
         </div>
 
         {lastError && !loading && (
-          <div
-            style={{
-              padding: '8px 16px',
-              background: 'var(--danger-bg)',
-              borderTop: '1px solid var(--danger-border)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              fontSize: '0.8125rem',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--danger)' }}>
-              <AlertCircle size={14} />
+          <div className="chat-retry-bar" role="alert">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', color: 'var(--danger)' }}>
+              <AlertCircle size={14} aria-hidden="true" />
               <span>Question failed to process</span>
             </div>
             <button
               type="button"
               className="btn btn-secondary btn-sm"
-              style={{ padding: '3px 8px', fontSize: '0.75rem' }}
               onClick={() => handleSend(lastError.question)}
             >
               Retry Query
@@ -263,17 +263,12 @@ export const AIAssistant = () => {
           </div>
         )}
 
-        <div
-          style={{
-            padding: '16px 20px',
-            borderTop: '1px solid var(--border-subtle)',
-            backgroundColor: 'var(--bg-card)',
-          }}
-        >
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <div className="chat-input-dock">
+          <div className="chat-input-row">
             <input
               ref={inputRef}
               type="text"
+              aria-label="Ask a business intelligence question"
               className="form-control"
               placeholder="Ask about revenue, customer spending, or product metrics... (e.g. Which customer spent the most?)"
               maxLength={500}
@@ -289,11 +284,15 @@ export const AIAssistant = () => {
               disabled={!inputQuery.trim() || inputQuery.length > 500 || loading}
               onClick={() => handleSend()}
             >
-              <Send size={15} />
+              <Send size={14} aria-hidden="true" />
               <span>Ask AI</span>
             </button>
           </div>
-          <div style={{ textAlign: 'right', fontSize: '0.75rem', color: inputQuery.length >= 500 ? 'var(--danger)' : 'var(--text-muted)', marginTop: '4px' }}>
+          <div
+            className={`chat-char-count tabular-nums ${
+              inputQuery.length >= 500 ? 'form-counter-limit' : ''
+            }`}
+          >
             {inputQuery.length}/500
           </div>
         </div>

@@ -1,5 +1,7 @@
 import React from 'react';
 import { Modal } from '../common/Modal';
+import { Badge } from '../common/Badge';
+import { TableSkeleton } from '../common/LoadingSkeleton';
 import { formatCurrency, formatDate } from '../../utils/format';
 
 export const SaleDetailModal = ({ sale, loading, onClose }) => {
@@ -17,50 +19,58 @@ export const SaleDetailModal = ({ sale, loading, onClose }) => {
       }
     >
       {loading ? (
-        <p>Loading sale details...</p>
+        <TableSkeleton rows={4} columns={4} />
       ) : (
-        <div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+        <div className="stack-md">
+          <div className="detail-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
             <div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>Customer</div>
-              <div style={{ fontWeight: 500 }}>{sale.customer_name}</div>
+              <div className="detail-label">Customer</div>
+              <div className="detail-value">{sale.customer_name}</div>
             </div>
             <div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>Date</div>
-              <div>{formatDate(sale.sale_date)}</div>
+              <div className="detail-label">Date</div>
+              <div className="detail-value tabular-nums">{formatDate(sale.sale_date)}</div>
+            </div>
+            <div>
+              <div className="detail-label">Status</div>
+              <div style={{ marginTop: '4px' }}>
+                <Badge status={sale.status || 'completed'} />
+              </div>
             </div>
           </div>
 
-          <div style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '8px' }}>Line Items</div>
-          <div className="table-responsive">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Product</th>
-                  <th>Qty</th>
-                  <th>Unit Price</th>
-                  <th>Subtotal</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sale.items?.map((item, idx) => (
-                  <tr key={idx}>
-                    <td>{item.product_name}</td>
-                    <td className="tabular-nums">{item.quantity}</td>
-                    <td className="tabular-nums">{formatCurrency(item.unit_price)}</td>
-                    <td className="tabular-nums" style={{ fontWeight: 600 }}>{formatCurrency(item.subtotal)}</td>
+          <div>
+            <h4 className="section-heading" style={{ marginBottom: 'var(--space-2)' }}>Line Items</h4>
+            <div className="table-responsive table-bordered">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th className="num">Qty</th>
+                    <th className="num">Unit Price</th>
+                    <th className="num">Subtotal</th>
                   </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td colSpan={3} style={{ textAlign: 'right', fontWeight: 600 }}>Total</td>
-                  <td className="tabular-nums" style={{ fontWeight: 700, color: 'var(--primary)' }}>
-                    {formatCurrency(sale.total_amount)}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
+                </thead>
+                <tbody>
+                  {sale.items?.map((item, idx) => (
+                    <tr key={idx}>
+                      <td className="cell-primary">{item.product_name}</td>
+                      <td className="num">{item.quantity}</td>
+                      <td className="num">{formatCurrency(item.unit_price)}</td>
+                      <td className="num cell-primary">{formatCurrency(item.subtotal)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colSpan={3} style={{ textAlign: 'right', fontWeight: 600 }}>Total</td>
+                    <td className="num" style={{ fontWeight: 600, color: 'var(--accent-text)' }}>
+                      {formatCurrency(sale.total_amount)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
           </div>
         </div>
       )}

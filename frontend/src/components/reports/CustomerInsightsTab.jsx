@@ -16,10 +16,11 @@ export const CustomerInsightsTab = ({
     <div>
       <div className="filter-bar">
         <div className="search-input-wrapper">
-          <Search size={15} className="search-icon" />
+          <Search size={15} className="search-icon" aria-hidden="true" />
           <input
             ref={searchInputRef}
             type="text"
+            aria-label="Search customer insights"
             className="form-control search-input"
             placeholder="Search customers by name, code, or city... (Press / to search)"
             maxLength={100}
@@ -29,8 +30,8 @@ export const CustomerInsightsTab = ({
         </div>
 
         <select
-          className="form-control"
-          style={{ width: '150px' }}
+          className="form-control filter-select"
+          aria-label="Filter by trend"
           value={trendFilter}
           onChange={(e) => setTrendFilter(e.target.value)}
         >
@@ -51,7 +52,7 @@ export const CustomerInsightsTab = ({
         )}
       </div>
 
-      <div className="glass-panel" style={{ padding: '20px' }}>
+      <div className="card card-flush">
         {insights.length === 0 ? (
           <EmptyState
             title="No customer insights found"
@@ -80,8 +81,8 @@ export const CustomerInsightsTab = ({
                   <th>Customer</th>
                   <th>City</th>
                   <th>Tier</th>
-                  <th>Lifetime Spend</th>
-                  <th>Last 30 Days</th>
+                  <th className="num">Lifetime Spend</th>
+                  <th className="num">Last 30 Days</th>
                   <th>Trend</th>
                 </tr>
               </thead>
@@ -96,13 +97,13 @@ export const CustomerInsightsTab = ({
                   return (
                     <tr key={ci.customer_code}>
                       <td>
-                        <div style={{ fontWeight: 500 }}>{ci.customer_name}</div>
-                        <div className="tabular-nums" style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>{ci.customer_code}</div>
+                        <div className="cell-primary">{ci.customer_name}</div>
+                        <div className="cell-secondary tabular-nums">{ci.customer_code}</div>
                       </td>
-                      <td>{ci.city}</td>
+                      <td style={{ color: 'var(--text-secondary)' }}>{ci.city}</td>
                       <td>{ci.value_tier}</td>
-                      <td className="tabular-nums" style={{ fontWeight: 600 }}>{formatCurrency(ci.lifetime_spend)}</td>
-                      <td className="tabular-nums">{formatCurrency(ci.recent_30d_spend)}</td>
+                      <td className="num cell-primary">{formatCurrency(ci.lifetime_spend)}</td>
+                      <td className="num">{formatCurrency(ci.recent_30d_spend)}</td>
                       <td>
                         <Badge status={badgeStatus} label={ci.purchase_trend} />
                       </td>

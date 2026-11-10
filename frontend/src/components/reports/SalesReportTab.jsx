@@ -12,6 +12,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { StatCard } from '../common/StatCard';
+import { EmptyState } from '../common/EmptyState';
 import { CardSkeleton } from '../common/LoadingSkeleton';
 import { formatCurrency, formatCompactCurrency } from '../../utils/format';
 
@@ -32,54 +33,68 @@ export const SalesReportTab = ({
   peakCity,
   totalPeriodRevenue,
 }) => {
+  const diffDays = startDate && endDate
+    ? Math.round((Date.parse(endDate) - Date.parse(startDate)) / 86400000)
+    : null;
+  const isAllTime = !startDate && !endDate;
+  const is30Days = diffDays === 30;
+  const is90Days = diffDays === 90;
+
+  const cityChartData = (salesReport?.byCity || []).map((c) => ({
+    ...c,
+    revenueNum: Number(c.revenue) || 0,
+  }));
+
   return (
-    <>
-      <div className="filter-bar">
-        <div style={{ display: 'flex', gap: '4px' }}>
+    <div className="stack-lg">
+      <div className="filter-bar" style={{ marginBottom: 0 }}>
+        <div className="segmented-group" role="group" aria-label="Report date presets">
           <button
             type="button"
-            className={`btn btn-sm ${!startDate && !endDate ? 'btn-primary' : 'btn-secondary'}`}
+            className={`segmented-btn ${isAllTime ? 'active' : ''}`}
             onClick={() => handlePreset(null)}
           >
             All Time
           </button>
           <button
             type="button"
-            className="btn btn-secondary btn-sm"
+            className={`segmented-btn ${is30Days ? 'active' : ''}`}
             onClick={() => handlePreset(30)}
           >
             30 Days
           </button>
           <button
             type="button"
-            className="btn btn-secondary btn-sm"
+            className={`segmented-btn ${is90Days ? 'active' : ''}`}
             onClick={() => handlePreset(90)}
           >
             90 Days
           </button>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div className="date-range-group">
           <input
             type="date"
+            aria-label="Start date"
             className="form-control"
-            style={{ width: '135px' }}
+            style={{ width: '144px' }}
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
           />
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>to</span>
+          <span className="date-range-sep">to</span>
           <input
             type="date"
+            aria-label="End date"
             className="form-control"
-            style={{ width: '135px' }}
+            style={{ width: '144px' }}
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
           />
         </div>
 
         <select
-          className="form-control"
-          style={{ width: '140px' }}
+          className="form-control filter-select"
+          aria-label="Filter by city"
           value={cityFilter}
           onChange={(e) => setCityFilter(e.target.value)}
         >
@@ -100,7 +115,7 @@ export const SalesReportTab = ({
         )}
       </div>
 
-      <div className="grid-cols-4" style={{ marginBottom: '20px' }}>
+      <div className="grid-cols-4">
         {loading || !salesReport ? (
           <>
             <CardSkeleton />
@@ -134,44 +149,59 @@ export const SalesReportTab = ({
         )}
       </div>
 
-      <div className="glass-panel" style={{ padding: '20px', marginBottom: '20px' }}>
-        <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '4px' }}>Monthly Revenue</h3>
-        <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
+      <section className="card" aria-label="Monthly Revenue">
+        <h3 className="section-heading">Monthly Revenue</h3>
+        <p className="section-subheading" style={{ marginBottom: peakMonth ? 'var(--space-1)' : 'var(--space-4)' }}>
           Monthly sales revenue over time
         </p>
         {peakMonth && (
-          <p style={{ fontSize: '0.8125rem', color: 'var(--text-main)', marginBottom: '16px', fontWeight: 500 }}>
-            Highest sales in {peakMonth.month}: {formatCompactCurrency(peakMonth.revenueNum)}
+          <p className="chart-insight-sentence">
+            Highest sales in {peakMonth.month}:{' '}
+            <span className="chart-insight-highlight">{formatCompactCurrency(peakMonth.revenueNum)}</span>
           </p>
         )}
 
-        <div style={{ width: '100%', height: 260 }}>
+        <div className="chart-box">
           {loading || !salesReport ? (
             <div className="skeleton" style={{ width: '100%', height: '100%' }} />
+          ) : monthlyTimeline.length === 0 ? (
+            <EmptyState
+              title="No monthly sales data"
+              description="No revenue records match the selected date and city filters."
+            />
           ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={monthlyTimeline} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
-                <XAxis dataKey="month" stroke="var(--chart-axis)" fontSize={12} tickLine={false} />
-                <YAxis
-                  stroke="var(--chart-axis)"
-                  fontSize={12}
+              <LineChart data={monthlyTimeline} margin={{ top: 8, right: 16, left: 4, bottom: 4 }}>
+                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                <XAxis
+                  dataKey="month"
+                  axisLine={false}
                   tickLine={false}
+                  tick={{ fill: 'var(--chart-axis)', fontSize: 12 }}
+                  dy={6}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: 'var(--chart-axis)', fontSize: 12 }}
                   tickFormatter={(v) => formatCompactCurrency(v)}
+                  width={56}
                 />
                 <Tooltip
                   contentStyle={{
-                    background: 'var(--bg-card)',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: '4px',
-                    color: 'var(--text-main)',
+                    background: 'var(--bg-surface)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius-md)',
+                    boxShadow: 'var(--shadow-md)',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.8125rem',
                   }}
                   formatter={(val) => [formatCurrency(val), 'Revenue']}
                 />
                 <Line
                   type="monotone"
                   dataKey="revenueNum"
-                  stroke="#78716c"
+                  stroke="var(--accent-text)"
                   strokeWidth={2}
                   dot={(props) => {
                     const isPeak = peakMonth && props.payload.month === peakMonth.month;
@@ -181,124 +211,145 @@ export const SalesReportTab = ({
                         cx={props.cx}
                         cy={props.cy}
                         r={isPeak ? 5 : 3}
-                        fill={isPeak ? '#0f766e' : '#a8a29e'}
-                        stroke={isPeak ? '#0f766e' : '#a8a29e'}
-                        strokeWidth={1}
+                        fill={isPeak ? 'var(--accent-text)' : 'var(--bg-surface)'}
+                        stroke="var(--accent-text)"
+                        strokeWidth={2}
                       />
                     );
                   }}
+                  activeDot={{ r: 5, fill: 'var(--accent)', stroke: 'var(--bg-surface)', strokeWidth: 2 }}
                   isAnimationActive={false}
                 />
               </LineChart>
             </ResponsiveContainer>
           )}
         </div>
-      </div>
+      </section>
 
-      <div className="grid-cols-2" style={{ marginBottom: '20px' }}>
-        <div className="glass-panel" style={{ padding: '20px' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '4px' }}>Sales by City</h3>
-          <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
+      <div className="grid-cols-2">
+        <section className="card" aria-label="Sales by City">
+          <h3 className="section-heading">Sales by City</h3>
+          <p className="section-subheading" style={{ marginBottom: peakCity ? 'var(--space-1)' : 'var(--space-4)' }}>
             Revenue generated per city
           </p>
           {peakCity && (
-            <p style={{ fontSize: '0.8125rem', color: 'var(--text-main)', marginBottom: '14px', fontWeight: 500 }}>
-              Highest city sales in {peakCity.city}: {formatCompactCurrency(peakCity.revenue)}
+            <p className="chart-insight-sentence">
+              Highest city sales in {peakCity.city}:{' '}
+              <span className="chart-insight-highlight">{formatCompactCurrency(peakCity.revenue)}</span>
             </p>
           )}
 
-          <div style={{ width: '100%', height: 240 }}>
+          <div className="chart-box-sm">
             {loading || !salesReport ? (
               <div className="skeleton" style={{ width: '100%', height: '100%' }} />
+            ) : cityChartData.length === 0 ? (
+              <EmptyState
+                title="No city data"
+                description="No city-level sales recorded for this filter."
+              />
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={salesReport.byCity || []} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
-                  <XAxis dataKey="city" stroke="var(--chart-axis)" fontSize={11} tickLine={false} />
-                  <YAxis
-                    stroke="var(--chart-axis)"
-                    fontSize={11}
+                <BarChart data={cityChartData} margin={{ top: 8, right: 8, left: 4, bottom: 4 }}>
+                  <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                  <XAxis
+                    dataKey="city"
+                    axisLine={false}
                     tickLine={false}
+                    tick={{ fill: 'var(--chart-axis)', fontSize: 11 }}
+                    dy={6}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: 'var(--chart-axis)', fontSize: 11 }}
                     tickFormatter={(v) => formatCompactCurrency(v)}
+                    width={54}
                   />
                   <Tooltip
                     contentStyle={{
-                      background: 'var(--bg-card)',
-                      border: '1px solid var(--border-subtle)',
-                      borderRadius: '4px',
-                      color: 'var(--text-main)',
+                      background: 'var(--bg-surface)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 'var(--radius-md)',
+                      boxShadow: 'var(--shadow-md)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.8125rem',
                     }}
                     formatter={(val) => [formatCurrency(val), 'Revenue']}
                   />
-                  <Bar dataKey="revenue" isAnimationActive={false}>
-                    {(salesReport.byCity || []).map((entry, index) => {
+                  <Bar dataKey="revenueNum" radius={[4, 4, 0, 0]} isAnimationActive={false}>
+                    {cityChartData.map((entry, index) => {
                       const isPeak = peakCity && entry.city === peakCity.city;
-                      return <Cell key={`cell-${index}`} fill={isPeak ? '#0f766e' : '#cbd5e1'} />;
+                      return (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={isPeak ? 'var(--accent)' : 'var(--chart-muted)'}
+                        />
+                      );
                     })}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
             )}
           </div>
-        </div>
+        </section>
 
-        <div className="glass-panel" style={{ padding: '20px' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '4px' }}>Sales by Category</h3>
-          <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '14px' }}>
-            Revenue contribution per category
-          </p>
-
-          <div className="table-responsive">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Category</th>
-                  <th>Units</th>
-                  <th>Share</th>
-                  <th style={{ textAlign: 'right' }}>Revenue</th>
-                </tr>
-              </thead>
-              <tbody>
-                {salesReport?.byCategory?.map((cat) => {
-                  const sharePct = Math.round(((Number(cat.category_revenue) || 0) / totalPeriodRevenue) * 100);
-                  return (
-                    <tr key={cat.category}>
-                      <td style={{ fontWeight: 500 }}>{cat.category}</td>
-                      <td className="tabular-nums">{cat.units_sold}</td>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <div
-                            style={{
-                              width: '50px',
-                              height: '5px',
-                              borderRadius: '2px',
-                              background: 'var(--border-subtle)',
-                              overflow: 'hidden',
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: `${Math.min(sharePct, 100)}%`,
-                                height: '100%',
-                                background: 'var(--primary)',
-                              }}
-                            />
-                          </div>
-                          <span className="tabular-nums" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{sharePct}%</span>
-                        </div>
-                      </td>
-                      <td className="tabular-nums" style={{ textAlign: 'right', fontWeight: 600 }}>
-                        {formatCurrency(cat.category_revenue)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+        <section className="card card-flush" aria-label="Sales by Category">
+          <div className="card-header">
+            <div>
+              <h3 className="section-heading" style={{ marginBottom: 0 }}>Sales by Category</h3>
+              <p className="section-subheading" style={{ marginBottom: 0 }}>
+                Revenue contribution per category
+              </p>
+            </div>
           </div>
-        </div>
+
+          {!salesReport?.byCategory || salesReport.byCategory.length === 0 ? (
+            <EmptyState
+              title="No category breakdown"
+              description="No category sales found for the selected filters."
+            />
+          ) : (
+            <div className="table-responsive">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th className="num">Units</th>
+                    <th className="num">Share</th>
+                    <th className="num">Revenue</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {salesReport.byCategory.map((cat) => {
+                    const sharePct = Math.round(((Number(cat.category_revenue) || 0) / totalPeriodRevenue) * 100);
+                    return (
+                      <tr key={cat.category}>
+                        <td className="cell-primary">{cat.category}</td>
+                        <td className="num">{cat.units_sold}</td>
+                        <td className="num">
+                          <div className="share-bar-cell">
+                            <div className="share-bar-track" aria-hidden="true">
+                              <div
+                                className="share-bar-fill"
+                                style={{ width: `${Math.min(sharePct, 100)}%` }}
+                              />
+                            </div>
+                            <span className="tabular-nums" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', minWidth: '32px' }}>
+                              {sharePct}%
+                            </span>
+                          </div>
+                        </td>
+                        <td className="num cell-primary">{formatCurrency(cat.category_revenue)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
       </div>
-    </>
+    </div>
   );
 };
 

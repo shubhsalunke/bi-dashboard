@@ -28,15 +28,15 @@ describe('End-to-End Live Integration Verification', () => {
   });
 
   it('3. POST /api/sales creates atomic sale with server-computed line totals', async () => {
-    // Products 2 ($650) and 3 ($220) are guaranteed active
+    // Products 2 (₹650) and 3 (₹220) are guaranteed active
     const res = await request(app)
       .post('/api/sales')
       .set('Authorization', `Bearer ${token}`)
       .send({
         customer_id: 3,
         items: [
-          { product_id: 2, quantity: 2 }, // $650 * 2 = $1300
-          { product_id: 3, quantity: 1 }, // $220 * 1 = $220
+          { product_id: 2, quantity: 2 }, // ₹650 * 2 = ₹1300
+          { product_id: 3, quantity: 1 }, // ₹220 * 1 = ₹220
         ],
       });
 

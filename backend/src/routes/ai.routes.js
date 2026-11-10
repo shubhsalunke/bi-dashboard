@@ -10,7 +10,7 @@ const router = express.Router();
 // Specific rate limit for AI queries: 30 requests per 15 minutes per IP
 const aiRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: Number(process.env.AI_RATE_LIMIT_MAX) || 100,
+  max: Number(process.env.AI_RATE_LIMIT_MAX) || (process.env.NODE_ENV === 'test' ? 500 : 30),
   standardHeaders: true,
   legacyHeaders: false,
   message: {

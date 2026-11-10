@@ -19,34 +19,40 @@ export const SalesTable = ({
             <TableHeader label="Sale ID" field="id" sortField={sortField} sortAsc={sortAsc} onSort={onSort} />
             <TableHeader label="Customer" field="customer_name" sortField={sortField} sortAsc={sortAsc} onSort={onSort} />
             <TableHeader label="Date" field="sale_date" sortField={sortField} sortAsc={sortAsc} onSort={onSort} />
-            <TableHeader label="Total Amount" field="total_amount" sortField={sortField} sortAsc={sortAsc} onSort={onSort} />
+            <TableHeader label="Total Amount" field="total_amount" sortField={sortField} sortAsc={sortAsc} onSort={onSort} align="right" />
             <TableHeader label="Status" />
-            <TableHeader label="Actions" />
+            <TableHeader label="Actions" align="right" />
           </tr>
         </thead>
         <tbody>
           {sales.map((s) => (
             <tr key={s.id}>
-              <td className="tabular-nums" style={{ fontWeight: 500, color: 'var(--primary)' }}>#{s.id}</td>
-              <td>
-                <div style={{ fontWeight: 500 }}>{s.customer_name}</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>{s.city}</div>
+              <td className="tabular-nums" style={{ fontWeight: 500, color: 'var(--accent-text)' }}>
+                #{s.id}
               </td>
-              <td className="tabular-nums">{formatDate(s.sale_date)}</td>
-              <td className="tabular-nums" style={{ fontWeight: 600 }}>{formatCurrency(s.total_amount)}</td>
+              <td>
+                <div className="cell-primary">{s.customer_name}</div>
+                <div className="cell-secondary">{s.city}</div>
+              </td>
+              <td className="tabular-nums" style={{ color: 'var(--text-secondary)' }}>
+                {formatDate(s.sale_date)}
+              </td>
+              <td className="num cell-primary">{formatCurrency(s.total_amount)}</td>
               <td>
                 <Badge status={s.status} />
               </td>
               <td>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => onView(s.id)}
-                  title="View sale items"
-                  style={{ padding: '4px 8px' }}
-                >
-                  <Eye size={13} />
-                </button>
+                <div className="table-actions">
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-icon"
+                    onClick={() => onView(s.id)}
+                    title="View sale items"
+                    aria-label={`View sale #${s.id} details`}
+                  >
+                    <Eye size={14} aria-hidden="true" />
+                  </button>
+                </div>
               </td>
             </tr>
           ))}

@@ -24,55 +24,55 @@ export const CustomersTable = ({
             <TableHeader label="Phone" />
             <TableHeader label="City" field="city" sortField={sortField} sortAsc={sortAsc} onSort={onSort} />
             <TableHeader label="Status" />
-            <TableHeader label="Actions" />
+            <TableHeader label="Actions" align="right" />
           </tr>
         </thead>
         <tbody>
           {customers.map((c) => (
             <tr key={c.id}>
-              <td className="tabular-nums" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>
+              <td className="tabular-nums" style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
                 {c.customer_code}
               </td>
-              <td style={{ fontWeight: 500 }}>
-                <Link to={`/customers/${c.id}`} style={{ color: 'var(--primary)' }}>
+              <td>
+                <Link to={`/customers/${c.id}`} className="table-link">
                   {c.customer_name}
                 </Link>
               </td>
-              <td style={{ color: 'var(--text-muted)' }}>{c.email}</td>
-              <td className="tabular-nums" style={{ color: 'var(--text-muted)' }}>{c.phone || '-'}</td>
+              <td style={{ color: 'var(--text-secondary)' }}>{c.email}</td>
+              <td className="tabular-nums" style={{ color: 'var(--text-secondary)' }}>{c.phone || '-'}</td>
               <td>{c.city}</td>
               <td>
                 <Badge status={c.status} />
               </td>
               <td>
-                <div style={{ display: 'flex', gap: '6px' }}>
+                <div className="table-actions">
                   <Link
                     to={`/customers/${c.id}`}
-                    className="btn btn-secondary btn-sm"
+                    className="btn btn-secondary btn-icon"
                     title="View customer"
-                    style={{ padding: '4px 8px' }}
+                    aria-label={`View ${c.customer_name}`}
                   >
-                    <Eye size={13} />
+                    <Eye size={14} aria-hidden="true" />
                   </Link>
                   {canManage && (
                     <>
                       <button
                         type="button"
-                        className="btn btn-secondary btn-sm"
+                        className="btn btn-secondary btn-icon"
                         onClick={() => onEdit(c)}
                         title="Edit customer"
-                        style={{ padding: '4px 8px' }}
+                        aria-label={`Edit ${c.customer_name}`}
                       >
-                        <Edit2 size={13} />
+                        <Edit2 size={14} aria-hidden="true" />
                       </button>
                       <button
                         type="button"
-                        className="btn btn-danger btn-sm"
+                        className="btn btn-danger btn-icon"
                         onClick={() => onDelete(c)}
                         title="Delete customer"
-                        style={{ padding: '4px 8px' }}
+                        aria-label={`Delete ${c.customer_name}`}
                       >
-                        <Trash2 size={13} />
+                        <Trash2 size={14} aria-hidden="true" />
                       </button>
                     </>
                   )}

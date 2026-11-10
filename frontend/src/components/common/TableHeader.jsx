@@ -1,4 +1,5 @@
 import React from 'react';
+import { ArrowUp, ArrowDown } from 'lucide-react';
 
 export const TableHeader = ({
   label,
@@ -9,37 +10,41 @@ export const TableHeader = ({
   align = 'left',
   style = {},
 }) => {
+  const alignClass = align === 'right' ? 'num' : '';
+
   if (!field || !onSort) {
-    return <th style={{ textAlign: align, ...style }}>{label}</th>;
+    return (
+      <th className={alignClass} style={{ textAlign: align, ...style }}>
+        {label}
+      </th>
+    );
   }
 
   const isCurrent = sortField === field;
+  const ariaSort = isCurrent ? (sortAsc ? 'ascending' : 'descending') : 'none';
 
   return (
     <th
-      style={{
-        textAlign: align,
-        cursor: 'pointer',
-        userSelect: 'none',
-        ...style,
-      }}
-      onClick={() => onSort(field)}
+      className={alignClass}
+      style={{ textAlign: align, ...style }}
+      aria-sort={ariaSort}
     >
-      <div
+      <button
+        type="button"
+        className="table-sort-btn"
+        onClick={() => onSort(field)}
         style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '4px',
           justifyContent: align === 'right' ? 'flex-end' : 'flex-start',
+          width: align === 'right' ? '100%' : 'auto',
         }}
       >
         <span>{label}</span>
         {isCurrent && (
-          <span style={{ fontSize: '0.75rem', color: 'var(--primary)' }}>
-            {sortAsc ? '↑' : '↓'}
+          <span style={{ color: 'var(--accent-text)', display: 'inline-flex' }} aria-hidden="true">
+            {sortAsc ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
           </span>
         )}
-      </div>
+      </button>
     </th>
   );
 };

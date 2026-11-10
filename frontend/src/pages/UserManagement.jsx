@@ -1,11 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  Users,
-  Shield,
   UserPlus,
   Edit2,
   Trash2,
-  Activity,
   AlertCircle,
   RefreshCw,
   Search,
@@ -18,6 +15,7 @@ import Modal from '../components/common/Modal';
 import LoadingSkeleton from '../components/common/LoadingSkeleton';
 import EmptyState from '../components/common/EmptyState';
 import Pagination from '../components/common/Pagination';
+import { formatDate } from '../utils/format';
 
 export const UserManagement = () => {
   const { user: currentUser } = useAuth();
@@ -28,6 +26,7 @@ export const UserManagement = () => {
   // Users state
   const [users, setUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
+  const [usersError, setUsersError] = useState(null);
   const [userSearch, setUserSearch] = useState('');
 
   // Modal state
@@ -49,16 +48,20 @@ export const UserManagement = () => {
   // Audit logs state
   const [logs, setLogs] = useState([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+  const [logsError, setLogsError] = useState(null);
   const [logPagination, setLogPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 1 });
 
   // Load users
   const loadUsers = useCallback(async () => {
     setLoadingUsers(true);
+    setUsersError(null);
     try {
       const data = await usersApi.getUsers();
       setUsers(data || []);
     } catch (err) {
-      showError(err.message || 'Failed to load system users');
+      const msg = err.message || 'Failed to load system users';
+      setUsersError(msg);
+      showError(msg);
     } finally {
       setLoadingUsers(false);
     }
@@ -67,6 +70,7 @@ export const UserManagement = () => {
   // Load audit logs
   const loadLogs = useCallback(async (page = 1) => {
     setLoadingLogs(true);
+    setLogsError(null);
     try {
       const res = await usersApi.getAuditLogs({ page, limit: 20 });
       setLogs(res.data || []);
@@ -74,7 +78,9 @@ export const UserManagement = () => {
         setLogPagination(res.pagination);
       }
     } catch (err) {
-      showError(err.message || 'Failed to load audit logs');
+      const msg = err.message || 'Failed to load audit logs';
+      setLogsError(msg);
+      showError(msg);
     } finally {
       setLoadingLogs(false);
     }
@@ -238,63 +244,61 @@ export const UserManagement = () => {
   };
 
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <div className="page-header">
+    <div className="stack-lg">
+      <div className="page-header" style={{ marginBottom: 0 }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <h2 style={{ margin: 0 }}>User & Role Management</h2>
-            <Badge variant="admin">
-              <Shield size={12} style={{ display: 'inline', marginRight: 4 }} />
-              Admin Only
-            </Badge>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+            <h2>User & Role Management</h2>
+            <Badge variant="admin">Admin Only</Badge>
           </div>
           <p className="page-subtitle">
             Manage staff accounts, assign granular role permissions, and inspect system audit trail.
           </p>
         </div>
 
-        {activeTab === 'users' && (
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={handleOpenCreate}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-          >
-            <UserPlus size={16} />
-            <span>Add User</span>
-          </button>
-        )}
-      </div>
+        <div className="header-actions">
+          <div className="segmented-group" role="tablist" aria-label="User management views">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'users'}
+              className={`segmented-btn ${activeTab === 'users' ? 'active' : ''}`}
+              onClick={() => setActiveTab('users')}
+            >
+              Active Users ({users.length})
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'audit'}
+              className={`segmented-btn ${activeTab === 'audit' ? 'active' : ''}`}
+              onClick={() => setActiveTab('audit')}
+            >
+              Audit Logs
+            </button>
+          </div>
 
-      <div style={{ display: 'flex', gap: '10px' }}>
-        <button
-          type="button"
-          className={`btn btn-sm ${activeTab === 'users' ? 'btn-primary' : 'btn-secondary'}`}
-          onClick={() => setActiveTab('users')}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
-        >
-          <Users size={15} />
-          <span>Active Users ({users.length})</span>
-        </button>
-
-        <button
-          type="button"
-          className={`btn btn-sm ${activeTab === 'audit' ? 'btn-primary' : 'btn-secondary'}`}
-          onClick={() => setActiveTab('audit')}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
-        >
-          <Activity size={15} />
-          <span>Audit Logs</span>
-        </button>
+          {activeTab === 'users' && (
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={handleOpenCreate}
+            >
+              <UserPlus size={14} aria-hidden="true" />
+              <span>Add User</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {activeTab === 'users' && (
         <div>
           <div className="filter-bar">
             <div className="search-input-wrapper">
-              <Search size={16} className="search-icon" />
+              <Search size={15} className="search-icon" aria-hidden="true" />
               <input
                 type="text"
+                aria-label="Search users"
                 placeholder="Search users by name, email, or role..."
                 maxLength={100}
                 value={userSearch}
@@ -304,132 +308,126 @@ export const UserManagement = () => {
             </div>
             <button
               type="button"
-              className="btn btn-secondary"
+              className="btn btn-secondary btn-sm"
               onClick={loadUsers}
               title="Refresh list"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
             >
-              <RefreshCw size={15} />
+              <RefreshCw size={14} aria-hidden="true" />
               <span>Refresh</span>
             </button>
           </div>
 
-          {loadingUsers ? (
-            <div style={{ padding: '24px 0' }}>
-              <LoadingSkeleton count={5} height={52} />
-            </div>
-          ) : filteredUsers.length === 0 ? (
-            <EmptyState
-              title="No users found"
-              message={userSearch ? 'No accounts matched your search criteria.' : 'No system users found.'}
-              action={
-                userSearch && (
-                  <button
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => setUserSearch('')}
-                  >
-                    Clear Search
+          <div className="card card-flush">
+            {loadingUsers ? (
+              <LoadingSkeleton rows={5} columns={6} />
+            ) : usersError && users.length === 0 ? (
+              <EmptyState
+                icon={AlertCircle}
+                title="Unable to load users"
+                description={usersError}
+                action={
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={loadUsers}>
+                    Retry
                   </button>
-                )
-              }
-            />
-          ) : (
-            <div className="table-responsive">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>User</th>
-                    <th>Email</th>
-                    <th>Role</th>
-                    <th>Status</th>
-                    <th>Created</th>
-                    <th style={{ textAlign: 'right' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredUsers.map((u) => (
-                    <tr key={u.id}>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div
-                            style={{
-                              width: 34,
-                              height: 34,
-                              borderRadius: '50%',
-                              background: 'var(--primary-glow)',
-                              color: 'var(--primary)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontWeight: 700,
-                              fontSize: '0.8125rem',
-                              border: '1px solid rgba(37, 99, 235, 0.2)',
-                              flexShrink: 0,
-                            }}
-                          >
-                            {u.name.charAt(0).toUpperCase()}
+                }
+              />
+            ) : filteredUsers.length === 0 ? (
+              <EmptyState
+                title="No users found"
+                message={userSearch ? 'No accounts matched your search criteria.' : 'No system users found.'}
+                action={
+                  userSearch && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => setUserSearch('')}
+                    >
+                      Clear Search
+                    </button>
+                  )
+                }
+              />
+            ) : (
+              <div className="table-responsive">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>User</th>
+                      <th>Email</th>
+                      <th>Role</th>
+                      <th>Status</th>
+                      <th>Created</th>
+                      <th className="num">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredUsers.map((u) => (
+                      <tr key={u.id}>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                            <div className="user-avatar" aria-hidden="true">
+                              {u.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <div className="cell-primary">{u.name}</div>
+                              {currentUser && currentUser.id === u.id && (
+                                <span style={{ fontSize: '0.75rem', color: 'var(--accent-text)', fontWeight: 500 }}>
+                                  (You)
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          <div>
-                            <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{u.name}</div>
-                            {currentUser && currentUser.id === u.id && (
-                              <span style={{ fontSize: '0.6875rem', color: 'var(--primary)', fontWeight: 600 }}>
-                                (You)
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td style={{ color: 'var(--text-muted)' }}>{u.email}</td>
-                      <td>{getRoleBadge(u.role)}</td>
-                      <td>
-                        <Badge status={u.is_active ? 'active' : 'inactive'} />
-                      </td>
-                      <td style={{ fontSize: '0.8125rem', color: 'var(--text-dim)' }}>
-                        {new Date(u.created_at).toLocaleDateString()}
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                          <button
-                            type="button"
-                            className="btn btn-secondary btn-sm"
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
-                            onClick={() => handleOpenEdit(u)}
-                            title="Edit User"
-                          >
-                            <Edit2 size={13} />
-                            <span>Edit</span>
-                          </button>
-                          {currentUser && currentUser.id !== u.id && u.is_active && (
+                        </td>
+                        <td style={{ color: 'var(--text-secondary)' }}>{u.email}</td>
+                        <td>{getRoleBadge(u.role)}</td>
+                        <td>
+                          <Badge status={u.is_active ? 'active' : 'inactive'} />
+                        </td>
+                        <td className="tabular-nums" style={{ color: 'var(--text-secondary)' }}>
+                          {formatDate(u.created_at)}
+                        </td>
+                        <td>
+                          <div className="table-actions">
                             <button
                               type="button"
-                              className="btn btn-danger btn-sm"
-                              style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
-                              onClick={() => setUserToDeactivate(u)}
-                              title="Deactivate User"
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => handleOpenEdit(u)}
+                              title="Edit User"
                             >
-                              <Trash2 size={13} />
-                              <span>Deactivate</span>
+                              <Edit2 size={13} aria-hidden="true" />
+                              <span>Edit</span>
                             </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                            {currentUser && currentUser.id !== u.id && u.is_active && (
+                              <button
+                                type="button"
+                                className="btn btn-danger btn-sm"
+                                onClick={() => setUserToDeactivate(u)}
+                                title="Deactivate User"
+                              >
+                                <Trash2 size={13} aria-hidden="true" />
+                                <span>Deactivate</span>
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
       {activeTab === 'audit' && (
-        <div>
-          <div className="filter-bar" style={{ justifyContent: 'space-between' }}>
+        <div className="card card-flush">
+          <div className="card-header">
             <div>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: 'var(--text-main)' }}>
+              <h3 className="section-heading" style={{ marginBottom: 0 }}>
                 System Security Audit Trail
               </h3>
-              <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+              <p className="section-subheading" style={{ marginBottom: 0 }}>
                 Immutable ledger of critical system changes, authentication events, and administrative actions.
               </p>
             </div>
@@ -437,17 +435,29 @@ export const UserManagement = () => {
               type="button"
               className="btn btn-secondary btn-sm"
               onClick={() => loadLogs(logPagination.page)}
-              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
             >
-              <RefreshCw size={14} />
+              <RefreshCw size={14} aria-hidden="true" />
               <span>Refresh</span>
             </button>
           </div>
 
           {loadingLogs ? (
-            <div style={{ padding: '24px 0' }}>
-              <LoadingSkeleton count={6} height={44} />
-            </div>
+            <LoadingSkeleton rows={6} columns={6} />
+          ) : logsError && logs.length === 0 ? (
+            <EmptyState
+              icon={AlertCircle}
+              title="Unable to load audit logs"
+              description={logsError}
+              action={
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => loadLogs(logPagination.page)}
+                >
+                  Retry
+                </button>
+              }
+            />
           ) : logs.length === 0 ? (
             <EmptyState
               title="No audit entries"
@@ -470,10 +480,10 @@ export const UserManagement = () => {
                   <tbody>
                     {logs.map((log) => (
                       <tr key={log.id}>
-                        <td style={{ fontSize: '0.8125rem', color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>
+                        <td className="tabular-nums cell-secondary" style={{ whiteSpace: 'nowrap', fontSize: '0.8125rem' }}>
                           {new Date(log.created_at).toLocaleString()}
                         </td>
-                        <td style={{ fontWeight: 600, fontSize: '0.8125rem', color: 'var(--text-main)' }}>
+                        <td className="cell-primary" style={{ fontSize: '0.8125rem' }}>
                           {log.user_email || `User #${log.user_id}` || 'System'}
                         </td>
                         <td>
@@ -489,13 +499,13 @@ export const UserManagement = () => {
                             {log.action}
                           </Badge>
                         </td>
-                        <td style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                        <td className="tabular-nums" style={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
                           {log.entity} #{log.entity_id || '-'}
                         </td>
-                        <td style={{ fontSize: '0.8125rem', maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-muted)' }}>
+                        <td style={{ fontSize: '0.8125rem', maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-secondary)' }}>
                           {log.details ? JSON.stringify(log.details) : '-'}
                         </td>
-                        <td style={{ fontSize: '0.8125rem', color: 'var(--text-dim)' }}>
+                        <td className="tabular-nums" style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
                           {log.ip_address || '127.0.0.1'}
                         </td>
                       </tr>
@@ -505,15 +515,13 @@ export const UserManagement = () => {
               </div>
 
               {logPagination.totalPages > 1 && (
-                <div style={{ marginTop: '16px' }}>
-                  <Pagination
-                    currentPage={logPagination.page}
-                    totalPages={logPagination.totalPages}
-                    totalItems={logPagination.total}
-                    pageSize={logPagination.limit}
-                    onPageChange={(p) => loadLogs(p)}
-                  />
-                </div>
+                <Pagination
+                  currentPage={logPagination.page}
+                  totalPages={logPagination.totalPages}
+                  totalItems={logPagination.total}
+                  pageSize={logPagination.limit}
+                  onPageChange={(p) => loadLogs(p)}
+                />
               )}
             </>
           )}
@@ -524,9 +532,29 @@ export const UserManagement = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={editingUser ? `Edit User: ${editingUser.name}` : 'Create New User Account'}
+        footer={
+          <>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setIsModalOpen(false)}
+              disabled={submitting}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="user-form"
+              className="btn btn-primary"
+              disabled={submitting || !isUserFormValid}
+            >
+              {submitting ? 'Saving...' : editingUser ? 'Update User' : 'Create User'}
+            </button>
+          </>
+        }
       >
-        <form onSubmit={handleSubmitUser} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div className="form-group" style={{ marginBottom: 0 }}>
+        <form id="user-form" onSubmit={handleSubmitUser} className="stack-md">
+          <div className="form-group form-group-flush">
             <label className="form-label" htmlFor="user-name">Full Name *</label>
             <input
               id="user-name"
@@ -537,10 +565,10 @@ export const UserManagement = () => {
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="e.g. Alex Johnson"
             />
-            {formErrors.name && <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.8125rem', marginTop: '4px' }}>{formErrors.name}</div>}
+            {formErrors.name && <div className="form-error">{formErrors.name}</div>}
           </div>
 
-          <div className="form-group" style={{ marginBottom: 0 }}>
+          <div className="form-group form-group-flush">
             <label className="form-label" htmlFor="user-email">Email Address *</label>
             <input
               id="user-email"
@@ -551,10 +579,10 @@ export const UserManagement = () => {
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               placeholder="e.g. alex@bi.corp"
             />
-            {formErrors.email && <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.8125rem', marginTop: '4px' }}>{formErrors.email}</div>}
+            {formErrors.email && <div className="form-error">{formErrors.email}</div>}
           </div>
 
-          <div className="form-group" style={{ marginBottom: 0 }}>
+          <div className="form-group form-group-flush">
             <label className="form-label" htmlFor="user-role">Assigned Role *</label>
             <select
               id="user-role"
@@ -566,10 +594,10 @@ export const UserManagement = () => {
               <option value="manager">Manager (Manage customers, products, and record sales)</option>
               <option value="admin">Administrator (Full administrative access & user control)</option>
             </select>
-            {formErrors.role && <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.8125rem', marginTop: '4px' }}>{formErrors.role}</div>}
+            {formErrors.role && <div className="form-error">{formErrors.role}</div>}
           </div>
 
-          <div className="form-group" style={{ marginBottom: 0 }}>
+          <div className="form-group form-group-flush">
             <label className="form-label" htmlFor="user-password">
               {editingUser ? 'Password (leave blank to keep unchanged)' : 'Password *'}
             </label>
@@ -582,34 +610,20 @@ export const UserManagement = () => {
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               placeholder={editingUser ? '••••••••' : 'Enter strong password (min 6 chars)'}
             />
-            {formErrors.password && <div className="form-error" style={{ color: 'var(--danger)', fontSize: '0.8125rem', marginTop: '4px' }}>{formErrors.password}</div>}
+            {formErrors.password && <div className="form-error">{formErrors.password}</div>}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0' }}>
+          <div className="checkbox-row">
             <input
               type="checkbox"
               id="user-is-active"
+              className="checkbox-input"
               checked={formData.is_active}
               onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-              style={{ width: 16, height: 16, cursor: 'pointer' }}
             />
-            <label htmlFor="user-is-active" style={{ fontSize: '0.875rem', fontWeight: 500, cursor: 'pointer', color: 'var(--text-main)' }}>
+            <label htmlFor="user-is-active" className="checkbox-label">
               Account is Active and authorized to log in
             </label>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px' }}>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => setIsModalOpen(false)}
-              disabled={submitting}
-            >
-              Cancel
-            </button>
-            <button type="submit" className="btn btn-primary" disabled={submitting || !isUserFormValid}>
-              {submitting ? 'Saving...' : editingUser ? 'Update User' : 'Create User'}
-            </button>
           </div>
         </form>
       </Modal>
@@ -618,31 +632,8 @@ export const UserManagement = () => {
         isOpen={!!userToDeactivate}
         onClose={() => setUserToDeactivate(null)}
         title="Confirm Deactivation"
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <p style={{ margin: 0, fontSize: '0.875rem', lineHeight: 1.5, color: 'var(--text-main)' }}>
-            Are you sure you want to deactivate user <strong>{userToDeactivate?.name}</strong> (
-            <code style={{ fontFamily: 'var(--font-mono)', background: 'var(--bg-dark)', padding: '2px 6px', borderRadius: '4px' }}>
-              {userToDeactivate?.email}
-            </code>)?
-          </p>
-          <div
-            style={{
-              padding: '12px 16px',
-              borderRadius: 'var(--radius-md)',
-              background: 'var(--danger-bg)',
-              border: '1px solid var(--danger-border)',
-              fontSize: '0.8125rem',
-              color: 'var(--danger)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-            }}
-          >
-            <AlertCircle size={18} flexShrink={0} />
-            <span>This user will immediately be barred from logging into the platform.</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+        footer={
+          <>
             <button
               type="button"
               className="btn btn-secondary"
@@ -657,6 +648,17 @@ export const UserManagement = () => {
             >
               Confirm Deactivation
             </button>
+          </>
+        }
+      >
+        <div className="stack-md">
+          <p style={{ fontSize: '0.875rem', lineHeight: 1.5, color: 'var(--text-primary)' }}>
+            Are you sure you want to deactivate user <strong>{userToDeactivate?.name}</strong> (
+            <code>{userToDeactivate?.email}</code>)?
+          </p>
+          <div className="alert alert-danger">
+            <AlertCircle size={18} style={{ flexShrink: 0 }} aria-hidden="true" />
+            <span>This user will immediately be barred from logging into the platform.</span>
           </div>
         </div>
       </Modal>

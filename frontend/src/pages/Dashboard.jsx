@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, AlertCircle } from 'lucide-react';
 import {
   LineChart,
   Line,
@@ -12,20 +12,25 @@ import {
 } from 'recharts';
 import { dashboardApi } from '../api/dashboard.api';
 import { StatCard } from '../components/common/StatCard';
-import { CardSkeleton } from '../components/common/LoadingSkeleton';
+import { Badge } from '../components/common/Badge';
+import { EmptyState } from '../components/common/EmptyState';
+import { CardSkeleton, TableSkeleton } from '../components/common/LoadingSkeleton';
 import { useToast } from '../context/ToastContext';
 import { formatCurrency, formatCompactCurrency, formatDate } from '../utils/format';
 
 export const Dashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [activePreset, setActivePreset] = useState('all');
   const [lastUpdated, setLastUpdated] = useState('');
   const { showToast } = useToast();
 
   const fetchDashboard = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const summary = await dashboardApi.getSummary({
         startDate: startDate || undefined,
@@ -34,7 +39,9 @@ export const Dashboard = () => {
       setData(summary);
       setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     } catch (err) {
-      showToast(err.message || 'Failed to load dashboard summary', 'error');
+      const msg = err.message || 'Failed to load dashboard summary';
+      setError(msg);
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -48,6 +55,7 @@ export const Dashboard = () => {
     if (!days) {
       setStartDate('');
       setEndDate('');
+      setActivePreset('all');
       return;
     }
     const end = new Date();
@@ -55,6 +63,7 @@ export const Dashboard = () => {
     start.setDate(end.getDate() - days);
     setStartDate(start.toISOString().split('T')[0]);
     setEndDate(end.toISOString().split('T')[0]);
+    setActivePreset(String(days));
   };
 
   // Compute comparison numbers from existing monthly sales data
@@ -91,82 +100,115 @@ export const Dashboard = () => {
     return { revenueComparison: revComp, ordersComparison: ordersComp };
   }, [data]);
 
-  // Highest revenue point in monthly timeline
-  const maxRevenuePoint = useMemo(() => {
-    const list = data?.monthlySales;
-    if (!list || list.length === 0) return null;
-    return list.reduce((max, cur) => (parseFloat(cur.revenue) > parseFloat(max.revenue) ? cur : max), list[0]);
+  const monthlyChartData = useMemo(() => {
+    return (data?.monthlySales || []).map((m) => ({
+      ...m,
+      revenueNum: parseFloat(m.revenue) || 0,
+    }));
   }, [data]);
 
+  // Highest revenue point in monthly timeline
+  const maxRevenuePoint = useMemo(() => {
+    if (!monthlyChartData || monthlyChartData.length === 0) return null;
+    return monthlyChartData.reduce(
+      (max, cur) => (cur.revenueNum > max.revenueNum ? cur : max),
+      monthlyChartData[0]
+    );
+  }, [monthlyChartData]);
+
   return (
-    <div>
-      <div className="page-header">
+    <div className="stack-lg">
+      <div className="page-header" style={{ marginBottom: 0 }}>
         <div>
           <h2>Dashboard</h2>
           <p className="page-subtitle">Overview of sales, orders, and customer activity</p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        <div className="header-actions">
           {lastUpdated && (
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginRight: '4px' }}>
+            <span className="cell-secondary tabular-nums" style={{ marginRight: 'var(--space-1)' }}>
               Last updated: {lastUpdated}
             </span>
           )}
 
-          <div style={{ display: 'flex', gap: '4px' }}>
+          <div className="segmented-group" role="group" aria-label="Date range presets">
             <button
               type="button"
-              className={`btn btn-sm ${!startDate && !endDate ? 'btn-primary' : 'btn-secondary'}`}
+              className={`segmented-btn ${activePreset === 'all' ? 'active' : ''}`}
               onClick={() => setPreset(null)}
             >
               All Time
             </button>
             <button
               type="button"
-              className="btn btn-secondary btn-sm"
+              className={`segmented-btn ${activePreset === '30' ? 'active' : ''}`}
               onClick={() => setPreset(30)}
             >
               30 Days
             </button>
             <button
               type="button"
-              className="btn btn-secondary btn-sm"
+              className={`segmented-btn ${activePreset === '90' ? 'active' : ''}`}
               onClick={() => setPreset(90)}
             >
               90 Days
             </button>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div className="date-range-group">
             <input
               type="date"
-              className="form-control"
-              style={{ width: '130px', padding: '4px 8px', fontSize: '0.8rem' }}
+              aria-label="Start date"
+              className="form-control form-control-sm"
+              style={{ width: '132px' }}
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) => {
+                setStartDate(e.target.value);
+                setActivePreset('custom');
+              }}
             />
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>to</span>
+            <span className="date-range-sep">to</span>
             <input
               type="date"
-              className="form-control"
-              style={{ width: '130px', padding: '4px 8px', fontSize: '0.8rem' }}
+              aria-label="End date"
+              className="form-control form-control-sm"
+              style={{ width: '132px' }}
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(e) => {
+                setEndDate(e.target.value);
+                setActivePreset('custom');
+              }}
             />
           </div>
 
           <button
+            type="button"
             className="btn btn-secondary btn-sm"
             onClick={fetchDashboard}
             disabled={loading}
           >
-            <RefreshCw size={14} />
+            <RefreshCw size={14} aria-hidden="true" />
             <span>Refresh</span>
           </button>
         </div>
       </div>
 
-      <div className="grid-cols-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', marginBottom: '20px' }}>
+      {!loading && error && !data ? (
+        <div className="card">
+          <EmptyState
+            icon={AlertCircle}
+            title="Unable to load dashboard"
+            description={error}
+            action={
+              <button type="button" className="btn btn-secondary btn-sm" onClick={fetchDashboard}>
+                Retry
+              </button>
+            }
+          />
+        </div>
+      ) : (
+        <>
+          <div className="stats-grid" style={{ marginBottom: 0 }}>
         {loading || !data ? (
           <>
             <CardSkeleton />
@@ -199,7 +241,7 @@ export const Dashboard = () => {
               value={data.kpi?.active_products || 0}
               subtitle="Active offerings"
             />
-            <Link to="/products?stock_status=low" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <Link to="/products?stock_status=low" className="stat-card-link">
               <StatCard
                 title="Low stock products"
                 value={data.kpi?.low_stock_products ?? 0}
@@ -210,172 +252,221 @@ export const Dashboard = () => {
         )}
       </div>
 
-      <div className="glass-panel" style={{ padding: '20px', marginBottom: '20px' }}>
-        <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '2px' }}>Monthly Revenue</h3>
+      <section className="card" aria-label="Monthly Revenue">
+        <h3 className="section-heading">Monthly Revenue</h3>
 
-        {/* Dynamic sentence derived from chart data */}
-        {maxRevenuePoint && (
+        {maxRevenuePoint ? (
           <p className="chart-insight-sentence">
-            Highest sales in {maxRevenuePoint.month}: <span className="chart-insight-highlight">{formatCompactCurrency(maxRevenuePoint.revenue)}</span>
+            Highest sales in {maxRevenuePoint.month}:{' '}
+            <span className="chart-insight-highlight">{formatCompactCurrency(maxRevenuePoint.revenueNum)}</span>
           </p>
+        ) : (
+          <p className="section-subheading">Revenue trajectory over time</p>
         )}
 
-        <div style={{ width: '100%', height: 260 }}>
+        <div className="chart-box">
           {loading || !data ? (
             <div className="skeleton" style={{ width: '100%', height: '100%' }} />
+          ) : monthlyChartData.length === 0 ? (
+            <EmptyState
+              title="No revenue data"
+              description="No monthly sales were found for the selected date range."
+            />
           ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data.monthlySales || []} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
-                <XAxis dataKey="month" stroke="var(--chart-axis)" fontSize={12} tickLine={false} />
-                <YAxis
-                  stroke="var(--chart-axis)"
-                  fontSize={12}
+              <LineChart data={monthlyChartData} margin={{ top: 8, right: 16, left: 4, bottom: 4 }}>
+                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                <XAxis
+                  dataKey="month"
+                  axisLine={false}
                   tickLine={false}
+                  tick={{ fill: 'var(--chart-axis)', fontSize: 12 }}
+                  dy={6}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: 'var(--chart-axis)', fontSize: 12 }}
                   tickFormatter={(v) => formatCompactCurrency(v)}
+                  width={56}
                 />
                 <Tooltip
                   contentStyle={{
-                    background: 'var(--bg-card)',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: '4px',
-                    color: 'var(--text-main)',
+                    background: 'var(--bg-surface)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius-md)',
+                    boxShadow: 'var(--shadow-md)',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.8125rem',
                   }}
                   formatter={(val) => [formatCurrency(val), 'Revenue']}
                 />
                 <Line
                   type="monotone"
-                  dataKey="revenue"
-                  stroke="var(--text-dim)"
+                  dataKey="revenueNum"
+                  stroke="var(--accent-text)"
                   strokeWidth={2}
                   dot={(props) => {
-                    const isMax = props.payload.month === maxRevenuePoint?.month;
+                    const isMax = maxRevenuePoint && props.payload.month === maxRevenuePoint.month;
                     return (
                       <circle
                         key={props.key || props.index}
                         cx={props.cx}
                         cy={props.cy}
                         r={isMax ? 5 : 3}
-                        fill={isMax ? 'var(--primary)' : 'var(--text-dim)'}
-                        stroke={isMax ? 'var(--primary)' : 'var(--text-dim)'}
+                        fill={isMax ? 'var(--accent-text)' : 'var(--bg-surface)'}
+                        stroke="var(--accent-text)"
+                        strokeWidth={2}
                       />
                     );
                   }}
+                  activeDot={{ r: 5, fill: 'var(--accent)', stroke: 'var(--bg-surface)', strokeWidth: 2 }}
                   isAnimationActive={false}
                 />
               </LineChart>
             </ResponsiveContainer>
           )}
         </div>
+      </section>
+
+      <div className="grid-cols-2">
+        <section className="card card-flush" aria-label="Top Products">
+          <div className="card-header">
+            <div>
+              <h3 className="section-heading" style={{ marginBottom: 0 }}>Top Products</h3>
+              <p className="section-subheading" style={{ marginBottom: 0 }}>Products by sales revenue</p>
+            </div>
+          </div>
+
+          {loading || !data ? (
+            <TableSkeleton rows={4} columns={4} />
+          ) : !data.topProducts || data.topProducts.length === 0 ? (
+            <EmptyState
+              title="No product sales yet"
+              description="Top performing products will appear once orders are recorded."
+            />
+          ) : (
+            <div className="table-responsive">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th>Category</th>
+                    <th className="num">Units</th>
+                    <th className="num">Revenue</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.topProducts.map((p) => (
+                    <tr key={p.product_id}>
+                      <td className="cell-primary">{p.product_name}</td>
+                      <td style={{ color: 'var(--text-secondary)' }}>{p.category}</td>
+                      <td className="num">{p.units_sold}</td>
+                      <td className="num cell-primary">{formatCurrency(p.total_revenue)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+        <section className="card card-flush" aria-label="Top Client Accounts">
+          <div className="card-header">
+            <div>
+              <h3 className="section-heading" style={{ marginBottom: 0 }}>Top Client Accounts</h3>
+              <p className="section-subheading" style={{ marginBottom: 0 }}>Customers by total spent</p>
+            </div>
+          </div>
+
+          {loading || !data ? (
+            <TableSkeleton rows={4} columns={4} />
+          ) : !data.topCustomers || data.topCustomers.length === 0 ? (
+            <EmptyState
+              title="No customer activity"
+              description="Top customer accounts will appear once orders are recorded."
+            />
+          ) : (
+            <div className="table-responsive">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Customer</th>
+                    <th>City</th>
+                    <th className="num">Orders</th>
+                    <th className="num">Total Spent</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.topCustomers.map((c) => (
+                    <tr key={c.customer_id}>
+                      <td>
+                        <div className="cell-primary">{c.customer_name}</div>
+                        <div className="cell-secondary tabular-nums">{c.customer_code}</div>
+                      </td>
+                      <td style={{ color: 'var(--text-secondary)' }}>{c.city}</td>
+                      <td className="num">{c.orders_count}</td>
+                      <td className="num cell-primary">{formatCurrency(c.total_spent)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
       </div>
 
-      <div className="grid-cols-2" style={{ marginBottom: '20px' }}>
-        <div className="glass-panel" style={{ padding: '20px' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '4px' }}>Top Products</h3>
-          <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
-            Products by sales revenue
-          </p>
-
-          <div className="table-responsive">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Product</th>
-                  <th>Category</th>
-                  <th>Units</th>
-                  <th>Revenue</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data?.topProducts?.map((p) => (
-                  <tr key={p.product_id}>
-                    <td style={{ fontWeight: 500 }}>{p.product_name}</td>
-                    <td>{p.category}</td>
-                    <td className="tabular-nums">{p.units_sold}</td>
-                    <td style={{ fontWeight: 600 }} className="tabular-nums">
-                      {formatCurrency(p.total_revenue)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <section className="card card-flush" aria-label="Recent Sales Activity">
+        <div className="card-header">
+          <div>
+            <h3 className="section-heading" style={{ marginBottom: 0 }}>Recent Sales Activity</h3>
+            <p className="section-subheading" style={{ marginBottom: 0 }}>Latest orders placed in the system</p>
           </div>
         </div>
 
-        <div className="glass-panel" style={{ padding: '20px' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '4px' }}>Top Client Accounts</h3>
-          <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
-            Customers by total spent
-          </p>
-
+        {loading || !data ? (
+          <TableSkeleton rows={5} columns={5} />
+        ) : !data.recentSales || data.recentSales.length === 0 ? (
+          <EmptyState
+            title="No recent orders"
+            description="Recent sales activity will appear here once transactions are placed."
+          />
+        ) : (
           <div className="table-responsive">
             <table className="data-table">
               <thead>
                 <tr>
+                  <th>ID</th>
                   <th>Customer</th>
-                  <th>City</th>
-                  <th>Orders</th>
-                  <th>Total Spent</th>
+                  <th>Date</th>
+                  <th className="num">Amount</th>
+                  <th>Status</th>
                 </tr>
               </thead>
               <tbody>
-                {data?.topCustomers?.map((c) => (
-                  <tr key={c.customer_id}>
+                {data.recentSales.map((s) => (
+                  <tr key={s.id}>
+                    <td className="tabular-nums" style={{ fontWeight: 500 }}>#{s.id}</td>
                     <td>
-                      <div style={{ fontWeight: 500 }}>{c.customer_name}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>{c.customer_code}</div>
+                      <div className="cell-primary">{s.customer_name}</div>
+                      <div className="cell-secondary">{s.city}</div>
                     </td>
-                    <td>{c.city}</td>
-                    <td className="tabular-nums">{c.orders_count}</td>
-                    <td style={{ fontWeight: 600 }} className="tabular-nums">
-                      {formatCurrency(c.total_spent)}
+                    <td className="tabular-nums" style={{ color: 'var(--text-secondary)' }}>
+                      {formatDate(s.sale_date)}
+                    </td>
+                    <td className="num cell-primary">{formatCurrency(s.total_amount)}</td>
+                    <td>
+                      <Badge status={s.status || 'completed'} />
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
-      </div>
-
-      <div className="glass-panel" style={{ padding: '20px' }}>
-        <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '4px' }}>Recent Sales Activity</h3>
-        <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
-          Latest orders placed in the system
-        </p>
-
-        <div className="table-responsive">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Customer</th>
-                <th>Date</th>
-                <th>Amount</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data?.recentSales?.map((s) => (
-                <tr key={s.id}>
-                  <td>#{s.id}</td>
-                  <td>
-                    <div style={{ fontWeight: 500 }}>{s.customer_name}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>{s.city}</div>
-                  </td>
-                  <td>{formatDate(s.sale_date)}</td>
-                  <td style={{ fontWeight: 600 }} className="tabular-nums">
-                    {formatCurrency(s.total_amount)}
-                  </td>
-                  <td>
-                    <span className="badge badge-active">{s.status || 'Completed'}</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+        )}
+      </section>
+        </>
+      )}
     </div>
   );
 };

@@ -50,7 +50,7 @@ describe('Sales API Endpoints & Transaction Rollback (/api/sales)', () => {
 
   it('should successfully create a multi-item sale in a single database transaction with server-calculated totals', async () => {
     // Customer 2 (Apex FinTech, active)
-    // Products 2 ($650) and 3 ($220) are active
+    // Products 2 (₹650) and 3 (₹220) are active
     const salePayload = {
       customer_id: 2,
       sale_date: '2026-10-13',

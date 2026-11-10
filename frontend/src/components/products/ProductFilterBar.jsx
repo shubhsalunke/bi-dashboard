@@ -32,12 +32,13 @@ export const ProductFilterBar = ({
   );
 
   return (
-    <div className="filter-bar" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
-      <div className="search-input-wrapper" style={{ minWidth: '200px', flex: '1 1 200px' }}>
-        <Search size={15} className="search-icon" />
+    <div className="filter-bar">
+      <div className="search-input-wrapper">
+        <Search size={15} className="search-icon" aria-hidden="true" />
         <input
           ref={searchInputRef}
           type="text"
+          aria-label="Search products"
           className="form-control search-input"
           placeholder="Search products by name or code..."
           maxLength={100}
@@ -47,8 +48,8 @@ export const ProductFilterBar = ({
       </div>
 
       <select
-        className="form-control"
-        style={{ width: '150px' }}
+        className="form-control filter-select"
+        aria-label="Filter by category"
         value={categoryFilter}
         onChange={(e) => onCategoryChange(e.target.value)}
       >
@@ -61,8 +62,8 @@ export const ProductFilterBar = ({
       </select>
 
       <select
-        className="form-control"
-        style={{ width: '130px' }}
+        className="form-control filter-select"
+        aria-label="Filter by brand"
         value={brandFilter}
         onChange={(e) => onBrandChange(e.target.value)}
       >
@@ -75,8 +76,8 @@ export const ProductFilterBar = ({
       </select>
 
       <select
-        className="form-control"
-        style={{ width: '130px' }}
+        className="form-control filter-select"
+        aria-label="Filter by stock status"
         value={stockFilter}
         onChange={(e) => onStockChange(e.target.value)}
       >
@@ -85,22 +86,22 @@ export const ProductFilterBar = ({
         <option value="out_of_stock">Out of stock</option>
       </select>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+      <div className="date-range-group">
         <input
           type="number"
-          className="form-control"
-          style={{ width: '85px' }}
+          aria-label="Minimum price"
+          className="form-control tabular-nums filter-price-input"
           placeholder="Min ₹"
           min="0"
           max="10000000"
           value={minPrice}
           onChange={(e) => onMinPriceChange(e.target.value)}
         />
-        <span style={{ color: 'var(--text-muted)', fontSize: '0.8125rem' }}>-</span>
+        <span className="date-range-sep">-</span>
         <input
           type="number"
-          className="form-control"
-          style={{ width: '85px' }}
+          aria-label="Maximum price"
+          className="form-control tabular-nums filter-price-input"
           placeholder="Max ₹"
           min="0"
           max="10000000"
@@ -110,8 +111,8 @@ export const ProductFilterBar = ({
       </div>
 
       <select
-        className="form-control"
-        style={{ width: '120px' }}
+        className="form-control filter-select"
+        aria-label="Filter by status"
         value={activeFilter}
         onChange={(e) => onActiveChange(e.target.value)}
       >
