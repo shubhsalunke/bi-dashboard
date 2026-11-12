@@ -1,4 +1,10 @@
 import axios from 'axios';
+import {
+  getAccessToken,
+  getRefreshToken,
+  updateAuthTokens,
+  clearAuthTokens,
+} from '../utils/authStorage';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -24,10 +30,20 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
+const redirectToSessionExpiredLogin = () => {
+  clearAuthTokens();
+  const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  const params = new URLSearchParams({ reason: 'session_expired' });
+  if (currentPath && !currentPath.startsWith('/login')) {
+    params.set('redirect', currentPath);
+  }
+  window.location.href = `/login?${params.toString()}`;
+};
+
 // Request Interceptor: Attach JWT Access Token
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = getAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -42,13 +58,15 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Detect 401 and attempt automatic token refresh (skip for login & refresh endpoints)
+    // Detect 401 and attempt automatic token refresh (skip for public auth endpoints)
     if (
       error.response &&
       error.response.status === 401 &&
       !originalRequest._retry &&
       !originalRequest.url.includes('/auth/login') &&
-      !originalRequest.url.includes('/auth/refresh')
+      !originalRequest.url.includes('/auth/refresh') &&
+      !originalRequest.url.includes('/auth/forgot-password') &&
+      !originalRequest.url.includes('/auth/reset-password-token')
     ) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
@@ -64,11 +82,10 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
 
-      const refreshToken = localStorage.getItem('refreshToken');
+      const refreshToken = getRefreshToken();
       if (!refreshToken) {
         isRefreshing = false;
-        localStorage.clear();
-        window.location.href = '/login';
+        redirectToSessionExpiredLogin();
         return Promise.reject(error);
       }
 
@@ -80,10 +97,7 @@ apiClient.interceptors.response.use(
         const newAccessToken = data.data.accessToken;
         const newRefreshToken = data.data.refreshToken;
 
-        localStorage.setItem('token', newAccessToken);
-        if (newRefreshToken) {
-          localStorage.setItem('refreshToken', newRefreshToken);
-        }
+        updateAuthTokens({ accessToken: newAccessToken, refreshToken: newRefreshToken });
 
         apiClient.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
         processQueue(null, newAccessToken);
@@ -92,15 +106,13 @@ apiClient.interceptors.response.use(
         return apiClient(originalRequest);
       } catch (refreshErr) {
         processQueue(refreshErr, null);
-        localStorage.clear();
-        window.location.href = '/login';
+        redirectToSessionExpiredLogin();
         return Promise.reject(refreshErr);
       } finally {
         isRefreshing = false;
       }
     }
 
-    // Format centralized error object
     const errorPayload = {
       status: error.response?.status || 500,
       code: error.response?.data?.error?.code || 'NETWORK_ERROR',

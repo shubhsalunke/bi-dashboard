@@ -45,13 +45,16 @@ const ALLOWED_FUNCTIONS = new Set([
 
 const VIEW_DESCRIPTIONS = {
   ai_customers: {
-    description: 'Customer accounts (excludes email and phone for privacy).',
+    description: 'Customer accounts (excludes email, phone, contact_person, gst_number, address, and notes for privacy).',
     columns: {
       id: 'Unique integer primary key (join target for ai_sales.customer_id)',
       customer_code: 'Business code such as CUST-001',
       customer_name: 'Company or client name',
       city: 'City name',
-      status: "Account status ('active' or 'inactive')",
+      state: 'Indian state or union territory (nullable)',
+      industry: 'Industry sector (IT Services, Finance, Healthcare, Retail, Manufacturing, Education, Other)',
+      customer_type: 'Customer segment (Large Business, Small Business, Startup, Individual)',
+      status: "Account status ('active', 'inactive', 'on_hold', 'prospect', 'churned')",
       created_at: 'Timestamp when customer account was created',
     },
   },
@@ -104,6 +107,9 @@ const STATIC_SCHEMA_FALLBACK = [
   { table_name: 'ai_customers', column_name: 'customer_code', data_type: 'character varying' },
   { table_name: 'ai_customers', column_name: 'customer_name', data_type: 'character varying' },
   { table_name: 'ai_customers', column_name: 'city', data_type: 'character varying' },
+  { table_name: 'ai_customers', column_name: 'state', data_type: 'character varying' },
+  { table_name: 'ai_customers', column_name: 'industry', data_type: 'character varying' },
+  { table_name: 'ai_customers', column_name: 'customer_type', data_type: 'character varying' },
   { table_name: 'ai_customers', column_name: 'status', data_type: 'character varying' },
   { table_name: 'ai_customers', column_name: 'created_at', data_type: 'timestamp with time zone' },
   { table_name: 'ai_products', column_name: 'id', data_type: 'integer' },
@@ -237,7 +243,7 @@ class AiSqlGeneratorService {
     let schemaRows = STATIC_SCHEMA_FALLBACK;
     let distinctValues = {
       salesStatuses: ['completed', 'pending', 'cancelled'],
-      customerStatuses: ['active', 'inactive'],
+      customerStatuses: ['active', 'inactive', 'on_hold', 'prospect', 'churned'],
       cities: [],
       categories: [],
       brands: [],
@@ -337,7 +343,7 @@ ${schemaSections}
 
 === KNOWN DISTINCT VALUES (USE EXACT SPELLINGS + ILIKE/LOWER) ===
 - ai_sales.status: ${distinctValues.salesStatuses.join(', ') || 'completed, pending, cancelled'}
-- ai_customers.status: ${distinctValues.customerStatuses.join(', ') || 'active, inactive'}
+- ai_customers.status: ${distinctValues.customerStatuses.join(', ') || 'active, inactive, on_hold, prospect, churned'}
 - ai_customers.city: ${distinctValues.cities.join(', ') || 'Mumbai, Pune, Nagpur, Nashik, Aurangabad, Hyderabad, Delhi'}
 - ai_products.category: ${distinctValues.categories.join(', ') || 'Cloud Infrastructure, Enterprise Software, Cybersecurity, Analytics & AI, Professional Services'}
 - ai_products.brand: ${distinctValues.brands.join(', ') || 'Tata, Infosys, Reliance, Mahindra, Bharat'}

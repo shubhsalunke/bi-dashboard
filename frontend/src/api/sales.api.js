@@ -15,4 +15,9 @@ export const salesApi = {
     const { data } = await apiClient.post('/sales', saleData);
     return data.data;
   },
+
+  updateSaleStatus: async (id, status) => {
+    const { data } = await apiClient.patch(`/sales/${id}/status`, { status });
+    return data.data;
+  },
 };

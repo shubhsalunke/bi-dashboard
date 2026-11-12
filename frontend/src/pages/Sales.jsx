@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Plus, AlertCircle } from 'lucide-react';
 import { salesApi } from '../api/sales.api';
 import { customersApi } from '../api/customers.api';
@@ -13,6 +14,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
 export const Sales = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [sales, setSales] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
   const [loading, setLoading] = useState(true);
@@ -23,6 +25,7 @@ export const Sales = () => {
   const [endDate, setEndDate] = useState('');
 
   const [viewingSale, setViewingSale] = useState(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [viewLoading, setViewLoading] = useState(false);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -76,16 +79,38 @@ export const Sales = () => {
     }
   };
 
-  const handleViewSale = async (id) => {
+  const handleViewSale = useCallback(async (id, { keepExisting = false } = {}) => {
+    setIsDetailOpen(true);
     setViewLoading(true);
-    setViewingSale(null);
+    if (!keepExisting) {
+      setViewingSale(null);
+    }
     try {
       const data = await salesApi.getSaleById(id);
       setViewingSale(data);
     } catch (err) {
+      setIsDetailOpen(false);
       showToast(err.message || 'Failed to load sale details', 'error');
     } finally {
       setViewLoading(false);
+    }
+  }, [showToast]);
+
+  // Open sale detail modal automatically if URL contains ?saleId=
+  useEffect(() => {
+    const saleIdParam = searchParams.get('saleId');
+    if (saleIdParam && /^\d+$/.test(saleIdParam)) {
+      handleViewSale(Number(saleIdParam));
+    }
+  }, [searchParams, handleViewSale]);
+
+  const handleCloseDetailModal = () => {
+    setIsDetailOpen(false);
+    setViewingSale(null);
+    if (searchParams.get('saleId')) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('saleId');
+      setSearchParams(next, { replace: true });
     }
   };
 
@@ -127,6 +152,10 @@ export const Sales = () => {
     if (valA > valB) return sortAsc ? 1 : -1;
     return 0;
   });
+
+  const currentSaleIndex = viewingSale ? sortedSales.findIndex((s) => s.id === viewingSale.id) : -1;
+  const hasPreviousSale = currentSaleIndex > 0;
+  const hasNextSale = currentSaleIndex >= 0 && currentSaleIndex < sortedSales.length - 1;
 
   return (
     <div>
@@ -249,8 +278,26 @@ export const Sales = () => {
 
       <SaleDetailModal
         sale={viewingSale}
+        isOpen={isDetailOpen}
         loading={viewLoading}
-        onClose={() => setViewingSale(null)}
+        onClose={handleCloseDetailModal}
+        hasPrevious={hasPreviousSale}
+        hasNext={hasNextSale}
+        onPrevious={() => {
+          if (hasPreviousSale) {
+            handleViewSale(sortedSales[currentSaleIndex - 1].id, { keepExisting: true });
+          }
+        }}
+        onNext={() => {
+          if (hasNextSale) {
+            handleViewSale(sortedSales[currentSaleIndex + 1].id, { keepExisting: true });
+          }
+        }}
+        canManage={canManage}
+        onStatusUpdated={(updatedSale) => {
+          setViewingSale(updatedSale);
+          fetchSales(pagination.page);
+        }}
       />
 
       {isCreateOpen && (

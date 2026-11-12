@@ -1,26 +1,33 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authApi } from '../api/auth.api';
+import {
+  getAccessToken,
+  setAuthTokens,
+  clearAuthTokens,
+} from '../utils/authStorage';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(() => localStorage.getItem('token'));
+  const [token, setToken] = useState(() => getAccessToken());
   const [loading, setLoading] = useState(true);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   useEffect(() => {
     const initializeAuth = async () => {
-      const storedToken = localStorage.getItem('token');
+      const storedToken = getAccessToken();
       if (storedToken) {
         try {
           const profile = await authApi.getCurrentUser();
           setUser(profile);
+          setSessionExpired(false);
         } catch (err) {
           console.warn('[AuthContext] Session expired or invalid:', err.message);
-          localStorage.removeItem('token');
-          localStorage.removeItem('refreshToken');
+          clearAuthTokens();
           setToken(null);
           setUser(null);
+          setSessionExpired(true);
         }
       }
       setLoading(false);
@@ -29,26 +36,37 @@ export const AuthProvider = ({ children }) => {
     initializeAuth();
   }, []);
 
-  const login = async (credentials) => {
-    const data = await authApi.login(credentials);
-    localStorage.setItem('token', data.accessToken);
-    localStorage.setItem('refreshToken', data.refreshToken);
+  const login = async ({ email, password, rememberMe = false }) => {
+    const payload = rememberMe ? { email, password, rememberMe: true } : { email, password };
+    const data = await authApi.login(payload);
+    setAuthTokens({
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
+      rememberMe: Boolean(rememberMe),
+    });
     setToken(data.accessToken);
     setUser(data.user);
+    setSessionExpired(false);
     return data.user;
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
+    clearAuthTokens();
     setToken(null);
     setUser(null);
+    setSessionExpired(false);
   };
+
+  const clearSessionExpired = useCallback(() => {
+    setSessionExpired(false);
+  }, []);
 
   const value = {
     user,
     token,
     loading,
+    sessionExpired,
+    clearSessionExpired,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',
     isManager: user?.role === 'manager',

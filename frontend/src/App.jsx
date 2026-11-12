@@ -24,9 +24,22 @@ const AuthLoadingScreen = () => (
   </div>
 );
 
+const resolveReturnPath = (location) => {
+  const stateFrom = location.state?.from;
+  if (stateFrom?.pathname && !stateFrom.pathname.startsWith('/login')) {
+    return `${stateFrom.pathname}${stateFrom.search || ''}${stateFrom.hash || ''}`;
+  }
+  const params = new URLSearchParams(location.search || '');
+  const redirect = params.get('redirect');
+  if (redirect && redirect.startsWith('/') && !redirect.startsWith('//') && !redirect.startsWith('/login')) {
+    return redirect;
+  }
+  return '/';
+};
+
 // Protected Route Guard
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, sessionExpired } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -34,7 +47,13 @@ const ProtectedRoute = ({ children }) => {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return (
+      <Navigate
+        to="/login"
+        state={{ from: location, sessionExpired }}
+        replace
+      />
+    );
   }
 
   return children;
@@ -42,7 +61,7 @@ const ProtectedRoute = ({ children }) => {
 
 // Admin Only Route Guard
 const AdminRoute = ({ children }) => {
-  const { isAuthenticated, isAdmin, loading } = useAuth();
+  const { isAuthenticated, isAdmin, loading, sessionExpired } = useAuth();
   const { showError } = useToast();
   const location = useLocation();
 
@@ -57,7 +76,13 @@ const AdminRoute = ({ children }) => {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return (
+      <Navigate
+        to="/login"
+        state={{ from: location, sessionExpired }}
+        replace
+      />
+    );
   }
 
   if (!isAdmin) {
@@ -66,7 +91,6 @@ const AdminRoute = ({ children }) => {
 
   return children;
 };
-
 
 // Public Route Guard (Redirects away from Login if already logged in)
 const PublicRoute = ({ children }) => {
@@ -78,8 +102,7 @@ const PublicRoute = ({ children }) => {
   }
 
   if (isAuthenticated) {
-    const destination = location.state?.from?.pathname || '/';
-    return <Navigate to={destination} replace />;
+    return <Navigate to={resolveReturnPath(location)} replace />;
   }
 
   return children;

@@ -52,7 +52,12 @@ Provides endpoints for CRM, catalog, transactional sales, executive reporting, A
           name: { type: 'string', example: 'Eleanor Vance' },
           email: { type: 'string', example: 'admin@bi.corp' },
           role: { type: 'string', enum: ['admin', 'manager', 'analyst'], example: 'admin' },
+          phone: { type: 'string', nullable: true, example: '+91 98765 43210' },
+          department: { type: 'string', nullable: true, example: 'Executive' },
           is_active: { type: 'boolean', example: true },
+          last_login_at: { type: 'string', format: 'date-time', nullable: true },
+          created_at: { type: 'string', format: 'date-time' },
+          updated_at: { type: 'string', format: 'date-time' },
         },
       },
       Customer: {
@@ -114,7 +119,7 @@ Provides endpoints for CRM, catalog, transactional sales, executive reporting, A
   paths: {
     '/api/auth/login': {
       post: {
-        summary: 'Authenticate user with email and password',
+        summary: 'Authenticate user with email and password (rate-limited & lockout protected)',
         tags: ['Authentication'],
         requestBody: {
           required: true,
@@ -126,6 +131,7 @@ Provides endpoints for CRM, catalog, transactional sales, executive reporting, A
                 properties: {
                   email: { type: 'string', example: 'admin@bi.corp' },
                   password: { type: 'string', example: 'Admin123!' },
+                  rememberMe: { type: 'boolean', default: false },
                 },
               },
             },
@@ -133,7 +139,58 @@ Provides endpoints for CRM, catalog, transactional sales, executive reporting, A
         },
         responses: {
           200: { description: 'Authenticated successfully with tokens' },
-          401: { description: 'Invalid credentials or inactive account', schema: { $ref: '#/components/schemas/ErrorResponse' } },
+          401: { description: 'Invalid email or password', schema: { $ref: '#/components/schemas/ErrorResponse' } },
+          403: { description: 'Account deactivated', schema: { $ref: '#/components/schemas/ErrorResponse' } },
+          429: { description: 'Too many failed login attempts; temporary lockout active', schema: { $ref: '#/components/schemas/ErrorResponse' } },
+        },
+      },
+    },
+    '/api/auth/forgot-password': {
+      post: {
+        summary: 'Submit a password reset request (notifies admin or emails reset link if SMTP is configured)',
+        tags: ['Authentication'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['email'],
+                properties: {
+                  email: { type: 'string', format: 'email' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Generic confirmation returned regardless of whether email exists' },
+          429: { description: 'Rate limit exceeded' },
+        },
+      },
+    },
+    '/api/auth/reset-password-token': {
+      post: {
+        summary: 'Reset password using an emailed token',
+        tags: ['Authentication'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['token', 'password'],
+                properties: {
+                  token: { type: 'string' },
+                  password: { type: 'string', minLength: 6, maxLength: 128 },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Password updated successfully' },
+          400: { description: 'Invalid or expired reset token' },
         },
       },
     },
@@ -182,7 +239,9 @@ Provides endpoints for CRM, catalog, transactional sales, executive reporting, A
           { name: 'limit', in: 'query', schema: { type: 'integer', default: 10 } },
           { name: 'search', in: 'query', schema: { type: 'string' } },
           { name: 'city', in: 'query', schema: { type: 'string' } },
-          { name: 'status', in: 'query', schema: { type: 'string', enum: ['active', 'inactive'] } },
+          { name: 'industry', in: 'query', schema: { type: 'string', enum: ['IT Services', 'Finance', 'Healthcare', 'Retail', 'Manufacturing', 'Education', 'Other'] } },
+          { name: 'customer_type', in: 'query', schema: { type: 'string', enum: ['Large Business', 'Small Business', 'Startup', 'Individual'] } },
+          { name: 'status', in: 'query', schema: { type: 'string', enum: ['active', 'inactive', 'on_hold', 'prospect', 'churned'] } },
           { name: 'sortBy', in: 'query', schema: { type: 'string', default: 'created_at' } },
           { name: 'sortOrder', in: 'query', schema: { type: 'string', default: 'desc' } },
         ],
@@ -206,9 +265,16 @@ Provides endpoints for CRM, catalog, transactional sales, executive reporting, A
                   customer_code: { type: 'string', example: 'CUST-099' },
                   customer_name: { type: 'string', example: 'Vanguard Dynamics' },
                   email: { type: 'string', example: 'contact@vanguard.io' },
-                  phone: { type: 'string', example: '+91-98201-11099' },
+                  phone: { type: 'string', example: '9820111099' },
                   city: { type: 'string', example: 'Pune' },
-                  status: { type: 'string', enum: ['active', 'inactive'], default: 'active' },
+                  status: { type: 'string', enum: ['active', 'inactive', 'on_hold', 'prospect', 'churned'], default: 'active' },
+                  industry: { type: 'string', enum: ['IT Services', 'Finance', 'Healthcare', 'Retail', 'Manufacturing', 'Education', 'Other'] },
+                  customer_type: { type: 'string', enum: ['Large Business', 'Small Business', 'Startup', 'Individual'] },
+                  contact_person: { type: 'string', example: 'Priya Nair' },
+                  state: { type: 'string', example: 'Maharashtra' },
+                  gst_number: { type: 'string', example: '27AAACA1234A1Z5' },
+                  address: { type: 'string', example: 'Plot 12, Hinjewadi Phase 2, Pune 411057' },
+                  notes: { type: 'string', example: 'Strategic enterprise prospect' },
                 },
               },
             },
@@ -324,28 +390,153 @@ Provides endpoints for CRM, catalog, transactional sales, executive reporting, A
         },
       },
     },
+    '/api/sales/{id}': {
+      get: {
+        summary: 'Get sale details by ID with customer info, line item subtotals, and summary totals',
+        tags: ['Sales'],
+        security: [{ BearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: {
+          200: { description: 'Sale details' },
+          404: { description: 'Sale not found' },
+        },
+      },
+    },
+    '/api/sales/{id}/status': {
+      patch: {
+        summary: 'Update sale status (Admin or Manager)',
+        tags: ['Sales'],
+        security: [{ BearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['status'],
+                properties: {
+                  status: { type: 'string', enum: ['completed', 'pending', 'cancelled'] },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Sale status updated' },
+          400: { description: 'Invalid status' },
+          403: { description: 'Forbidden' },
+          404: { description: 'Sale not found' },
+        },
+      },
+    },
     '/api/dashboard/summary': {
       get: {
-        summary: 'Executive dashboard KPI cards and top performer analytics',
+        summary: 'Executive dashboard KPI cards, period comparisons, charts, and alert datasets',
         tags: ['Dashboard & Reporting'],
         security: [{ BearerAuth: [] }],
-        responses: { 200: { description: 'Dashboard summary dataset' } },
+        parameters: [
+          { name: 'startDate', in: 'query', schema: { type: 'string', format: 'date' } },
+          { name: 'endDate', in: 'query', schema: { type: 'string', format: 'date' } },
+          {
+            name: 'preset',
+            in: 'query',
+            schema: {
+              type: 'string',
+              enum: ['all', '7d', '30d', '90d', 'this_month', 'last_month', 'this_quarter', 'this_fy'],
+            },
+          },
+          { name: 'city', in: 'query', schema: { type: 'string' } },
+          { name: 'category', in: 'query', schema: { type: 'string' } },
+          { name: 'brand', in: 'query', schema: { type: 'string' } },
+          { name: 'industry', in: 'query', schema: { type: 'string', enum: ['IT Services', 'Finance', 'Healthcare', 'Retail', 'Manufacturing', 'Education', 'Other'] } },
+          { name: 'customer_type', in: 'query', schema: { type: 'string', enum: ['Large Business', 'Small Business', 'Startup', 'Individual'] } },
+          { name: 'granularity', in: 'query', schema: { type: 'string', enum: ['monthly', 'weekly'], default: 'monthly' } },
+          { name: 'recentSalesStatus', in: 'query', schema: { type: 'string', enum: ['completed', 'pending', 'cancelled'] } },
+          { name: 'topProductsSort', in: 'query', schema: { type: 'string', enum: ['revenue', 'units'], default: 'revenue' } },
+          { name: 'topProductsLimit', in: 'query', schema: { type: 'integer', enum: [5, 10], default: 5 } },
+          { name: 'topCustomersSort', in: 'query', schema: { type: 'string', enum: ['spent', 'orders'], default: 'spent' } },
+          { name: 'topCustomersLimit', in: 'query', schema: { type: 'integer', enum: [5, 10], default: 5 } },
+        ],
+        responses: {
+          200: { description: 'Dashboard summary dataset' },
+          400: { description: 'Invalid filter query parameter' },
+        },
       },
     },
     '/api/reports/sales': {
       get: {
-        summary: 'Comprehensive sales report by month, city, and category',
+        summary: 'Comprehensive sales report with multi-dimensional filters, period comparisons, and breakdowns',
         tags: ['Dashboard & Reporting'],
         security: [{ BearerAuth: [] }],
-        responses: { 200: { description: 'Sales report dataset' } },
+        parameters: [
+          { name: 'startDate', in: 'query', schema: { type: 'string', format: 'date' } },
+          { name: 'endDate', in: 'query', schema: { type: 'string', format: 'date' } },
+          {
+            name: 'preset',
+            in: 'query',
+            schema: {
+              type: 'string',
+              enum: ['all', '7d', '30d', '90d', 'this_month', 'last_month', 'this_quarter', 'this_fy'],
+            },
+          },
+          { name: 'city', in: 'query', schema: { type: 'string' } },
+          { name: 'category', in: 'query', schema: { type: 'string' } },
+          { name: 'brand', in: 'query', schema: { type: 'string' } },
+          { name: 'industry', in: 'query', schema: { type: 'string', enum: ['IT Services', 'Finance', 'Healthcare', 'Retail', 'Manufacturing', 'Education', 'Other'] } },
+          { name: 'customer_type', in: 'query', schema: { type: 'string', enum: ['Large Business', 'Small Business', 'Startup', 'Individual'] } },
+          { name: 'state', in: 'query', schema: { type: 'string' } },
+          { name: 'status', in: 'query', schema: { type: 'string', enum: ['active', 'inactive', 'on_hold', 'prospect', 'churned'] } },
+          { name: 'granularity', in: 'query', schema: { type: 'string', enum: ['monthly', 'weekly'], default: 'monthly' } },
+        ],
+        responses: {
+          200: { description: 'Filtered sales report dataset with KPIs, period comparison, and chart breakdowns' },
+          400: { description: 'Invalid filter query parameter' },
+        },
+      },
+    },
+    '/api/reports/customer-insights': {
+      get: {
+        summary: 'Customer purchasing trends and value tiers (supports report filters)',
+        tags: ['Dashboard & Reporting'],
+        security: [{ BearerAuth: [] }],
+        parameters: [
+          { name: 'startDate', in: 'query', schema: { type: 'string', format: 'date' } },
+          { name: 'endDate', in: 'query', schema: { type: 'string', format: 'date' } },
+          { name: 'city', in: 'query', schema: { type: 'string' } },
+          { name: 'category', in: 'query', schema: { type: 'string' } },
+          { name: 'brand', in: 'query', schema: { type: 'string' } },
+          { name: 'industry', in: 'query', schema: { type: 'string' } },
+          { name: 'customer_type', in: 'query', schema: { type: 'string' } },
+          { name: 'state', in: 'query', schema: { type: 'string' } },
+          { name: 'status', in: 'query', schema: { type: 'string' } },
+        ],
+        responses: {
+          200: { description: 'Customer insights list' },
+          400: { description: 'Invalid filter query parameter' },
+        },
       },
     },
     '/api/reports/brand-sales': {
       get: {
-        summary: 'Report sales aggregated by product brand',
+        summary: 'Report sales aggregated by product brand (supports report filters)',
         tags: ['Dashboard & Reporting'],
         security: [{ BearerAuth: [] }],
-        responses: { 200: { description: 'Brand sales dataset with units sold and revenue' } },
+        parameters: [
+          { name: 'startDate', in: 'query', schema: { type: 'string', format: 'date' } },
+          { name: 'endDate', in: 'query', schema: { type: 'string', format: 'date' } },
+          { name: 'city', in: 'query', schema: { type: 'string' } },
+          { name: 'category', in: 'query', schema: { type: 'string' } },
+          { name: 'brand', in: 'query', schema: { type: 'string' } },
+          { name: 'industry', in: 'query', schema: { type: 'string' } },
+          { name: 'customer_type', in: 'query', schema: { type: 'string' } },
+          { name: 'state', in: 'query', schema: { type: 'string' } },
+          { name: 'status', in: 'query', schema: { type: 'string' } },
+        ],
+        responses: {
+          200: { description: 'Brand sales dataset with units sold and revenue' },
+          400: { description: 'Invalid filter query parameter' },
+        },
       },
     },
     '/api/ai/ask': {
@@ -377,6 +568,222 @@ Provides endpoints for CRM, catalog, transactional sales, executive reporting, A
           401: { description: 'Unauthorized - invalid or missing JWT token' },
           429: { description: 'Rate limit exceeded' },
           503: { description: 'AI provider not configured' },
+        },
+      },
+    },
+    '/api/users': {
+      get: {
+        summary: 'List users with search, role/status filters, sorting, and pagination (Admin only)',
+        tags: ['User Management'],
+        security: [{ BearerAuth: [] }],
+        parameters: [
+          { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 50, maximum: 500 } },
+          { name: 'search', in: 'query', schema: { type: 'string' } },
+          { name: 'role', in: 'query', schema: { type: 'string', enum: ['admin', 'manager', 'analyst', 'all'] } },
+          { name: 'status', in: 'query', schema: { type: 'string', enum: ['active', 'inactive', 'all'] } },
+          {
+            name: 'sortBy',
+            in: 'query',
+            schema: {
+              type: 'string',
+              enum: ['name', 'email', 'role', 'department', 'is_active', 'last_login_at', 'created_at'],
+              default: 'created_at',
+            },
+          },
+          { name: 'sortOrder', in: 'query', schema: { type: 'string', enum: ['asc', 'desc'], default: 'desc' } },
+        ],
+        responses: {
+          200: { description: 'Paginated user list (excluding password hashes)' },
+          403: { description: 'Forbidden - Administrator role required' },
+        },
+      },
+      post: {
+        summary: 'Create a new user account (Admin only)',
+        tags: ['User Management'],
+        security: [{ BearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['name', 'email', 'password', 'role'],
+                properties: {
+                  name: { type: 'string', maxLength: 100 },
+                  email: { type: 'string', format: 'email', maxLength: 254 },
+                  password: { type: 'string', minLength: 6, maxLength: 128 },
+                  role: { type: 'string', enum: ['admin', 'manager', 'analyst'] },
+                  phone: { type: 'string', nullable: true, maxLength: 30 },
+                  department: { type: 'string', nullable: true, maxLength: 100 },
+                  is_active: { type: 'boolean', default: true },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: { description: 'User created successfully' },
+          400: { description: 'Validation error' },
+          403: { description: 'Forbidden - Administrator role required' },
+          409: { description: 'Email already exists' },
+        },
+      },
+    },
+    '/api/users/{id}': {
+      get: {
+        summary: 'Get user details by ID (Admin only)',
+        tags: ['User Management'],
+        security: [{ BearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: {
+          200: { description: 'User details' },
+          404: { description: 'User not found' },
+        },
+      },
+      put: {
+        summary: 'Update user profile, role, status, or optional new password (Admin only)',
+        tags: ['User Management'],
+        security: [{ BearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string', maxLength: 100 },
+                  email: { type: 'string', format: 'email', maxLength: 254 },
+                  password: { type: 'string', minLength: 6, maxLength: 128 },
+                  role: { type: 'string', enum: ['admin', 'manager', 'analyst'] },
+                  phone: { type: 'string', nullable: true, maxLength: 30 },
+                  department: { type: 'string', nullable: true, maxLength: 100 },
+                  is_active: { type: 'boolean' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'User updated' },
+          400: { description: 'Validation error or self/last-admin safety rule violation' },
+          409: { description: 'Email already exists' },
+        },
+      },
+      delete: {
+        summary: 'Delete user account (Admin only; enforces self and last-admin protection)',
+        tags: ['User Management'],
+        security: [{ BearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: {
+          200: { description: 'User deleted' },
+          400: { description: 'Self or last-active-admin protection triggered' },
+          409: { description: 'User has associated sales records' },
+        },
+      },
+    },
+    '/api/users/{id}/status': {
+      patch: {
+        summary: 'Activate or deactivate a user account (Admin only)',
+        tags: ['User Management'],
+        security: [{ BearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['is_active'],
+                properties: {
+                  is_active: { type: 'boolean' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'User status updated' },
+          400: { description: 'Self or last-active-admin protection triggered' },
+        },
+      },
+    },
+    '/api/users/{id}/reset-password': {
+      post: {
+        summary: 'Generate and set a temporary password for a user (Admin only)',
+        tags: ['User Management'],
+        security: [{ BearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: {
+          200: { description: 'Temporary password generated and returned once' },
+          404: { description: 'User not found' },
+        },
+      },
+    },
+    '/api/users/{id}/activity': {
+      get: {
+        summary: 'Get audit activity logs for a specific user (Admin only)',
+        tags: ['User Management'],
+        security: [{ BearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'integer' } },
+          { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 20 } },
+        ],
+        responses: {
+          200: { description: 'User activity log entries' },
+          404: { description: 'User not found' },
+        },
+      },
+    },
+    '/api/users/audit-logs': {
+      get: {
+        summary: 'Get paginated system-wide audit logs (Admin only)',
+        tags: ['User Management'],
+        security: [{ BearerAuth: [] }],
+        parameters: [
+          { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 20 } },
+        ],
+        responses: {
+          200: { description: 'Audit logs list' },
+          403: { description: 'Forbidden - Administrator role required' },
+        },
+      },
+    },
+    '/api/users/reset-requests': {
+      get: {
+        summary: 'List pending password reset requests (Admin only)',
+        tags: ['User Management'],
+        security: [{ BearerAuth: [] }],
+        responses: {
+          200: { description: 'Pending password reset requests' },
+          403: { description: 'Forbidden - Administrator role required' },
+        },
+      },
+    },
+    '/api/users/reset-requests/{requestId}/complete': {
+      post: {
+        summary: 'Generate a temporary password for a pending reset request (Admin only)',
+        tags: ['User Management'],
+        security: [{ BearerAuth: [] }],
+        parameters: [{ name: 'requestId', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: {
+          200: { description: 'Temporary password generated and request marked completed' },
+          404: { description: 'Reset request not found' },
+        },
+      },
+    },
+    '/api/users/reset-requests/{requestId}/dismiss': {
+      patch: {
+        summary: 'Dismiss a pending password reset request (Admin only)',
+        tags: ['User Management'],
+        security: [{ BearerAuth: [] }],
+        parameters: [{ name: 'requestId', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: {
+          200: { description: 'Reset request dismissed' },
+          404: { description: 'Pending reset request not found' },
         },
       },
     },

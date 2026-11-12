@@ -5,7 +5,7 @@ const config = require('../config/env');
  * Generate Access and Refresh JWT Tokens
  * @param {Object} payload - User identification payload (id, email, role, name)
  */
-const generateTokens = (payload) => {
+const generateTokens = (payload, options = {}) => {
   const userPayload = {
     id: payload.id,
     email: payload.email,
@@ -13,15 +13,19 @@ const generateTokens = (payload) => {
     name: payload.name,
   };
 
+  const refreshExpiresIn = options.rememberMe
+    ? config.jwt.rememberRefreshExpiresIn
+    : config.jwt.refreshExpiresIn;
+
   const accessToken = jwt.sign(userPayload, config.jwt.accessSecret, {
     expiresIn: config.jwt.accessExpiresIn,
   });
 
   const refreshToken = jwt.sign(
-    { id: payload.id, tokenType: 'refresh' },
+    { id: payload.id, tokenType: 'refresh', rememberMe: Boolean(options.rememberMe) },
     config.jwt.refreshSecret,
     {
-      expiresIn: config.jwt.refreshExpiresIn,
+      expiresIn: refreshExpiresIn,
     }
   );
 

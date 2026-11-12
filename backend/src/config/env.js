@@ -26,6 +26,24 @@ const config = {
     refreshSecret: process.env.JWT_REFRESH_SECRET || 'dev_jwt_refresh_secret_key_antigravity_bi_2026_super_secure_32',
     accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m',
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+    rememberRefreshExpiresIn: process.env.JWT_REMEMBER_EXPIRES_IN || '30d',
+  },
+
+  authSecurity: {
+    maxFailedAttempts: parseInt(process.env.LOGIN_MAX_FAILED_ATTEMPTS || '5', 10),
+    lockoutMinutes: parseInt(process.env.LOGIN_LOCKOUT_MINUTES || '15', 10),
+    resetTokenTtlMinutes: parseInt(process.env.PASSWORD_RESET_TTL_MINUTES || '30', 10),
+  },
+
+  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
+
+  smtp: {
+    host: process.env.SMTP_HOST || '',
+    port: parseInt(process.env.SMTP_PORT || '587', 10),
+    secure: process.env.SMTP_SECURE === 'true',
+    user: process.env.SMTP_USER || '',
+    pass: process.env.SMTP_PASS || '',
+    from: process.env.SMTP_FROM || process.env.SMTP_USER || '',
   },
 
   rateLimit: {

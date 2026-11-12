@@ -53,8 +53,24 @@ const saleIdSchema = {
   }),
 };
 
+const updateSaleStatusSchema = {
+  params: Joi.object({
+    id: Joi.number().integer().positive().required(),
+  }),
+  body: Joi.object({
+    status: Joi.string()
+      .valid('completed', 'pending', 'cancelled')
+      .required()
+      .messages({
+        'any.only': 'Status must be one of: completed, pending, cancelled',
+        'any.required': 'Status is required',
+      }),
+  }),
+};
+
 module.exports = {
   createSaleSchema,
   listSalesSchema,
   saleIdSchema,
+  updateSaleStatusSchema,
 };

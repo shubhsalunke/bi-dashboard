@@ -13,7 +13,12 @@ import {
 import { EmptyState } from '../common/EmptyState';
 import { formatCurrency, formatChartValue } from '../../utils/format';
 
-export const BrandSalesChart = ({ brandSales = [], loading = false }) => {
+export const BrandSalesChart = ({
+  brandSales = [],
+  loading = false,
+  activeBrand = '',
+  onSelectBrand = null,
+}) => {
   const chartData = useMemo(() => {
     return (brandSales || []).map((b) => ({
       brand: b.brand,
@@ -30,20 +35,30 @@ export const BrandSalesChart = ({ brandSales = [], loading = false }) => {
     );
   }, [chartData]);
 
+  const handleBarClick = (entry) => {
+    if (!onSelectBrand || !entry?.brand || entry.brand === 'Unspecified') return;
+    onSelectBrand(entry.brand === activeBrand ? '' : entry.brand);
+  };
+
   return (
     <section className="card card-flush" aria-label="Revenue by Brand">
       <div className="card-header">
         <h3 className="section-heading" style={{ marginBottom: 0 }}>Revenue by Brand</h3>
+        {onSelectBrand && (
+          <span className="chart-hint">
+            {activeBrand ? `Filtered: ${activeBrand} (click bar to clear)` : 'Click a bar to filter'}
+          </span>
+        )}
       </div>
 
       <div className="card-body">
-        <div className="chart-box">
+        <div className="chart-box-sm">
           {loading ? (
             <div className="skeleton" style={{ width: '100%', height: '100%' }} />
           ) : chartData.length === 0 ? (
             <EmptyState
               title="No brand revenue data"
-              description="Brand sales breakdown will appear once product sales are recorded."
+              description="Brand sales breakdown will appear once product sales match the active filters."
             />
           ) : (
             <ResponsiveContainer width="100%" height="100%">
@@ -76,13 +91,22 @@ export const BrandSalesChart = ({ brandSales = [], loading = false }) => {
                   }}
                   formatter={(val) => [formatCurrency(val), 'Revenue']}
                 />
-                <Bar dataKey="revenue" radius={[2, 2, 0, 0]} maxBarSize={52} isAnimationActive={false}>
+                <Bar
+                  dataKey="revenue"
+                  radius={[2, 2, 0, 0]}
+                  maxBarSize={52}
+                  isAnimationActive={false}
+                  cursor={onSelectBrand ? 'pointer' : 'default'}
+                  onClick={(barData) => handleBarClick(barData?.payload || barData)}
+                >
                   {chartData.map((entry, index) => {
-                    const isTop = topBrand && entry.brand === topBrand.brand;
+                    const isHighlighted = activeBrand
+                      ? entry.brand === activeBrand
+                      : topBrand && entry.brand === topBrand.brand;
                     return (
                       <Cell
                         key={`brand-cell-${index}`}
-                        fill={isTop ? 'var(--accent)' : 'var(--chart-muted)'}
+                        fill={isHighlighted ? 'var(--accent)' : 'var(--chart-muted)'}
                       />
                     );
                   })}

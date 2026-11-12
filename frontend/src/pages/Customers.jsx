@@ -10,6 +10,11 @@ import { CustomersTable } from '../components/customers/CustomersTable';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useDebounce } from '../hooks/useDebounce';
+import {
+  CUSTOMER_INDUSTRIES,
+  CUSTOMER_TYPES,
+  CUSTOMER_STATUSES,
+} from '../utils/customerOptions';
 
 const CITIES = ['Pune', 'Mumbai', 'Nagpur', 'Nashik', 'Aurangabad', 'Hyderabad', 'Delhi'];
 
@@ -21,6 +26,8 @@ export const Customers = () => {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [cityFilter, setCityFilter] = useState('');
+  const [industryFilter, setIndustryFilter] = useState('');
+  const [customerTypeFilter, setCustomerTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const debouncedSearch = useDebounce(searchTerm, 300);
 
@@ -45,6 +52,8 @@ export const Customers = () => {
         limit: pagination.limit,
         search: debouncedSearch || undefined,
         city: cityFilter || undefined,
+        industry: industryFilter || undefined,
+        customer_type: customerTypeFilter || undefined,
         status: statusFilter || undefined,
       });
       setCustomers(res.data || []);
@@ -56,7 +65,7 @@ export const Customers = () => {
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearch, cityFilter, statusFilter, pagination.limit, showToast]);
+  }, [debouncedSearch, cityFilter, industryFilter, customerTypeFilter, statusFilter, pagination.limit, showToast]);
 
   useEffect(() => {
     fetchCustomers(1);
@@ -103,9 +112,11 @@ export const Customers = () => {
 
   const exportDirectoryCSV = () => {
     if (!customers || customers.length === 0) return;
-    const lines = ['Customer Code,Company Name,Contact Email,Phone,City,Status'];
+    const lines = ['Customer Code,Company Name,Contact Email,Phone,City,State,Industry,Customer Type,Contact Person,GST Number,Status'];
     customers.forEach((c) => {
-      lines.push(`"${c.customer_code}","${c.customer_name}","${c.email}","${c.phone || ''}","${c.city}","${c.status}"`);
+      lines.push(
+        `"${c.customer_code}","${c.customer_name}","${c.email}","${c.phone || ''}","${c.city}","${c.state || ''}","${c.industry || ''}","${c.customer_type || ''}","${c.contact_person || ''}","${c.gst_number || ''}","${c.status}"`
+      );
     });
     const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -114,6 +125,15 @@ export const Customers = () => {
     link.download = `customers_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
     showToast('Exported customers to CSV', 'success');
+  };
+
+  const hasActiveFilters = Boolean(searchTerm || cityFilter || industryFilter || customerTypeFilter || statusFilter);
+  const resetFilters = () => {
+    setSearchTerm('');
+    setCityFilter('');
+    setIndustryFilter('');
+    setCustomerTypeFilter('');
+    setStatusFilter('');
   };
 
   const sortedCustomers = [...customers].sort((a, b) => {
@@ -178,20 +198,45 @@ export const Customers = () => {
 
         <select
           className="form-control filter-select"
+          aria-label="Filter by industry"
+          value={industryFilter}
+          onChange={(e) => setIndustryFilter(e.target.value)}
+        >
+          <option value="">All Industries</option>
+          {CUSTOMER_INDUSTRIES.map((industry) => (
+            <option key={industry} value={industry}>{industry}</option>
+          ))}
+        </select>
+
+        <select
+          className="form-control filter-select"
+          aria-label="Filter by customer type"
+          value={customerTypeFilter}
+          onChange={(e) => setCustomerTypeFilter(e.target.value)}
+        >
+          <option value="">All Types</option>
+          {CUSTOMER_TYPES.map((type) => (
+            <option key={type} value={type}>{type}</option>
+          ))}
+        </select>
+
+        <select
+          className="form-control filter-select"
           aria-label="Filter by status"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
         >
           <option value="">All Statuses</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
+          {CUSTOMER_STATUSES.map((s) => (
+            <option key={s.value} value={s.value}>{s.label}</option>
+          ))}
         </select>
 
-        {(searchTerm || cityFilter || statusFilter) && (
+        {hasActiveFilters && (
           <button
             type="button"
             className="btn btn-secondary btn-sm"
-            onClick={() => { setSearchTerm(''); setCityFilter(''); setStatusFilter(''); }}
+            onClick={resetFilters}
           >
             Reset
           </button>
@@ -200,7 +245,7 @@ export const Customers = () => {
 
       <div className="card card-flush">
         {loading ? (
-          <TableSkeleton rows={8} columns={7} />
+          <TableSkeleton rows={8} columns={9} />
         ) : error && customers.length === 0 ? (
           <EmptyState
             icon={AlertCircle}
@@ -216,16 +261,16 @@ export const Customers = () => {
           <EmptyState
             title="No customers found"
             description={
-              searchTerm || cityFilter || statusFilter
+              hasActiveFilters
                 ? 'Try adjusting your search criteria or filters.'
                 : 'No customers recorded yet.'
             }
             action={
-              (searchTerm || cityFilter || statusFilter) ? (
+              hasActiveFilters ? (
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
-                  onClick={() => { setSearchTerm(''); setCityFilter(''); setStatusFilter(''); }}
+                  onClick={resetFilters}
                 >
                   Clear Filters
                 </button>

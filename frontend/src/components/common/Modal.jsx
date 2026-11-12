@@ -2,7 +2,15 @@ import React, { useEffect, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
-export const Modal = ({ isOpen, onClose, title, children, footer = null, maxWidth = '600px' }) => {
+export const Modal = ({
+  isOpen,
+  onClose,
+  title,
+  headerExtra = null,
+  children,
+  footer = null,
+  maxWidth = '600px',
+}) => {
   const titleId = useId();
 
   useEffect(() => {
@@ -39,7 +47,10 @@ export const Modal = ({ isOpen, onClose, title, children, footer = null, maxWidt
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">
-          <h3 id={titleId} className="modal-title">{title}</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap', minWidth: 0, flex: 1 }}>
+            <h3 id={titleId} className="modal-title">{title}</h3>
+            {headerExtra}
+          </div>
           <button
             type="button"
             className="modal-close-btn"

@@ -2,6 +2,12 @@ const bcrypt = require('bcryptjs');
 const { pool, getClient } = require('../config/db');
 
 async function seedDatabase() {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'Refusing to run demo database seed in NODE_ENV=production: demo accounts with known passwords must not be created in production.'
+    );
+  }
+
   console.log('--------------------------------------------------');
   console.log('🌱 Starting Clean Database Seeding (Curated 5 Records)');
   console.log('--------------------------------------------------');
@@ -37,16 +43,89 @@ async function seedDatabase() {
     // 2. Seed Exactly 5 Clean Customers
     console.log('  🏢 Seeding Customers (5 curated enterprise clients)...');
     const customerList = [
-      ['CUST-001', 'Acme Logistics India', 'contact@acmelogistics.in', '+91-22-2555-0101', 'Mumbai', 'active'],
-      ['CUST-002', 'Tata FinTech Solutions', 'billing@tatafintech.in', '+91-20-2555-0102', 'Pune', 'active'],
-      ['CUST-003', 'Reliance Health Analytics', 'ops@reliancehealth.in', '+91-712-2555-0103', 'Nagpur', 'active'],
-      ['CUST-004', 'Infosys Cloud Systems', 'admin@infosyscloud.in', '+91-40-2555-0104', 'Hyderabad', 'active'],
-      ['CUST-005', 'Mahindra Tech Systems', 'contact@mahindratech.in', '+91-11-2555-0105', 'Delhi', 'active'],
+      [
+        'CUST-001',
+        'Acme Logistics India',
+        'contact@acmelogistics.in',
+        '+91-22-2555-0101',
+        'Mumbai',
+        'active',
+        'Other',
+        'Large Business',
+        'Rajesh Kulkarni',
+        'Maharashtra',
+        '27AAACA1234A1Z5',
+        'Plot 14, MIDC Industrial Area, Andheri East, Mumbai 400093',
+        'Key logistics partner across Western India.',
+      ],
+      [
+        'CUST-002',
+        'Tata FinTech Solutions',
+        'billing@tatafintech.in',
+        '+91-20-2555-0102',
+        'Pune',
+        'active',
+        'Finance',
+        'Large Business',
+        'Ananya Deshmukh',
+        'Maharashtra',
+        '27AAACT2727Q1ZW',
+        'Tower B, Magarpatta Cybercity, Hadapsar, Pune 411013',
+        'Annual enterprise billing cycle with priority SLA.',
+      ],
+      [
+        'CUST-003',
+        'Reliance Health Analytics',
+        'ops@reliancehealth.in',
+        '+91-712-2555-0103',
+        'Nagpur',
+        'active',
+        'Healthcare',
+        'Large Business',
+        'Dr. Vikram Joshi',
+        'Maharashtra',
+        '27AAACR5055K1Z7',
+        '3rd Floor, IT Park, Parsodi, Nagpur 440022',
+        'Diagnostic data analytics account.',
+      ],
+      [
+        'CUST-004',
+        'Infosys Cloud Systems',
+        'admin@infosyscloud.in',
+        '+91-40-2555-0104',
+        'Hyderabad',
+        'active',
+        'IT Services',
+        'Small Business',
+        'Sneha Reddy',
+        'Telangana',
+        '36AAACI4798L1Z9',
+        'HITEC City Phase 2, Madhapur, Hyderabad 500081',
+        'Expanding multi-region cloud workloads.',
+      ],
+      [
+        'CUST-005',
+        'Mahindra Tech Systems',
+        'contact@mahindratech.in',
+        '+91-11-2555-0105',
+        'Delhi',
+        'active',
+        'Manufacturing',
+        'Startup',
+        'Arjun Malhotra',
+        'Delhi',
+        '07AAACM3025E1Z2',
+        'Okhla Industrial Estate Phase III, New Delhi 110020',
+        'Smart factory telemetry pilot.',
+      ],
     ];
 
     const customerInsertSql = `
-      INSERT INTO customers (customer_code, customer_name, email, phone, city, status)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO customers (
+        customer_code, customer_name, email, phone, city, status,
+        industry, customer_type, contact_person, state, gst_number, address, notes
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       RETURNING id, customer_code, customer_name, city;
     `;
     const customers = [];

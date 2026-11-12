@@ -23,6 +23,8 @@ export const CustomersTable = ({
             <TableHeader label="Contact Email" />
             <TableHeader label="Phone" />
             <TableHeader label="City" field="city" sortField={sortField} sortAsc={sortAsc} onSort={onSort} />
+            <TableHeader label="Industry" field="industry" sortField={sortField} sortAsc={sortAsc} onSort={onSort} />
+            <TableHeader label="Customer Type" field="customer_type" sortField={sortField} sortAsc={sortAsc} onSort={onSort} />
             <TableHeader label="Status" />
             <TableHeader label="Actions" align="right" />
           </tr>
@@ -41,6 +43,8 @@ export const CustomersTable = ({
               <td style={{ color: 'var(--text-secondary)' }}>{c.email}</td>
               <td className="tabular-nums" style={{ color: 'var(--text-secondary)' }}>{c.phone || '-'}</td>
               <td>{c.city}</td>
+              <td style={{ color: 'var(--text-secondary)' }}>{c.industry || '-'}</td>
+              <td style={{ color: 'var(--text-secondary)' }}>{c.customer_type || '-'}</td>
               <td>
                 <Badge status={c.status} />
               </td>

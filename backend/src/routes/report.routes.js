@@ -9,7 +9,7 @@ const router = express.Router();
 router.use(authenticate);
 
 router.get('/sales', validate(salesReportFilterSchema), dashboardController.getSalesReport);
-router.get('/customer-insights', dashboardController.getCustomerInsights);
-router.get('/brand-sales', dashboardController.getBrandSalesReport);
+router.get('/customer-insights', validate(salesReportFilterSchema), dashboardController.getCustomerInsights);
+router.get('/brand-sales', validate(salesReportFilterSchema), dashboardController.getBrandSalesReport);
 
 module.exports = router;

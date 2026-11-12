@@ -36,16 +36,68 @@ describe('Sales API Endpoints & Transaction Rollback (/api/sales)', () => {
     expect(res.body.pagination.total).toBeGreaterThan(0);
   });
 
-  it('should retrieve a sale by ID with nested line items', async () => {
+  it('should retrieve a sale by ID with nested line items including subtotal (Qty x Unit Price), brand, and summary fields', async () => {
     const res = await request(app)
       .get('/api/sales/1')
       .set('Authorization', `Bearer ${managerToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.data).toHaveProperty('id', 1);
+    expect(res.body.data).toHaveProperty('customer_code');
+    expect(res.body.data).toHaveProperty('customer_city');
+    expect(res.body.data).toHaveProperty('subtotal');
+    expect(res.body.data).toHaveProperty('discount_amount');
+    expect(res.body.data).toHaveProperty('tax_amount');
     expect(res.body.data).toHaveProperty('items');
     expect(res.body.data.items).toBeInstanceOf(Array);
     expect(res.body.data.items.length).toBeGreaterThan(0);
+
+    const firstItem = res.body.data.items[0];
+    const expectedSubtotal = +(firstItem.quantity * parseFloat(firstItem.unit_price)).toFixed(2);
+    expect(parseFloat(firstItem.subtotal)).toBe(expectedSubtotal);
+    expect(parseFloat(firstItem.line_total)).toBe(expectedSubtotal);
+    expect(firstItem).toHaveProperty('category');
+    expect(firstItem).toHaveProperty('brand');
+  });
+
+  it('should update sale status via PATCH /api/sales/:id/status with validation and RBAC', async () => {
+    // Create a temporary sale to test status transitions
+    const createRes = await request(app)
+      .post('/api/sales')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({
+        customer_id: 2,
+        sale_date: '2026-10-13',
+        status: 'pending',
+        items: [{ product_id: 2, quantity: 1 }],
+      });
+    expect(createRes.status).toBe(201);
+    const saleId = createRes.body.data.id;
+
+    // Analyst forbidden
+    const analystRes = await request(app)
+      .patch(`/api/sales/${saleId}/status`)
+      .set('Authorization', `Bearer ${analystToken}`)
+      .send({ status: 'completed' });
+    expect(analystRes.status).toBe(403);
+
+    // Invalid status rejected
+    const badRes = await request(app)
+      .patch(`/api/sales/${saleId}/status`)
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ status: 'archived' });
+    expect(badRes.status).toBe(400);
+    expect(badRes.body.error.details[0].message).toContain('Status must be one of');
+
+    // Valid transition to cancelled
+    const cancelRes = await request(app)
+      .patch(`/api/sales/${saleId}/status`)
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ status: 'cancelled' });
+    expect(cancelRes.status).toBe(200);
+    expect(cancelRes.body.data.status).toBe('cancelled');
+    expect(cancelRes.body.data.items.length).toBe(1);
+    expect(parseFloat(cancelRes.body.data.items[0].subtotal)).toBe(650);
   });
 
   it('should successfully create a multi-item sale in a single database transaction with server-calculated totals', async () => {

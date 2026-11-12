@@ -173,6 +173,36 @@ describe('Frontend Input Validation & Boundaries', () => {
       fireEvent.change(phoneInput, { target: { value: '98201' } });
       expect(screen.getByText(/Phone number must be exactly 10 digits/i)).toBeInTheDocument();
     });
+
+    it('validates optional 15-character GSTIN format and keeps Industry and Customer Type optional', () => {
+      render(
+        <ToastProvider>
+          <CustomerFormModal
+            isOpen={true}
+            onClose={vi.fn()}
+            onSaved={vi.fn()}
+          />
+        </ToastProvider>
+      );
+
+      const gstInput = screen.getByLabelText(/GST Number/i);
+      expect(gstInput).toHaveAttribute('maxLength', '15');
+
+      // Invalid GSTIN shows inline error on blur
+      fireEvent.change(gstInput, { target: { value: 'invalid123' } });
+      fireEvent.blur(gstInput);
+      expect(gstInput.value).toBe('INVALID123');
+      expect(screen.getByText(/GST number must be a valid 15-character GSTIN/i)).toBeInTheDocument();
+
+      // Valid GSTIN clears inline error
+      fireEvent.change(gstInput, { target: { value: '27aaaca1234a1z5' } });
+      expect(gstInput.value).toBe('27AAACA1234A1Z5');
+      expect(screen.queryByText(/GST number must be a valid 15-character GSTIN/i)).not.toBeInTheDocument();
+
+      // Industry & Customer Type have no required asterisk
+      expect(screen.getByLabelText('Industry')).not.toBeRequired();
+      expect(screen.getByLabelText('Customer Type')).not.toBeRequired();
+    });
   });
 
   describe('4. AI Assistant Question Input Limits', () => {

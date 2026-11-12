@@ -35,10 +35,16 @@ const mockCustomersData = {
       customer_code: 'CUST-001',
       customer_name: 'Acme Corporation',
       email: 'contact@acme.com',
-      phone: '+91-98201-11001',
+      phone: '9820111001',
       city: 'Mumbai',
-      state: 'MH',
-      status: 'active',
+      state: 'Maharashtra',
+      industry: 'IT Services',
+      customer_type: 'Large Business',
+      contact_person: 'Rajesh Kulkarni',
+      gst_number: '27AAACA1234A1Z5',
+      address: 'Plot 14, Andheri East',
+      notes: 'Priority client',
+      status: 'on_hold',
       created_at: new Date().toISOString(),
     },
     {
@@ -46,10 +52,12 @@ const mockCustomersData = {
       customer_code: 'CUST-002',
       customer_name: 'Stark Global',
       email: 'info@stark.com',
-      phone: '+91-98201-11002',
+      phone: '9820111002',
       city: 'Pune',
-      state: 'MH',
-      status: 'active',
+      state: 'Maharashtra',
+      industry: 'Finance',
+      customer_type: 'Startup',
+      status: 'prospect',
       created_at: new Date().toISOString(),
     },
   ],
@@ -80,7 +88,7 @@ describe('Customers Directory Component', () => {
     customersApi.getCustomers.mockResolvedValue(mockCustomersData);
   });
 
-  it('renders customer directory table and displays customer data', async () => {
+  it('renders customer directory table with Industry, Customer Type, and new status badges', async () => {
     renderCustomers();
 
     await waitFor(() => {
@@ -88,19 +96,41 @@ describe('Customers Directory Component', () => {
       expect(screen.getByText('Acme Corporation')).toBeInTheDocument();
       expect(screen.getByText('contact@acme.com')).toBeInTheDocument();
       expect(screen.getByText('Stark Global')).toBeInTheDocument();
+      expect(screen.getByRole('columnheader', { name: /Industry/i })).toBeInTheDocument();
+      expect(screen.getByRole('columnheader', { name: /Customer Type/i })).toBeInTheDocument();
+      expect(screen.getByText('on hold')).toHaveClass('badge-on-hold');
+      expect(screen.getByText('prospect')).toHaveClass('badge-prospect');
     });
   });
 
-  it('displays search input and filter controls', async () => {
+  it('displays search input and filter controls including Industry, Customer Type, and Status', async () => {
     renderCustomers();
 
     await waitFor(() => {
       expect(screen.getByPlaceholderText(/Search by company name/i)).toBeInTheDocument();
+      expect(screen.getByLabelText('Filter by city')).toBeInTheDocument();
+      expect(screen.getByLabelText('Filter by industry')).toBeInTheDocument();
+      expect(screen.getByLabelText('Filter by customer type')).toBeInTheDocument();
+      expect(screen.getByLabelText('Filter by status')).toBeInTheDocument();
       expect(screen.getByText('Add Customer')).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText('Filter by industry'), { target: { value: 'IT Services' } });
+    fireEvent.change(screen.getByLabelText('Filter by customer type'), { target: { value: 'Large Business' } });
+    fireEvent.change(screen.getByLabelText('Filter by status'), { target: { value: 'churned' } });
+
+    await waitFor(() => {
+      expect(customersApi.getCustomers).toHaveBeenCalledWith(
+        expect.objectContaining({
+          industry: 'IT Services',
+          customer_type: 'Large Business',
+          status: 'churned',
+        })
+      );
     });
   });
 
-  it('opens create customer modal when Add Customer button is clicked', async () => {
+  it('opens create and edit customer modals with extended fields', async () => {
     renderCustomers();
 
     await waitFor(() => {
@@ -113,6 +143,27 @@ describe('Customers Directory Component', () => {
     await waitFor(() => {
       expect(screen.getByText('Create New Customer Account')).toBeInTheDocument();
       expect(screen.getByText(/Company \/ Client Name \*/i)).toBeInTheDocument();
+      expect(screen.getByLabelText('Industry')).toBeInTheDocument();
+      expect(screen.getByLabelText('Customer Type')).toBeInTheDocument();
+      expect(screen.getByLabelText('Contact Person Name')).toBeInTheDocument();
+      expect(screen.getByLabelText('State')).toBeInTheDocument();
+      expect(screen.getByLabelText('GST Number')).toBeInTheDocument();
+      expect(screen.getByLabelText('Address')).toBeInTheDocument();
+      expect(screen.getByLabelText('Notes')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Cancel/i }));
+
+    fireEvent.click(screen.getByLabelText('Edit Acme Corporation'));
+    await waitFor(() => {
+      expect(screen.getByText('Edit Customer: Acme Corporation')).toBeInTheDocument();
+      expect(screen.getByLabelText('Industry').value).toBe('IT Services');
+      expect(screen.getByLabelText('Customer Type').value).toBe('Large Business');
+      expect(screen.getByLabelText('Contact Person Name').value).toBe('Rajesh Kulkarni');
+      expect(screen.getByLabelText('State').value).toBe('Maharashtra');
+      expect(screen.getByLabelText('GST Number').value).toBe('27AAACA1234A1Z5');
+      expect(screen.getByLabelText('Address').value).toBe('Plot 14, Andheri East');
+      expect(screen.getByLabelText('Notes').value).toBe('Priority client');
     });
   });
 });

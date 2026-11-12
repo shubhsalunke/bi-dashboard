@@ -240,6 +240,8 @@ class SaleService {
         c.customer_name,
         c.email AS customer_email,
         c.city AS customer_city,
+        c.state AS customer_state,
+        c.gst_number AS customer_gst_number,
         s.sale_date,
         s.total_amount,
         s.status,
@@ -261,11 +263,15 @@ class SaleService {
       SELECT 
         si.id,
         si.product_id,
+        p.sku,
         p.product_name,
         p.category,
+        p.brand,
+        p.gst_percent,
         si.quantity,
         si.unit_price,
-        si.line_total
+        si.line_total,
+        ROUND((si.quantity * si.unit_price)::numeric, 2) AS subtotal
       FROM sale_items si
       JOIN products p ON si.product_id = p.id
       WHERE si.sale_id = $1
@@ -273,10 +279,48 @@ class SaleService {
     `;
     const itemsRes = await query(itemsSql, [id]);
 
+    const items = itemsRes.rows;
+    const subtotal = +items
+      .reduce((sum, item) => sum + (parseFloat(item.subtotal ?? item.line_total) || 0), 0)
+      .toFixed(2);
+    const totalAmount = +(parseFloat(saleRes.rows[0].total_amount) || 0).toFixed(2);
+    const discountAmount = totalAmount < subtotal ? +(subtotal - totalAmount).toFixed(2) : 0;
+    const taxAmount = totalAmount > subtotal ? +(totalAmount - subtotal).toFixed(2) : 0;
+
     return {
       ...saleRes.rows[0],
-      items: itemsRes.rows,
+      subtotal,
+      discount_amount: discountAmount,
+      tax_amount: taxAmount,
+      items,
     };
+  }
+
+  /**
+   * Update sale status (completed, pending, cancelled)
+   */
+  async updateSaleStatus(id, status, userId, userEmail) {
+    const existingRes = await query('SELECT id, status FROM sales WHERE id = $1', [id]);
+    if (existingRes.rowCount === 0) {
+      throw ApiError.notFound(`Sale with ID ${id} not found`);
+    }
+
+    const previousStatus = existingRes.rows[0].status;
+    await query(
+      'UPDATE sales SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+      [status, id]
+    );
+
+    await logAudit({
+      userId,
+      userEmail,
+      action: 'SALE_STATUS_UPDATED',
+      entity: 'SALE',
+      entityId: Number(id),
+      details: { previousStatus, newStatus: status },
+    });
+
+    return this.getSaleById(id);
   }
 }
 

@@ -1,11 +1,19 @@
 const authService = require('../services/auth.service');
 
+const getClientIp = (req) =>
+  req.ip || req.headers['x-forwarded-for'] || req.connection?.remoteAddress || 'unknown';
+
+const getUserAgent = (req) => req.get('user-agent') || null;
+
 class AuthController {
   async login(req, res, next) {
     try {
-      const { email, password } = req.body;
-      const ipAddress = req.ip || req.connection.remoteAddress;
-      const result = await authService.login(email, password, ipAddress);
+      const { email, password, rememberMe } = req.body;
+      const result = await authService.login(email, password, {
+        ipAddress: getClientIp(req),
+        userAgent: getUserAgent(req),
+        rememberMe: Boolean(rememberMe),
+      });
 
       res.status(200).json({
         success: true,
@@ -26,6 +34,40 @@ class AuthController {
         success: true,
         message: 'Token refreshed successfully',
         data: result,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async forgotPassword(req, res, next) {
+    try {
+      const { email } = req.body;
+      const result = await authService.requestPasswordReset(email, {
+        ipAddress: getClientIp(req),
+        userAgent: getUserAgent(req),
+      });
+
+      res.status(200).json({
+        success: true,
+        message: result.message,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async resetPasswordWithToken(req, res, next) {
+    try {
+      const { token, password } = req.body;
+      const result = await authService.resetPasswordWithToken(token, password, {
+        ipAddress: getClientIp(req),
+        userAgent: getUserAgent(req),
+      });
+
+      res.status(200).json({
+        success: true,
+        message: result.message,
       });
     } catch (err) {
       next(err);

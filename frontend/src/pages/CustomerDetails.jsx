@@ -181,10 +181,66 @@ export const CustomerDetails = () => {
           </div>
 
           <div>
+            <div className="detail-label">State</div>
+            <span style={{ fontSize: '0.875rem' }}>{customer.state || '-'}</span>
+          </div>
+
+          <div>
+            <div className="detail-label">Industry</div>
+            <span style={{ fontSize: '0.875rem' }}>{customer.industry || '-'}</span>
+          </div>
+
+          <div>
+            <div className="detail-label">Customer Type</div>
+            <span style={{ fontSize: '0.875rem' }}>{customer.customer_type || '-'}</span>
+          </div>
+
+          <div>
+            <div className="detail-label">Contact Person</div>
+            <span style={{ fontSize: '0.875rem' }}>{customer.contact_person || '-'}</span>
+          </div>
+
+          <div>
+            <div className="detail-label">GST Number</div>
+            <span className="tabular-nums" style={{ fontSize: '0.875rem' }}>{customer.gst_number || '-'}</span>
+          </div>
+
+          <div>
             <div className="detail-label">Created</div>
             <span className="tabular-nums" style={{ fontSize: '0.875rem' }}>{formatDate(customer.created_at)}</span>
           </div>
         </div>
+
+        {(customer.address || customer.notes) && (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+              gap: 'var(--space-4)',
+              paddingTop: 'var(--space-3)',
+              marginTop: 'var(--space-3)',
+              borderTop: '1px solid var(--border)',
+            }}
+          >
+            {customer.address && (
+              <div>
+                <div className="detail-label">Address</div>
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-primary)', whiteSpace: 'pre-line', marginTop: '2px' }}>
+                  {customer.address}
+                </p>
+              </div>
+            )}
+
+            {customer.notes && (
+              <div>
+                <div className="detail-label">Notes</div>
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', whiteSpace: 'pre-line', marginTop: '2px' }}>
+                  {customer.notes}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       <div className="grid-cols-4">

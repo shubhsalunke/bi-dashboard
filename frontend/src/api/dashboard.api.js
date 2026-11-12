@@ -11,13 +11,13 @@ export const dashboardApi = {
     return data.data;
   },
 
-  getCustomerInsights: async () => {
-    const { data } = await apiClient.get('/reports/customer-insights');
+  getCustomerInsights: async (params = {}) => {
+    const { data } = await apiClient.get('/reports/customer-insights', { params });
     return data.data;
   },
 
-  getBrandSalesReport: async () => {
-    const { data } = await apiClient.get('/reports/brand-sales');
+  getBrandSalesReport: async (params = {}) => {
+    const { data } = await apiClient.get('/reports/brand-sales', { params });
     return data.data;
   },
 };

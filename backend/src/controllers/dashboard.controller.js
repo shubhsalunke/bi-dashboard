@@ -27,7 +27,7 @@ class DashboardController {
 
   async getCustomerInsights(req, res, next) {
     try {
-      const insights = await dashboardService.getCustomerInsights();
+      const insights = await dashboardService.getCustomerInsights(req.query);
       res.status(200).json({
         success: true,
         data: insights,
@@ -39,7 +39,7 @@ class DashboardController {
 
   async getBrandSalesReport(req, res, next) {
     try {
-      const brandSales = await dashboardService.getBrandSalesReport();
+      const brandSales = await dashboardService.getBrandSalesReport(req.query);
       res.status(200).json({
         success: true,
         data: brandSales,

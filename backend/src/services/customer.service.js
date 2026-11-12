@@ -2,6 +2,19 @@ const { query } = require('../config/db');
 const { ApiError } = require('../middleware/errorHandler');
 const { logAudit } = require('../utils/auditLogger');
 
+const CUSTOMER_SELECT_COLUMNS = `
+  id, customer_code, customer_name, email, phone, city,
+  industry, customer_type, contact_person, state, gst_number, address, notes,
+  status, created_at, updated_at
+`;
+
+function normalizeOptionalString(val, { uppercase = false } = {}) {
+  if (val === null || val === undefined) return null;
+  const trimmed = String(val).trim();
+  if (trimmed === '') return null;
+  return uppercase ? trimmed.toUpperCase() : trimmed;
+}
+
 class CustomerService {
   /**
    * Retrieve paginated customers with combined filtering, search, and sorting
@@ -11,6 +24,8 @@ class CustomerService {
     limit = 10,
     search = '',
     city = '',
+    industry = '',
+    customer_type = '',
     status = '',
     sortBy = 'created_at',
     sortOrder = 'desc',
@@ -35,6 +50,18 @@ class CustomerService {
     if (city && city.trim() !== '') {
       values.push(city.trim());
       conditions.push(`c.city = $${values.length}`);
+    }
+
+    // Filter by industry
+    if (industry && industry.trim() !== '') {
+      values.push(industry.trim());
+      conditions.push(`c.industry = $${values.length}`);
+    }
+
+    // Filter by customer_type
+    if (customer_type && customer_type.trim() !== '') {
+      values.push(customer_type.trim());
+      conditions.push(`c.customer_type = $${values.length}`);
     }
 
     // Filter by status
@@ -62,6 +89,10 @@ class CustomerService {
       customer_name: 'c.customer_name',
       email: 'c.email',
       city: 'c.city',
+      state: 'c.state',
+      industry: 'c.industry',
+      customer_type: 'c.customer_type',
+      contact_person: 'c.contact_person',
       status: 'c.status',
       created_at: 'c.created_at',
     };
@@ -82,6 +113,13 @@ class CustomerService {
         c.email,
         c.phone,
         c.city,
+        c.industry,
+        c.customer_type,
+        c.contact_person,
+        c.state,
+        c.gst_number,
+        c.address,
+        c.notes,
         c.status,
         c.created_at,
         c.updated_at,
@@ -112,7 +150,7 @@ class CustomerService {
    */
   async getCustomerById(id) {
     const customerRes = await query(
-      `SELECT id, customer_code, customer_name, email, phone, city, status, created_at, updated_at
+      `SELECT ${CUSTOMER_SELECT_COLUMNS}
        FROM customers WHERE id = $1`,
       [id]
     );
@@ -173,17 +211,27 @@ class CustomerService {
     }
 
     const insertSql = `
-      INSERT INTO customers (customer_code, customer_name, email, phone, city, status)
-      VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING id, customer_code, customer_name, email, phone, city, status, created_at;
+      INSERT INTO customers (
+        customer_code, customer_name, email, phone, city, status,
+        industry, customer_type, contact_person, state, gst_number, address, notes
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      RETURNING ${CUSTOMER_SELECT_COLUMNS};
     `;
     const res = await query(insertSql, [
       data.customer_code.trim(),
       data.customer_name.trim(),
       data.email.toLowerCase().trim(),
-      data.phone ? data.phone.trim() : null,
+      normalizeOptionalString(data.phone),
       data.city.trim(),
       data.status || 'active',
+      normalizeOptionalString(data.industry),
+      normalizeOptionalString(data.customer_type),
+      normalizeOptionalString(data.contact_person),
+      normalizeOptionalString(data.state),
+      normalizeOptionalString(data.gst_number, { uppercase: true }),
+      normalizeOptionalString(data.address),
+      normalizeOptionalString(data.notes),
     ]);
 
     const newCustomer = res.rows[0];
@@ -224,29 +272,27 @@ class CustomerService {
     const updates = [];
     const values = [];
 
-    if (data.customer_code !== undefined) {
-      values.push(data.customer_code.trim());
-      updates.push(`customer_code = $${values.length}`);
-    }
-    if (data.customer_name !== undefined) {
-      values.push(data.customer_name.trim());
-      updates.push(`customer_name = $${values.length}`);
-    }
-    if (data.email !== undefined) {
-      values.push(data.email.toLowerCase().trim());
-      updates.push(`email = $${values.length}`);
-    }
-    if (data.phone !== undefined) {
-      values.push(data.phone ? data.phone.trim() : null);
-      updates.push(`phone = $${values.length}`);
-    }
-    if (data.city !== undefined) {
-      values.push(data.city.trim());
-      updates.push(`city = $${values.length}`);
-    }
-    if (data.status !== undefined) {
-      values.push(data.status);
-      updates.push(`status = $${values.length}`);
+    const fieldHandlers = [
+      ['customer_code', (v) => v.trim()],
+      ['customer_name', (v) => v.trim()],
+      ['email', (v) => v.toLowerCase().trim()],
+      ['phone', (v) => normalizeOptionalString(v)],
+      ['city', (v) => v.trim()],
+      ['status', (v) => v],
+      ['industry', (v) => normalizeOptionalString(v)],
+      ['customer_type', (v) => normalizeOptionalString(v)],
+      ['contact_person', (v) => normalizeOptionalString(v)],
+      ['state', (v) => normalizeOptionalString(v)],
+      ['gst_number', (v) => normalizeOptionalString(v, { uppercase: true })],
+      ['address', (v) => normalizeOptionalString(v)],
+      ['notes', (v) => normalizeOptionalString(v)],
+    ];
+
+    for (const [field, transform] of fieldHandlers) {
+      if (data[field] !== undefined) {
+        values.push(transform(data[field]));
+        updates.push(`${field} = $${values.length}`);
+      }
     }
 
     updates.push('updated_at = CURRENT_TIMESTAMP');
@@ -256,7 +302,7 @@ class CustomerService {
       UPDATE customers
       SET ${updates.join(', ')}
       WHERE id = $${values.length}
-      RETURNING id, customer_code, customer_name, email, phone, city, status, created_at, updated_at;
+      RETURNING ${CUSTOMER_SELECT_COLUMNS};
     `;
 
     const res = await query(updateSql, values);

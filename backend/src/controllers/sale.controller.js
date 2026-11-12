@@ -45,6 +45,25 @@ class SaleController {
       next(err);
     }
   }
+
+  async updateSaleStatus(req, res, next) {
+    try {
+      const updatedSale = await saleService.updateSaleStatus(
+        req.params.id,
+        req.body.status,
+        req.user.id,
+        req.user.email
+      );
+
+      res.status(200).json({
+        success: true,
+        message: 'Sale status updated successfully',
+        data: updatedSale,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 module.exports = new SaleController();

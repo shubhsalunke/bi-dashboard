@@ -1,127 +1,102 @@
-import React from 'react';
-import {
-  BarChart,
-  Bar,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  LabelList,
-  ResponsiveContainer,
-} from 'recharts';
+import React, { useState, useMemo } from 'react';
 import { StatCard } from '../common/StatCard';
 import { EmptyState } from '../common/EmptyState';
 import { CardSkeleton } from '../common/LoadingSkeleton';
+import { TableHeader } from '../common/TableHeader';
 import { MonthlyRevenueChart } from '../charts/MonthlyRevenueChart';
-import { formatCurrency, formatChartValue, formatMonth } from '../../utils/format';
+import { BrandSalesChart } from './BrandSalesChart';
+import { RevenueBreakdownChart } from './RevenueBreakdownChart';
+import { CustomerTypeDonutChart } from './CustomerTypeDonutChart';
+import { TopCustomersBarChart } from './TopCustomersBarChart';
+import { formatCurrency } from '../../utils/format';
 
-const CITIES = ['Pune', 'Mumbai', 'Nagpur', 'Nashik', 'Aurangabad', 'Hyderabad', 'Delhi'];
+function buildPeriodComparison(pctValue) {
+  if (pctValue === null || pctValue === undefined) {
+    return {
+      text: '— vs previous period',
+      isNeutral: true,
+    };
+  }
+  const num = Number(pctValue);
+  if (Number.isNaN(num)) {
+    return {
+      text: '— vs previous period',
+      isNeutral: true,
+    };
+  }
+  const sign = num > 0 ? '+' : '';
+  return {
+    text: `${sign}${num.toFixed(1)}% vs previous period`,
+    isPositive: num >= 0,
+    isNeutral: false,
+  };
+}
 
 export const SalesReportTab = ({
   loading,
   salesReport,
-  startDate,
-  endDate,
+  brandSales,
+  periodTimeline,
+  metric,
+  granularity,
+  onMetricChange,
+  onGranularityChange,
   cityFilter,
-  setStartDate,
-  setEndDate,
-  setCityFilter,
-  handlePreset,
-  monthlyTimeline,
-  peakCity,
+  brandFilter,
+  industryFilter,
+  customerTypeFilter,
+  stateFilter,
+  onSelectCity,
+  onSelectBrand,
+  onSelectIndustry,
+  onSelectCustomerType,
+  onSelectState,
   totalPeriodRevenue,
 }) => {
-  const diffDays = startDate && endDate
-    ? Math.round((Date.parse(endDate) - Date.parse(startDate)) / 86400000)
-    : null;
-  const isAllTime = !startDate && !endDate;
-  const is30Days = diffDays === 30;
-  const is90Days = diffDays === 90;
+  const [catSortField, setCatSortField] = useState('category_revenue');
+  const [catSortAsc, setCatSortAsc] = useState(false);
 
-  const monthlyChartData = (monthlyTimeline || []).map((m) => ({
-    ...m,
-    monthLabel: formatMonth(m.month),
-  }));
+  const handleCategorySort = (field) => {
+    if (catSortField === field) {
+      setCatSortAsc(!catSortAsc);
+    } else {
+      setCatSortField(field);
+      setCatSortAsc(field === 'category');
+    }
+  };
 
-  const cityChartData = (salesReport?.byCity || []).map((c) => ({
-    ...c,
-    revenueNum: Number(c.revenue) || 0,
-  }));
+  const sortedCategories = useMemo(() => {
+    const list = [...(salesReport?.byCategory || [])];
+    list.sort((a, b) => {
+      if (catSortField === 'category') {
+        const valA = (a.category || '').toLowerCase();
+        const valB = (b.category || '').toLowerCase();
+        if (valA < valB) return catSortAsc ? -1 : 1;
+        if (valA > valB) return catSortAsc ? 1 : -1;
+        return 0;
+      }
+      const getNumeric = (row) => {
+        if (catSortField === 'units_sold') return Number(row.units_sold) || 0;
+        if (catSortField === 'share') return Number(row.category_revenue) || 0;
+        return Number(row.category_revenue) || 0;
+      };
+      const diff = getNumeric(a) - getNumeric(b);
+      return catSortAsc ? diff : -diff;
+    });
+    return list;
+  }, [salesReport?.byCategory, catSortField, catSortAsc]);
+
+  const summary = salesReport?.summary;
+  const comparison = salesReport?.comparison;
+  const topCustomer = summary?.top_customer;
 
   return (
     <div className="stack-lg">
-      <div className="filter-bar" style={{ marginBottom: 0 }}>
-        <div className="segmented-group" role="group" aria-label="Report date presets">
-          <button
-            type="button"
-            className={`segmented-btn ${isAllTime ? 'active' : ''}`}
-            onClick={() => handlePreset(null)}
-          >
-            All Time
-          </button>
-          <button
-            type="button"
-            className={`segmented-btn ${is30Days ? 'active' : ''}`}
-            onClick={() => handlePreset(30)}
-          >
-            30 Days
-          </button>
-          <button
-            type="button"
-            className={`segmented-btn ${is90Days ? 'active' : ''}`}
-            onClick={() => handlePreset(90)}
-          >
-            90 Days
-          </button>
-        </div>
-
-        <div className="date-range-group">
-          <input
-            type="date"
-            aria-label="Start date"
-            className="form-control"
-            style={{ width: '144px' }}
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
-          <span className="date-range-sep">to</span>
-          <input
-            type="date"
-            aria-label="End date"
-            className="form-control"
-            style={{ width: '144px' }}
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
-        </div>
-
-        <select
-          className="form-control filter-select"
-          aria-label="Filter by city"
-          value={cityFilter}
-          onChange={(e) => setCityFilter(e.target.value)}
-        >
-          <option value="">All Cities</option>
-          {CITIES.map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
-
-        {(startDate || endDate || cityFilter) && (
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={() => { setStartDate(''); setEndDate(''); setCityFilter(''); }}
-          >
-            Reset
-          </button>
-        )}
-      </div>
-
-      <div className="grid-cols-4">
+      <div className="stats-grid-6">
         {loading || !salesReport ? (
           <>
+            <CardSkeleton />
+            <CardSkeleton />
             <CardSkeleton />
             <CardSkeleton />
             <CardSkeleton />
@@ -131,111 +106,78 @@ export const SalesReportTab = ({
           <>
             <StatCard
               title="Total Sales"
-              value={salesReport.summary?.total_orders || 0}
+              value={summary?.total_orders || 0}
+              comparison={buildPeriodComparison(comparison?.total_orders_pct)}
             />
             <StatCard
               title="Total Revenue"
-              value={formatCurrency(salesReport.summary?.total_revenue)}
+              value={formatCurrency(summary?.total_revenue)}
+              comparison={buildPeriodComparison(comparison?.total_revenue_pct)}
             />
             <StatCard
               title="Unique Customers"
-              value={salesReport.summary?.unique_customers || 0}
+              value={summary?.unique_customers || 0}
             />
             <StatCard
               title="Average Order Value"
-              value={formatCurrency(salesReport.summary?.average_order_value)}
+              value={formatCurrency(summary?.average_order_value)}
+              comparison={buildPeriodComparison(comparison?.average_order_value_pct)}
+            />
+            <StatCard
+              title="Units Sold"
+              value={summary?.total_units ?? 0}
+            />
+            <StatCard
+              title="Top Customer"
+              value={topCustomer ? topCustomer.customer_name : '—'}
+              subtitle={
+                topCustomer
+                  ? `${formatCurrency(topCustomer.total_revenue)} · ${topCustomer.orders_count} ${
+                      topCustomer.orders_count === 1 ? 'order' : 'orders'
+                    }`
+                  : 'No orders in selection'
+              }
             />
           </>
         )}
       </div>
 
       <MonthlyRevenueChart
-        data={monthlyChartData}
+        data={periodTimeline}
         loading={loading || !salesReport}
-        emptyTitle="No monthly sales data"
-        emptyDescription="No revenue records match the selected date and city filters."
+        metric={metric}
+        granularity={granularity}
+        onMetricChange={onMetricChange}
+        onGranularityChange={onGranularityChange}
+        emptyTitle={granularity === 'weekly' ? 'No weekly sales data' : 'No monthly sales data'}
+        emptyDescription="No revenue records match the selected filters."
       />
 
       <div className="grid-cols-2">
-        <section className="card card-flush" aria-label="Sales by City">
-          <div className="card-header">
-            <h3 className="section-heading" style={{ marginBottom: 0 }}>Sales by City</h3>
-          </div>
-
-          <div className="card-body">
-            <div className="chart-box-sm">
-              {loading || !salesReport ? (
-                <div className="skeleton" style={{ width: '100%', height: '100%' }} />
-              ) : cityChartData.length === 0 ? (
-                <EmptyState
-                  title="No city data"
-                  description="No city-level sales recorded for this filter."
-                />
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={cityChartData} barCategoryGap="24%" margin={{ top: cityChartData.length <= 6 ? 20 : 12, right: 8, left: 0, bottom: 4 }}>
-                    <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--chart-grid)" />
-                    <XAxis
-                      dataKey="city"
-                      axisLine={{ stroke: 'var(--border)' }}
-                      tickLine={false}
-                      tick={{ fill: 'var(--chart-axis)', fontSize: 12 }}
-                      dy={6}
-                    />
-                    <YAxis
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: 'var(--chart-axis)', fontSize: 12 }}
-                      tickFormatter={(v) => formatChartValue(v)}
-                      padding={{ top: 20 }}
-                      width={52}
-                    />
-                    <Tooltip
-                      cursor={{ fill: 'rgba(37, 99, 235, 0.06)' }}
-                      contentStyle={{
-                        background: 'var(--bg-surface)',
-                        border: '1px solid var(--border-strong)',
-                        borderRadius: 'var(--radius-md)',
-                        boxShadow: 'var(--shadow-md)',
-                        color: 'var(--text-primary)',
-                        fontSize: '0.8125rem',
-                      }}
-                      formatter={(val) => [formatCurrency(val), 'Revenue']}
-                    />
-                    <Bar dataKey="revenueNum" radius={[2, 2, 0, 0]} maxBarSize={52} isAnimationActive={false}>
-                      {cityChartData.map((entry, index) => {
-                        const isPeak = peakCity && entry.city === peakCity.city;
-                        return (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={isPeak ? 'var(--accent)' : 'var(--chart-muted)'}
-                          />
-                        );
-                      })}
-                      {cityChartData.length <= 6 && (
-                        <LabelList
-                          dataKey="revenueNum"
-                          position="top"
-                          offset={6}
-                          formatter={(v) => (Number(v) > 0 ? formatChartValue(v) : '')}
-                          fill="var(--text-secondary)"
-                          fontSize={12}
-                        />
-                      )}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-          </div>
-        </section>
+        <RevenueBreakdownChart
+          title="Sales by City"
+          data={salesReport?.byCity}
+          dataKey="city"
+          valueKey="revenue"
+          loading={loading || !salesReport}
+          emptyTitle="No city data"
+          emptyDescription="No city-level sales recorded for this filter."
+          activeValue={cityFilter}
+          onSelect={onSelectCity}
+        />
 
         <section className="card card-flush" aria-label="Sales by Category">
           <div className="card-header">
             <h3 className="section-heading" style={{ marginBottom: 0 }}>Sales by Category</h3>
           </div>
 
-          {!salesReport?.byCategory || salesReport.byCategory.length === 0 ? (
+          {loading || !salesReport ? (
+            <div className="card-body">
+              <div className="chart-box-sm">
+                <div className="skeleton" style={{ width: '100%', height: '100%' }} />
+              </div>
+            </div>
+          ) : sortedCategories.length === 0 ? (
             <EmptyState
               title="No category breakdown"
               description="No category sales found for the selected filters."
@@ -245,14 +187,41 @@ export const SalesReportTab = ({
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Category</th>
-                    <th className="num">Units</th>
-                    <th className="num">Share</th>
-                    <th className="num">Revenue</th>
+                    <TableHeader
+                      label="Category"
+                      field="category"
+                      sortField={catSortField}
+                      sortAsc={catSortAsc}
+                      onSort={handleCategorySort}
+                    />
+                    <TableHeader
+                      label="Units"
+                      field="units_sold"
+                      sortField={catSortField}
+                      sortAsc={catSortAsc}
+                      onSort={handleCategorySort}
+                      align="right"
+                    />
+                    <TableHeader
+                      label="Share"
+                      field="share"
+                      sortField={catSortField}
+                      sortAsc={catSortAsc}
+                      onSort={handleCategorySort}
+                      align="right"
+                    />
+                    <TableHeader
+                      label="Revenue"
+                      field="category_revenue"
+                      sortField={catSortField}
+                      sortAsc={catSortAsc}
+                      onSort={handleCategorySort}
+                      align="right"
+                    />
                   </tr>
                 </thead>
                 <tbody>
-                  {salesReport.byCategory.map((cat) => {
+                  {sortedCategories.map((cat) => {
                     const sharePct = Math.round(((Number(cat.category_revenue) || 0) / totalPeriodRevenue) * 100);
                     return (
                       <tr key={cat.category}>
@@ -281,6 +250,53 @@ export const SalesReportTab = ({
           )}
         </section>
       </div>
+
+      <div className="grid-cols-2">
+        <BrandSalesChart
+          brandSales={brandSales}
+          loading={loading}
+          activeBrand={brandFilter}
+          onSelectBrand={onSelectBrand}
+        />
+
+        <RevenueBreakdownChart
+          title="Revenue by Industry"
+          data={salesReport?.byIndustry}
+          dataKey="industry"
+          valueKey="revenue"
+          loading={loading || !salesReport}
+          emptyTitle="No industry data"
+          emptyDescription="No industry-level sales recorded for this filter."
+          activeValue={industryFilter}
+          onSelect={onSelectIndustry}
+        />
+      </div>
+
+      <div className="grid-cols-2">
+        <CustomerTypeDonutChart
+          data={salesReport?.byCustomerType}
+          loading={loading || !salesReport}
+          activeCustomerType={customerTypeFilter}
+          onSelectCustomerType={onSelectCustomerType}
+        />
+
+        <RevenueBreakdownChart
+          title="Revenue by State"
+          data={salesReport?.byState}
+          dataKey="state"
+          valueKey="revenue"
+          loading={loading || !salesReport}
+          emptyTitle="No state data"
+          emptyDescription="No state-level sales recorded for this filter."
+          activeValue={stateFilter}
+          onSelect={onSelectState}
+        />
+      </div>
+
+      <TopCustomersBarChart
+        data={salesReport?.topCustomers}
+        loading={loading || !salesReport}
+      />
     </div>
   );
 };

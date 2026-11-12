@@ -6,6 +6,7 @@ const {
   createSaleSchema,
   listSalesSchema,
   saleIdSchema,
+  updateSaleStatusSchema,
 } = require('../validation/sale.validation');
 
 const router = express.Router();
@@ -22,6 +23,14 @@ router.post(
   authorize(ROLES.ADMIN, ROLES.MANAGER),
   validate(createSaleSchema),
   saleController.createSale
+);
+
+// Update sale status (admin, manager only)
+router.patch(
+  '/:id/status',
+  authorize(ROLES.ADMIN, ROLES.MANAGER),
+  validate(updateSaleStatusSchema),
+  saleController.updateSaleStatus
 );
 
 module.exports = router;
