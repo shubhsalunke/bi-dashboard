@@ -541,7 +541,7 @@ Provides endpoints for CRM, catalog, transactional sales, executive reporting, A
     },
     '/api/ai/ask': {
       post: {
-        summary: 'Ask natural language business questions grounded in verified business records',
+        summary: 'Ask natural language business questions grounded in verified ai_* views (with chart recommendation, follow-ups, and role-gated SQL)',
         tags: ['AI Business Assistant'],
         security: [{ BearerAuth: [] }],
         requestBody: {
@@ -555,7 +555,19 @@ Provides endpoints for CRM, catalog, transactional sales, executive reporting, A
                   question: {
                     type: 'string',
                     example: 'What were total sales last month?',
-                    description: 'Natural language business intelligence question (3-500 chars)',
+                    description: 'Natural language business intelligence question in English, Hindi, or Hinglish (3-500 chars)',
+                  },
+                  conversationId: { type: 'integer', nullable: true },
+                  history: {
+                    type: 'array',
+                    maxItems: 3,
+                    items: {
+                      type: 'object',
+                      properties: {
+                        question: { type: 'string' },
+                        answer: { type: 'string' },
+                      },
+                    },
                   },
                 },
               },
@@ -563,11 +575,129 @@ Provides endpoints for CRM, catalog, transactional sales, executive reporting, A
           },
         },
         responses: {
-          200: { description: 'Grounded business intelligence response with structured data rows' },
+          200: { description: 'Grounded business intelligence response with structured data rows, chartConfig, and follow-ups' },
           400: { description: 'Validation failed or question format invalid' },
           401: { description: 'Unauthorized - invalid or missing JWT token' },
-          429: { description: 'Rate limit exceeded' },
+          429: { description: 'Per-user or per-IP rate limit exceeded (max 20/min per user)' },
           503: { description: 'AI provider not configured' },
+        },
+      },
+    },
+    '/api/ai/ask/stream': {
+      post: {
+        summary: 'Stream AI Assistant answer via Server-Sent Events (SSE)',
+        tags: ['AI Business Assistant'],
+        security: [{ BearerAuth: [] }],
+        responses: {
+          200: { description: 'text/event-stream events: status, chunk, done' },
+          429: { description: 'Rate limit exceeded' },
+        },
+      },
+    },
+    '/api/ai/insights': {
+      post: {
+        summary: 'Generate 5 automated executive insights from live ai_* views',
+        tags: ['AI Business Assistant'],
+        security: [{ BearerAuth: [] }],
+        responses: {
+          200: { description: 'Five key business insights with supporting data table and chart' },
+        },
+      },
+    },
+    '/api/ai/suggestions': {
+      get: {
+        summary: 'Get topic-grouped dynamic sample questions based on current database values',
+        tags: ['AI Business Assistant'],
+        security: [{ BearerAuth: [] }],
+        responses: {
+          200: { description: 'Grouped sample questions (Sales, Customers, Products, Trends)' },
+        },
+      },
+    },
+    '/api/ai/conversations': {
+      get: {
+        summary: 'List saved AI conversations for the authenticated user',
+        tags: ['AI Business Assistant'],
+        security: [{ BearerAuth: [] }],
+        responses: { 200: { description: 'Conversation list' } },
+      },
+      post: {
+        summary: 'Create a new AI conversation',
+        tags: ['AI Business Assistant'],
+        security: [{ BearerAuth: [] }],
+        responses: { 201: { description: 'Created conversation' } },
+      },
+      delete: {
+        summary: 'Clear all saved AI conversations for the authenticated user',
+        tags: ['AI Business Assistant'],
+        security: [{ BearerAuth: [] }],
+        responses: { 200: { description: 'All user conversations deleted' } },
+      },
+    },
+    '/api/ai/conversations/{id}': {
+      patch: {
+        summary: 'Rename a conversation owned by the current user',
+        tags: ['AI Business Assistant'],
+        security: [{ BearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: { 200: { description: 'Conversation renamed' } },
+      },
+      delete: {
+        summary: 'Delete a conversation owned by the current user',
+        tags: ['AI Business Assistant'],
+        security: [{ BearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: { 200: { description: 'Conversation deleted' } },
+      },
+    },
+    '/api/ai/conversations/{id}/messages': {
+      get: {
+        summary: 'Load messages for a saved conversation (SQL hidden for non-admins)',
+        tags: ['AI Business Assistant'],
+        security: [{ BearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: { 200: { description: 'Conversation messages' } },
+      },
+    },
+    '/api/ai/feedback': {
+      post: {
+        summary: 'Submit thumbs up / down feedback on an AI response',
+        tags: ['AI Business Assistant'],
+        security: [{ BearerAuth: [] }],
+        responses: { 200: { description: 'Feedback saved' } },
+      },
+    },
+    '/api/ai/pinned-widgets': {
+      get: {
+        summary: 'List AI insights/charts pinned to Dashboard by the current user',
+        tags: ['AI Business Assistant'],
+        security: [{ BearerAuth: [] }],
+        responses: { 200: { description: 'Pinned widgets' } },
+      },
+      post: {
+        summary: 'Pin an AI chart/table answer to the Dashboard',
+        tags: ['AI Business Assistant'],
+        security: [{ BearerAuth: [] }],
+        responses: { 201: { description: 'Widget pinned' } },
+      },
+    },
+    '/api/ai/pinned-widgets/{id}': {
+      delete: {
+        summary: 'Unpin an AI widget from the Dashboard',
+        tags: ['AI Business Assistant'],
+        security: [{ BearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: { 200: { description: 'Widget unpinned' } },
+      },
+    },
+    '/api/ai/sql-logs': {
+      get: {
+        summary: 'View AI question & generated SQL audit log (Administrator only)',
+        tags: ['AI Business Assistant'],
+        security: [{ BearerAuth: [] }],
+        responses: {
+          200: { description: 'AI SQL audit logs' },
+          403: { description: 'Forbidden - Administrator role required' },
         },
       },
     },

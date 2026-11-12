@@ -10,9 +10,12 @@ import {
   Printer,
   SlidersHorizontal,
   ArrowRight,
+  PinOff,
+  Sparkles,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { dashboardApi } from '../api/dashboard.api';
+import { aiApi } from '../api/ai.api';
 import { StatCard } from '../components/common/StatCard';
 import { Badge } from '../components/common/Badge';
 import { EmptyState } from '../components/common/EmptyState';
@@ -22,6 +25,7 @@ import { CustomerStatusChart } from '../components/charts/CustomerStatusChart';
 import { RevenueDonutChart } from '../components/charts/RevenueDonutChart';
 import { RevenueBreakdownChart } from '../components/reports/RevenueBreakdownChart';
 import { BrandSalesChart } from '../components/reports/BrandSalesChart';
+import { AIChartView } from '../components/ai/AIChartView';
 import { useToast } from '../context/ToastContext';
 import { formatCurrency, formatDate, formatMonth } from '../utils/format';
 import {
@@ -242,9 +246,32 @@ export const Dashboard = () => {
     }
   }, [queryParams, startDate, endDate, showToast]);
 
+  const [pinnedWidgets, setPinnedWidgets] = useState([]);
+
   useEffect(() => {
     fetchDashboard();
   }, [fetchDashboard]);
+
+  useEffect(() => {
+    if (typeof aiApi.getPinnedWidgets !== 'function') return;
+    aiApi
+      .getPinnedWidgets()
+      .then((list) => {
+        if (Array.isArray(list)) setPinnedWidgets(list);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleUnpinWidget = async (widgetId) => {
+    if (typeof aiApi.unpinWidget !== 'function') return;
+    try {
+      await aiApi.unpinWidget(widgetId);
+      setPinnedWidgets((prev) => prev.filter((w) => w.id !== widgetId));
+      showToast('Widget unpinned from Dashboard', 'info');
+    } catch (err) {
+      showToast(err?.message || 'Failed to unpin widget', 'error');
+    }
+  };
 
   // Auto-refresh timer
   useEffect(() => {
@@ -1259,6 +1286,85 @@ export const Dashboard = () => {
                   </table>
                 </div>
               )}
+            </section>
+          )}
+
+          {pinnedWidgets.length > 0 && (
+            <section className="stack-md" aria-label="Pinned AI Insights">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <h3 className="section-heading" style={{ marginBottom: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <Sparkles size={16} aria-hidden="true" style={{ color: 'var(--accent-text)' }} />
+                  <span>Pinned AI Insights</span>
+                </h3>
+                <Link to="/ai-assistant" className="btn btn-secondary btn-sm no-print">
+                  <span>Ask AI Assistant</span>
+                  <ArrowRight size={13} aria-hidden="true" />
+                </Link>
+              </div>
+
+              <div className="dashboard-grid-2">
+                {pinnedWidgets.map((w) => (
+                  <div key={w.id} className="card">
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        justifyContent: 'space-between',
+                        gap: 'var(--space-2)',
+                        marginBottom: 'var(--space-3)',
+                      }}
+                    >
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: '0.9375rem', fontWeight: 600 }}>
+                          {w.title}
+                        </h4>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                          {w.question}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm no-print"
+                        onClick={() => handleUnpinWidget(w.id)}
+                        aria-label={`Unpin ${w.title}`}
+                        title="Unpin widget"
+                      >
+                        <PinOff size={13} aria-hidden="true" />
+                      </button>
+                    </div>
+
+                    {w.chartConfig && w.chartType !== 'table' ? (
+                      <AIChartView
+                        chartConfig={{ ...w.chartConfig, chartType: w.chartType }}
+                        rows={w.rows || []}
+                        title={w.title}
+                        compact
+                      />
+                    ) : (
+                      <div className="table-responsive" style={{ maxHeight: 220, overflowY: 'auto' }}>
+                        <table className="data-table" style={{ fontSize: '0.8125rem' }}>
+                          <thead>
+                            <tr>
+                              {(w.columns || []).map((c) => (
+                                <th key={c.key}>{c.label}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(w.rows || []).slice(0, 8).map((row, idx) => (
+                              <tr key={idx}>
+                                {(w.columns || []).map((c) => (
+                                  <td key={c.key}>{String(row[c.key] ?? '-')}</td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </section>
           )}
         </>

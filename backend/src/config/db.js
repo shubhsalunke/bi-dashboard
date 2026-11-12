@@ -79,7 +79,7 @@ const aiPool = new Pool({
   max: 10,
   idleTimeoutMillis: config.db.idleTimeoutMs,
   connectionTimeoutMillis: config.db.connectionTimeoutMs,
-  statement_timeout: 5000,
+  statement_timeout: config.ai?.statementTimeoutMs || 5000,
 });
 
 aiPool.on('error', (err) => {

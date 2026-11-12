@@ -61,6 +61,9 @@ const config = {
     openaiModel: process.env.OPENAI_MODEL || 'gpt-4o-mini',
     timeoutMs: parseInt(process.env.AI_TIMEOUT_MS || '15000', 10),
     sqlTimeoutMs: parseInt(process.env.AI_SQL_TIMEOUT_MS || process.env.AI_TIMEOUT_MS || '30000', 10),
+    statementTimeoutMs: parseInt(process.env.AI_STATEMENT_TIMEOUT_MS || '5000', 10),
+    maxRows: parseInt(process.env.AI_MAX_ROWS || '200', 10),
+    userRateLimitMax: parseInt(process.env.AI_USER_RATE_LIMIT_MAX || '20', 10),
     dynamicSql: process.env.AI_DYNAMIC_SQL === 'true',
   },
 

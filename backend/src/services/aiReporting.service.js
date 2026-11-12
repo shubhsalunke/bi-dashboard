@@ -72,7 +72,10 @@ class AiReportingService {
       /\b(by brand|by category|by month|by status|by week|by day|per brand|per category|per product|per month)\b/i,
       /\b(never sold|no orders|without orders|out of stock|low stock|stock|reorder|warranty|gst|sku|margin|median|stddev)\b/i,
       /\b(q1|q2|q3|q4|2024|2025|2026|2027|january|february|march|april|may|june|july|august|september|october|november|december)\b/i,
-      /\b(today|yesterday|this week|last week|last 7 days|last 30 days|last 60 days|last 90 days|last year|this year)\b/i,
+      /\b(today|yesterday|this week|last week|last 7 days|last 30 days|last 60 days|last 90 days|last year|this year|financial year|fy)\b/i,
+      /\b(industry|state|states|customer_type|customer type|large business|small business|startup|individual|prospect|on_hold|churned)\b/i,
+      /\b(kitni|kitna|batao|dikhao|pichle|agla|mahina|mahine)\b/i,
+      /[\u0900-\u097F]/,
     ];
     return extraPatterns.some((re) => re.test(q));
   }
@@ -84,11 +87,16 @@ class AiReportingService {
     const q = question.toLowerCase().trim();
     const cleaned = q.replace(/[?.!]+$/, '').trim();
 
-    // 1. Security Check: Block arbitrary SQL keywords or injection payloads
+    // 1. Security Check: Block arbitrary SQL keywords, prompt injections, and PII probes
     const injectionPatterns = [
       /\b(drop|delete|insert|update|alter|truncate|grant|revoke|create|replace)\b/i,
+      /\bcopy\s+(?:\w+|\([^)]+\))\s+(?:from|to)\b/i,
+      /\b(pg_sleep|pg_read_file|pg_ls_dir|dblink|set_config|lo_import|lo_export)\b/i,
       /\b(union\s+select|information_schema|pg_catalog|pg_tables|pg_user)\b/i,
+      /\b(password_hash|gst_number|gstin|token_hash)\b/i,
+      /\b(?:user|staff|admin|customer)\s+(?:email|emails|phone|phones|password|passwords|address|addresses)\b/i,
       /\bignore\s+(?:all\s+|any\s+)?(?:previous|prior|above|system)\s+instructions\b/i,
+      /\b(?:reveal|show|print|dump|output)\s+(?:your\s+|the\s+)?(?:system\s+prompt|hidden\s+instructions|api\s+key|env)\b/i,
       /\b(?:show|list|reveal|dump)\s+(?:all\s+)?(?:database\s+)?tables\b/i,
       /(--|\/\*|\*\/|;)/,
     ];
